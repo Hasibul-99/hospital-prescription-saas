@@ -33,7 +33,18 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = $request->user();
+        $user->update(['last_login_at' => now()]);
+
+        $defaultRoute = match ($user->role) {
+            'super_admin' => 'admin.dashboard',
+            'hospital_admin' => 'hospital.dashboard',
+            'doctor' => 'doctor.dashboard',
+            'receptionist' => 'receptionist.dashboard',
+            default => 'dashboard',
+        };
+
+        return redirect()->intended(route($defaultRoute, absolute: false));
     }
 
     /**

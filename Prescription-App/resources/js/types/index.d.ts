@@ -192,6 +192,11 @@ export type PageProps<
     auth: {
         user: User;
     };
+    locale: 'en' | 'bn';
+    flash: {
+        success?: string;
+        error?: string;
+    };
 };
 
 export interface PaginatedData<T> {

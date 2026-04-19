@@ -15,7 +15,17 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    $user = auth()->user();
+    if ($user) {
+        return redirect()->route(match ($user->role) {
+            'super_admin' => 'admin.dashboard',
+            'hospital_admin' => 'hospital.dashboard',
+            'doctor' => 'doctor.dashboard',
+            'receptionist' => 'receptionist.dashboard',
+            default => 'login',
+        });
+    }
+    return redirect()->route('login');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -25,3 +35,7 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+require __DIR__.'/admin.php';
+require __DIR__.'/hospital.php';
+require __DIR__.'/doctor.php';
+require __DIR__.'/receptionist.php';
