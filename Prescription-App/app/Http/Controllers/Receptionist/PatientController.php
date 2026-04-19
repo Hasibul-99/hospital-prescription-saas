@@ -12,6 +12,8 @@ class PatientController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Patient::class);
+
         $patients = Patient::query()
             ->withCount('appointments')
             ->withMax('appointments as last_visit', 'appointment_date')
@@ -24,6 +26,8 @@ class PatientController extends Controller
             })
             ->when($request->gender, fn ($q, $g) => $q->where('gender', $g))
             ->when($request->blood_group, fn ($q, $bg) => $q->where('blood_group', $bg))
+            ->when($request->age_from, fn ($q, $a) => $q->where('age_years', '>=', $a))
+            ->when($request->age_to, fn ($q, $a) => $q->where('age_years', '<=', $a))
             ->when($request->sort_by, function ($q, $sort) use ($request) {
                 $direction = $request->sort_dir === 'asc' ? 'asc' : 'desc';
                 $q->orderBy($sort, $direction);
@@ -33,17 +37,21 @@ class PatientController extends Controller
 
         return Inertia::render('Receptionist/Patients/Index', [
             'patients' => $patients,
-            'filters' => $request->only(['search', 'gender', 'blood_group', 'sort_by', 'sort_dir']),
+            'filters' => $request->only(['search', 'gender', 'blood_group', 'age_from', 'age_to', 'sort_by', 'sort_dir']),
         ]);
     }
 
     public function create()
     {
+        $this->authorize('create', Patient::class);
+
         return Inertia::render('Receptionist/Patients/Create');
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Patient::class);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'age_years' => 'nullable|integer|min:0|max:150',
@@ -52,9 +60,7 @@ class PatientController extends Controller
             'date_of_birth' => 'nullable|date|before:today',
             'gender' => 'required|in:male,female,other',
             'phone' => [
-                'required',
-                'string',
-                'max:20',
+                'required', 'string', 'max:20',
                 Rule::unique('patients')->where('hospital_id', auth()->user()->hospital_id),
             ],
             'email' => 'nullable|email|max:255',
@@ -86,7 +92,8 @@ class PatientController extends Controller
 
     public function show(Patient $patient)
     {
-        // Receptionist can see patient info + appointments, but NOT prescription details
+        $this->authorize('view', $patient);
+
         $patient->load([
             'appointments' => fn ($q) => $q->with('doctor:id,name')->latest('appointment_date'),
         ]);
@@ -98,6 +105,8 @@ class PatientController extends Controller
 
     public function edit(Patient $patient)
     {
+        $this->authorize('update', $patient);
+
         return Inertia::render('Receptionist/Patients/Edit', [
             'patient' => $patient,
         ]);
@@ -105,6 +114,8 @@ class PatientController extends Controller
 
     public function update(Request $request, Patient $patient)
     {
+        $this->authorize('update', $patient);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'age_years' => 'nullable|integer|min:0|max:150',
@@ -113,9 +124,7 @@ class PatientController extends Controller
             'date_of_birth' => 'nullable|date|before:today',
             'gender' => 'required|in:male,female,other',
             'phone' => [
-                'required',
-                'string',
-                'max:20',
+                'required', 'string', 'max:20',
                 Rule::unique('patients')->where('hospital_id', auth()->user()->hospital_id)->ignore($patient->id),
             ],
             'email' => 'nullable|email|max:255',

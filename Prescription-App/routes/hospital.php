@@ -18,6 +18,7 @@ Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active']
         Route::resource('doctors', DoctorController::class);
         Route::resource('receptionists', ReceptionistController::class);
         Route::resource('patients', PatientController::class);
+        Route::get('patients-export', [PatientController::class, 'export'])->name('patients.export');
         Route::resource('chambers', ChamberController::class);
         Route::resource('holidays', HolidayController::class)->except(['show']);
 

@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Patient } from '@/types';
 
@@ -33,6 +33,10 @@ export default function PatientForm({ patient, submitUrl, method = 'post', cance
     const [duplicate, setDuplicate] = useState<Patient | null>(null);
     const [checkingDup, setCheckingDup] = useState(false);
     const dupDebounce = useRef<ReturnType<typeof setTimeout>>();
+    const [webcamActive, setWebcamActive] = useState(false);
+    const [webcamPreview, setWebcamPreview] = useState<string | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     // Duplicate detection on phone change
     useEffect(() => {
@@ -61,6 +65,48 @@ export default function PatientForm({ patient, submitUrl, method = 'post', cance
             if (dupDebounce.current) clearTimeout(dupDebounce.current);
         };
     }, [data.phone]);
+
+    const startWebcam = useCallback(async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 320, height: 240 } });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setWebcamActive(true);
+            setWebcamPreview(null);
+        } catch {
+            alert('Could not access camera. Please check permissions.');
+        }
+    }, []);
+
+    const capturePhoto = useCallback(() => {
+        if (!videoRef.current) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        canvas.getContext('2d')!.drawImage(videoRef.current, 0, 0);
+        canvas.toBlob((blob) => {
+            if (blob) {
+                const file = new File([blob], 'webcam-photo.jpg', { type: 'image/jpeg' });
+                setData('profile_image', file);
+                setWebcamPreview(canvas.toDataURL('image/jpeg'));
+            }
+        }, 'image/jpeg', 0.85);
+        stopWebcam();
+    }, []);
+
+    const stopWebcam = useCallback(() => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+        }
+        setWebcamActive(false);
+    }, []);
+
+    useEffect(() => {
+        return () => { stopWebcam(); };
+    }, [stopWebcam]);
 
     // Auto-calculate age from DOB
     function handleDobChange(dob: string) {
@@ -261,12 +307,55 @@ export default function PatientForm({ patient, submitUrl, method = 'post', cance
             {/* Profile Image */}
             <div>
                 <label className="block text-sm font-medium text-gray-700">Profile Photo</label>
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setData('profile_image', e.target.files?.[0] ?? null)}
-                    className="mt-1 text-sm"
-                />
+                <div className="mt-1 flex flex-wrap items-start gap-4">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                            setData('profile_image', e.target.files?.[0] ?? null);
+                            setWebcamPreview(null);
+                        }}
+                        className="text-sm"
+                    />
+                    {!webcamActive ? (
+                        <button
+                            type="button"
+                            onClick={startWebcam}
+                            className="rounded bg-gray-100 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-200"
+                        >
+                            Use Webcam
+                        </button>
+                    ) : (
+                        <div className="flex flex-col items-center gap-2">
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="h-36 w-48 rounded border bg-black object-cover"
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={capturePhoto}
+                                    className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
+                                >
+                                    Capture
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={stopWebcam}
+                                    className="rounded bg-gray-200 px-3 py-1 text-xs text-gray-700 hover:bg-gray-300"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    {webcamPreview && (
+                        <img src={webcamPreview} alt="Captured" className="h-20 w-20 rounded-full border object-cover" />
+                    )}
+                </div>
                 {errors.profile_image && <p className="mt-1 text-xs text-red-600">{errors.profile_image}</p>}
             </div>
 

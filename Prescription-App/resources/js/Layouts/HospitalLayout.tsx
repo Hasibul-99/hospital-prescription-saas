@@ -1,6 +1,7 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { PropsWithChildren, useState } from 'react';
-import { PageProps } from '@/types';
+import { PageProps, Patient } from '@/types';
+import PatientSearch from '@/Components/PatientSearch';
 
 const navItems = [
     { label: 'Dashboard', href: '/hospital/dashboard', icon: '📊' },
@@ -32,6 +33,12 @@ export default function HospitalLayout({ children }: PropsWithChildren) {
                 <h1 className="text-lg font-semibold text-gray-800">
                     {auth.user.hospital?.name ?? 'Hospital'} — Admin
                 </h1>
+
+                <PatientSearch
+                    onSelect={(p: Patient) => router.visit(`/hospital/patients/${p.id}`)}
+                    placeholder="Search patients..."
+                    className="ml-6 hidden w-64 md:block"
+                />
 
                 <div className="ml-auto flex items-center gap-4">
                     <span className="text-sm text-gray-600">{auth.user.name}</span>
