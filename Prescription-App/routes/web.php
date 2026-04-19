@@ -39,3 +39,4 @@ require __DIR__.'/admin.php';
 require __DIR__.'/hospital.php';
 require __DIR__.'/doctor.php';
 require __DIR__.'/receptionist.php';
+require __DIR__.'/api.php';

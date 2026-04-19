@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Hospital\DashboardController;
 use App\Http\Controllers\Hospital\DoctorController;
+use App\Http\Controllers\Hospital\PatientController;
 use App\Http\Controllers\Hospital\ReceptionistController;
 use App\Http\Controllers\Hospital\ChamberController;
 use App\Http\Controllers\Hospital\HolidayController;
@@ -16,6 +17,7 @@ Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active']
 
         Route::resource('doctors', DoctorController::class);
         Route::resource('receptionists', ReceptionistController::class);
+        Route::resource('patients', PatientController::class);
         Route::resource('chambers', ChamberController::class);
         Route::resource('holidays', HolidayController::class)->except(['show']);
 

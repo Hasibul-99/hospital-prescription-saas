@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Doctor\DashboardController;
+use App\Http\Controllers\Doctor\PatientController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
@@ -8,4 +9,6 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
     ->name('doctor.')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::resource('patients', PatientController::class);
     });

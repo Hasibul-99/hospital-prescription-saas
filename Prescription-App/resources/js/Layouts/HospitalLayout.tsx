@@ -6,6 +6,7 @@ const navItems = [
     { label: 'Dashboard', href: '/hospital/dashboard', icon: '📊' },
     { label: 'Doctors', href: '/hospital/doctors', icon: '👨‍⚕️' },
     { label: 'Receptionists', href: '/hospital/receptionists', icon: '🧑‍💼' },
+    { label: 'Patients', href: '/hospital/patients', icon: '🧑' },
     { label: 'Chambers', href: '/hospital/chambers', icon: '🚪' },
     { label: 'Holidays', href: '/hospital/holidays', icon: '📅' },
     { label: 'Settings', href: '/hospital/settings', icon: '⚙️' },
