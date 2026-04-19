@@ -28,6 +28,41 @@ class Prescription extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (Prescription $rx) {
+            if (empty($rx->prescription_uid) && $rx->hospital_id) {
+                $rx->prescription_uid = static::generateUid($rx->hospital_id, $rx->date);
+            }
+        });
+    }
+
+    /**
+     * Generate prescription_uid: RX-H{hospital_id}-{YYYYMMDD}-{4-digit sequence}
+     * e.g., RX-H001-20251024-0001
+     */
+    public static function generateUid(int $hospitalId, $date = null): string
+    {
+        $date = $date ? \Carbon\Carbon::parse($date) : now();
+        $code = 'H' . str_pad($hospitalId, 3, '0', STR_PAD_LEFT);
+        $dateStr = $date->format('Ymd');
+        $prefix = "RX-{$code}-{$dateStr}-";
+
+        $lastRx = static::withoutGlobalScopes()
+            ->where('hospital_id', $hospitalId)
+            ->where('prescription_uid', 'like', "{$prefix}%")
+            ->orderByRaw('CAST(SUBSTR(prescription_uid, -4) AS UNSIGNED) DESC')
+            ->first();
+
+        $nextSeq = 1;
+        if ($lastRx) {
+            $lastSeq = (int) substr($lastRx->prescription_uid, -4);
+            $nextSeq = $lastSeq + 1;
+        }
+
+        return $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+    }
+
     public function hospital(): BelongsTo
     {
         return $this->belongsTo(Hospital::class);

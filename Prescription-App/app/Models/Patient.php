@@ -28,6 +28,38 @@ class Patient extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (Patient $patient) {
+            if (empty($patient->patient_uid) && $patient->hospital_id) {
+                $patient->patient_uid = static::generateUid($patient->hospital_id);
+            }
+        });
+    }
+
+    /**
+     * Generate patient_uid: P-H{hospital_id}-{5-digit sequence}
+     * e.g., P-H001-00142
+     */
+    public static function generateUid(int $hospitalId): string
+    {
+        $code = 'H' . str_pad($hospitalId, 3, '0', STR_PAD_LEFT);
+
+        $lastPatient = static::withoutGlobalScopes()
+            ->where('hospital_id', $hospitalId)
+            ->where('patient_uid', 'like', "P-{$code}-%")
+            ->orderByRaw('CAST(SUBSTR(patient_uid, -5) AS UNSIGNED) DESC')
+            ->first();
+
+        $nextSeq = 1;
+        if ($lastPatient) {
+            $lastSeq = (int) substr($lastPatient->patient_uid, -5);
+            $nextSeq = $lastSeq + 1;
+        }
+
+        return "P-{$code}-" . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+    }
+
     public function hospital(): BelongsTo
     {
         return $this->belongsTo(Hospital::class);

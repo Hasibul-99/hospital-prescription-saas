@@ -21,6 +21,7 @@ return new class extends Migration
             $table->boolean('is_global')->default(false);
             $table->timestamp('last_used_at')->nullable();
             $table->unsignedInteger('use_count')->default(0);
+            $table->softDeletes();
             $table->timestamps();
 
             $table->index(['doctor_id', 'hospital_id']);

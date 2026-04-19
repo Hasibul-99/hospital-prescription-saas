@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -23,7 +24,9 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->fullText(['brand_name', 'generic_name']);
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->fullText(['brand_name', 'generic_name']);
+            }
         });
 
         Schema::create('complaint_masters', function (Blueprint $table) {

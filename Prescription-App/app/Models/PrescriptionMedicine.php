@@ -26,6 +26,37 @@ class PrescriptionMedicine extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (PrescriptionMedicine $med) {
+            $med->dose_display = static::buildDoseDisplay(
+                $med->dose_morning,
+                $med->dose_noon,
+                $med->dose_afternoon,
+                $med->dose_night,
+                $med->dose_bedtime
+            );
+        });
+    }
+
+    /**
+     * Build display string from 5 dose columns.
+     * e.g., (1, 0, 1, 0, 1) → "1+0+1+0+1"
+     */
+    public static function buildDoseDisplay($morning, $noon, $afternoon, $night, $bedtime): ?string
+    {
+        $parts = [$morning, $noon, $afternoon, $night, $bedtime];
+
+        // If all null, no display
+        if (collect($parts)->every(fn ($v) => is_null($v))) {
+            return null;
+        }
+
+        return collect($parts)
+            ->map(fn ($v) => is_null($v) ? '0' : rtrim(rtrim(number_format((float) $v, 2), '0'), '.'))
+            ->implode('+');
+    }
+
     public function prescription(): BelongsTo
     {
         return $this->belongsTo(Prescription::class);

@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Traits\BelongsToHospital;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DoctorTemplate extends Model
 {
-    use BelongsToHospital;
+    use BelongsToHospital, SoftDeletes;
 
     protected $fillable = [
         'doctor_id', 'hospital_id', 'disease_name',

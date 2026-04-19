@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('payment_method')->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->softDeletes();
             $table->timestamps();
 
             $table->index(['hospital_id', 'doctor_id', 'appointment_date']);
