@@ -9,7 +9,7 @@ The project is structured as 10 prompts in [../../Prescription-Software/project-
 | 1 | DB schema, migrations, models, `BelongsToHospital`, `HospitalScope` | 🟡 **Mostly done** | Migrations + models + trait in place. Verify columns match spec; no seeders yet. |
 | 2 | Role-based auth, Super Admin panel, Hospital Admin panel | 🟠 **Partial** | `RoleMiddleware`, `EnsureHospitalActive`, `HospitalScope` exist. **No role routes, controllers, Inertia pages, policies, or login redirect.** |
 | 3 | Patient management | 🔴 Not started | |
-| 4 | Appointments & serial queue | 🔴 Not started | |
+| 4 | Appointments & serial queue | 🟢 **~95% Done** | See [prompt-4-report.md](prompt-4-report.md). Broadcast events deferred; polling covers real-time. |
 | 5 | Prescription builder — core form | 🔴 Not started | **Critical.** Start after Prompt 3. |
 | 6 | Medicine entry & dose config | 🔴 Not started | Part of the builder. |
 | 7 | Print / PDF / PNG export | 🔴 Not started | |
