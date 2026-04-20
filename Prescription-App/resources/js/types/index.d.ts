@@ -195,6 +195,33 @@ export interface PrescriptionMedicine {
     sort_order: number;
 }
 
+export interface ComplaintMaster {
+    id: number;
+    name_en: string;
+    name_bn?: string;
+    category?: string;
+}
+
+export interface DoctorTemplate {
+    id: number;
+    doctor_id: number;
+    disease_name: string;
+    is_global: boolean;
+    last_used_at?: string;
+    use_count: number;
+    updated_at: string;
+    complaints?: Array<{ complaint_name: string; duration_text?: string; note?: string }>;
+    examinations?: Array<{ examination_name: string; finding_value?: string; note?: string }>;
+    medicines?: Array<Record<string, unknown>>;
+    advices?: Array<{ section_type: string; content: string }>;
+    investigations?: Array<{ section_type: string; content: string }>;
+}
+
+export interface AdviceSuggestion {
+    en: string;
+    bn: string;
+}
+
 export interface Medicine {
     id: number;
     brand_name: string;

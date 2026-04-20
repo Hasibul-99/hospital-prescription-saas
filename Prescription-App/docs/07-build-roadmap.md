@@ -10,7 +10,7 @@ The project is structured as 10 prompts in [../../Prescription-Software/project-
 | 2 | Role-based auth, Super Admin panel, Hospital Admin panel | 🟠 **Partial** | `RoleMiddleware`, `EnsureHospitalActive`, `HospitalScope` exist. **No role routes, controllers, Inertia pages, policies, or login redirect.** |
 | 3 | Patient management | 🔴 Not started | |
 | 4 | Appointments & serial queue | 🟢 **~95% Done** | See [prompt-4-report.md](prompt-4-report.md). Broadcast events deferred; polling covers real-time. |
-| 5 | Prescription builder — core form | 🔴 Not started | **Critical.** Start after Prompt 3. |
+| 5 | Prescription builder — core form | 🟢 **~90% Done** | See [prompt-5-report.md](prompt-5-report.md). Medicine section placeholder (Prompt 6); print target deferred (Prompt 7). |
 | 6 | Medicine entry & dose config | 🔴 Not started | Part of the builder. |
 | 7 | Print / PDF / PNG export | 🔴 Not started | |
 | 8 | Disease templates | 🔴 Not started | |
