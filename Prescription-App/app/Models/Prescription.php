@@ -35,6 +35,36 @@ class Prescription extends Model
                 $rx->prescription_uid = static::generateUid($rx->hospital_id, $rx->date);
             }
         });
+
+        static::created(function (Prescription $rx) {
+            if (!$rx->follow_up_date) {
+                return;
+            }
+
+            $existing = Appointment::query()
+                ->where('patient_id', $rx->patient_id)
+                ->where('doctor_id', $rx->doctor_id)
+                ->where('appointment_date', $rx->follow_up_date)
+                ->where('type', 'follow_up')
+                ->first();
+
+            if ($existing) {
+                return;
+            }
+
+            Appointment::create([
+                'hospital_id' => $rx->hospital_id,
+                'doctor_id' => $rx->doctor_id,
+                'patient_id' => $rx->patient_id,
+                'appointment_date' => $rx->follow_up_date,
+                'status' => 'waiting',
+                'type' => 'follow_up',
+                'fee_amount' => optional(\App\Models\DoctorProfile::where('user_id', $rx->doctor_id)->where('hospital_id', $rx->hospital_id)->first())->follow_up_fee ?? 0,
+                'fee_paid' => false,
+                'notes' => "Auto-booked follow-up from prescription {$rx->prescription_uid}",
+                'created_by' => $rx->doctor_id,
+            ]);
+        });
     }
 
     /**

@@ -96,6 +96,26 @@ export interface Appointment {
     patient?: Patient;
     doctor?: User;
     chamber?: Chamber;
+    prescription?: Pick<Prescription, 'id' | 'prescription_uid' | 'appointment_id'> | null;
+}
+
+export interface QueueStats {
+    total: number;
+    completed: number;
+    waiting: number;
+    in_progress: number;
+    follow_ups: number;
+    absent: number;
+    total_earned: number;
+    total_unpaid: number;
+}
+
+export interface HospitalHoliday {
+    id: number;
+    hospital_id: number;
+    date: string;
+    title: string;
+    is_recurring_yearly: boolean;
 }
 
 export interface Chamber {
