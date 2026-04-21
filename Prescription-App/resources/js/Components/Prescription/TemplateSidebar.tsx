@@ -38,7 +38,7 @@ export default function TemplateSidebar({ templates, activeId, onSelect }: Props
     }
 
     return (
-        <aside className="sticky top-12 h-[calc(100vh-3rem)] w-60 shrink-0 overflow-y-auto border-r bg-white p-3">
+        <aside className="sticky top-12 h-[calc(100vh-3rem)] w-[250px] shrink-0 overflow-y-auto border-r bg-white p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase text-gray-500">Templates</h3>
             <input
                 type="text"

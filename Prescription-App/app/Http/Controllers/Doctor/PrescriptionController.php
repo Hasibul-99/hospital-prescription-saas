@@ -46,6 +46,7 @@ class PrescriptionController extends Controller
             'templates' => $this->templatesFor($user),
             'previous_prescriptions' => $this->previousRxFor($patient->id, $user->hospital_id),
             'advice_suggestions' => $this->adviceSuggestions(),
+            'diagnosis_suggestions' => $this->diagnosisSuggestions(),
         ]);
     }
 
@@ -85,6 +86,7 @@ class PrescriptionController extends Controller
             'templates' => $this->templatesFor($user),
             'previous_prescriptions' => $this->previousRxFor($prescription->patient_id, $prescription->hospital_id, $prescription->id),
             'advice_suggestions' => $this->adviceSuggestions(),
+            'diagnosis_suggestions' => $this->diagnosisSuggestions(),
         ]);
     }
 
@@ -150,6 +152,28 @@ class PrescriptionController extends Controller
             ['en' => 'Walk daily', 'bn' => 'প্রতিদিন হাঁটবেন'],
             ['en' => 'Take medicine regularly', 'bn' => 'নিয়মিত ঔষধ সেবন করবেন'],
             ['en' => 'Come back if symptoms persist', 'bn' => 'সমস্যা থাকলে পুনরায় আসবেন'],
+        ];
+    }
+
+    protected function diagnosisSuggestions(): array
+    {
+        return [
+            'Viral fever',
+            'Upper respiratory tract infection (URTI)',
+            'Acute bronchitis',
+            'Acute gastroenteritis',
+            'Gastritis',
+            'Peptic ulcer disease',
+            'Urinary tract infection (UTI)',
+            'Hypertension',
+            'Type 2 Diabetes Mellitus',
+            'Migraine',
+            'Iron deficiency anemia',
+            'Asthma',
+            'Allergic rhinitis',
+            'Dyspepsia',
+            'Typhoid fever',
+            'Dengue fever',
         ];
     }
 }

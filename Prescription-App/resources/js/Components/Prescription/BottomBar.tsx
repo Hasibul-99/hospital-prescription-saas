@@ -28,7 +28,7 @@ export default function BottomBar({ saving, dirty, lastSavedAt, onSave, onSavePr
                         disabled={saving}
                         className="rounded border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
                     >
-                        {saving ? 'Saving…' : 'Save'}
+                        {saving ? 'Saving…' : 'Update'}
                     </button>
                     <button
                         type="button"
@@ -36,7 +36,7 @@ export default function BottomBar({ saving, dirty, lastSavedAt, onSave, onSavePr
                         disabled={saving}
                         className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                     >
-                        Save + Print
+                        Update + Print
                     </button>
                 </div>
             </div>

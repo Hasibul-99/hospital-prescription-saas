@@ -40,6 +40,7 @@ interface Props {
     templates: DoctorTemplate[];
     previous_prescriptions: Prescription[];
     advice_suggestions: AdviceSuggestion[];
+    diagnosis_suggestions: string[];
 }
 
 function buildInitialState(props: Props): PrescriptionFormState {
@@ -268,6 +269,7 @@ export default function Create(props: Props) {
                         onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
                         onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
                         onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                        suggestions={props.diagnosis_suggestions}
                         placeholder="Diagnosis"
                     />
 
