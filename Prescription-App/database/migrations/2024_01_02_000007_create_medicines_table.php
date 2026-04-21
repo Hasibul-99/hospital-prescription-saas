@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('manufacturer')->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_pending_approval')->default(false);
+            $table->foreignId('submitted_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             if (DB::getDriverName() !== 'sqlite') {

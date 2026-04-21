@@ -98,9 +98,35 @@ class PrescriptionService
                 'duration_value' => $m['duration_value'] ?? null,
                 'duration_unit' => $m['duration_unit'] ?? null,
                 'custom_instruction' => $m['custom_instruction'] ?? null,
+                'additional_doses' => $this->sanitizeAdditionalDoses($m['additional_doses'] ?? null),
                 'sort_order' => $i,
             ]);
         }
+    }
+
+    protected function sanitizeAdditionalDoses($raw): ?array
+    {
+        if (!is_array($raw) || empty($raw)) {
+            return null;
+        }
+
+        $cleaned = [];
+        foreach ($raw as $row) {
+            if (!is_array($row)) continue;
+            $cleaned[] = [
+                'dose_morning' => $row['dose_morning'] ?? null,
+                'dose_noon' => $row['dose_noon'] ?? null,
+                'dose_afternoon' => $row['dose_afternoon'] ?? null,
+                'dose_night' => $row['dose_night'] ?? null,
+                'dose_bedtime' => $row['dose_bedtime'] ?? null,
+                'duration_value' => $row['duration_value'] ?? null,
+                'duration_unit' => $row['duration_unit'] ?? null,
+                'custom_instruction' => $row['custom_instruction'] ?? null,
+                'dose_display' => $this->doseDisplay($row),
+            ];
+        }
+
+        return $cleaned ?: null;
     }
 
     protected function doseDisplay(array $m): ?string

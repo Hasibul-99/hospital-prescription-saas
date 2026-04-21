@@ -19,7 +19,9 @@ class MedicineSearchService
         $cacheKey = 'med_search:' . strtolower($q) . ':' . $limit;
 
         return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($q, $limit) {
-            $builder = Medicine::query()->where('is_active', true);
+            $builder = Medicine::query()
+                ->where('is_active', true)
+                ->where('is_pending_approval', false);
 
             $driver = DB::connection()->getDriverName();
             if ($driver === 'mysql') {
@@ -48,6 +50,7 @@ class MedicineSearchService
         return Cache::remember('medicines:top:' . $limit, now()->addHour(), function () use ($limit) {
             return Medicine::query()
                 ->where('is_active', true)
+                ->where('is_pending_approval', false)
                 ->orderBy('brand_name')
                 ->limit($limit)
                 ->get(['id', 'brand_name', 'generic_name', 'type', 'strength', 'manufacturer']);

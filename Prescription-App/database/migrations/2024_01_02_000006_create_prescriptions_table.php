@@ -81,6 +81,7 @@ return new class extends Migration
             $table->unsignedInteger('duration_value')->nullable();
             $table->enum('duration_unit', ['days', 'weeks', 'months', 'years', 'continue', 'N_A'])->nullable();
             $table->text('custom_instruction')->nullable();
+            $table->json('additional_doses')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });

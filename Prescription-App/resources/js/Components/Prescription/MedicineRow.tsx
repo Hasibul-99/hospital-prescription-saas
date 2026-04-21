@@ -1,4 +1,4 @@
-import { MedicineInput } from '@/hooks/usePrescriptionReducer';
+import { AdditionalDose, MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -20,8 +20,8 @@ export default function MedicineRow({ id, index, medicine, onEdit, onRemove }: P
     };
 
     const dose = buildDoseDisplay(medicine);
-    const timing = medicine.custom_instruction?.trim();
-    const duration = formatDuration(medicine);
+    const timing = medicine.custom_instruction?.trim() || timingLabel(medicine.timing);
+    const duration = formatDuration(medicine.duration_value, medicine.duration_unit);
 
     return (
         <li ref={setNodeRef} style={style} className="flex items-start gap-2 rounded border border-gray-200 bg-white p-2">
@@ -63,6 +63,24 @@ export default function MedicineRow({ id, index, medicine, onEdit, onRemove }: P
                     {duration && <span className="mx-2 text-gray-400">|</span>}
                     {duration}
                 </div>
+                {(medicine.additional_doses ?? []).map((ad, i) => (
+                    <div key={i} className="mt-0.5 pl-4 text-sm text-gray-600">
+                        <span className="text-gray-500">এবং,</span>{' '}
+                        {buildAdditionalDoseDisplay(ad) || '—'}
+                        {ad.custom_instruction?.trim() && (
+                            <>
+                                <span className="mx-2 text-gray-400">|</span>
+                                {ad.custom_instruction}
+                            </>
+                        )}
+                        {formatDuration(ad.duration_value, ad.duration_unit) && (
+                            <>
+                                <span className="mx-2 text-gray-400">|</span>
+                                {formatDuration(ad.duration_value, ad.duration_unit)}
+                            </>
+                        )}
+                    </div>
+                ))}
             </div>
         </li>
     );
@@ -79,12 +97,28 @@ function buildDoseDisplay(m: MedicineInput): string {
     return parts.map((v) => (v == null ? '0' : String(v))).join('+');
 }
 
-function formatDuration(m: MedicineInput): string {
-    if (!m.duration_unit) return '';
-    if (m.duration_unit === 'continue') return 'চলবে';
-    if (m.duration_unit === 'N_A') return 'N/A';
-    if (!m.duration_value) return '';
-    return `${m.duration_value} ${m.duration_unit}`;
+function buildAdditionalDoseDisplay(ad: AdditionalDose): string {
+    const parts = [ad.dose_morning, ad.dose_noon, ad.dose_afternoon, ad.dose_night, ad.dose_bedtime];
+    if (parts.every((v) => v == null)) return '';
+    return parts.map((v) => (v == null ? '0' : String(v))).join('+');
+}
+
+function formatDuration(value: number | null | undefined, unit: string | null | undefined): string {
+    if (!unit) return '';
+    if (unit === 'continue') return 'চলবে';
+    if (unit === 'N_A') return 'N/A';
+    if (!value) return '';
+    return `${value} ${unit}`;
+}
+
+function timingLabel(t: string | null | undefined): string {
+    switch (t) {
+        case 'before_meal': return 'খাবারের আগে';
+        case 'after_meal': return 'খাবারের পরে';
+        case 'empty_stomach': return 'Empty stomach';
+        case 'with_food': return 'খাবারের সাথে';
+        default: return '';
+    }
 }
 
 function abbreviate(type: string): string {

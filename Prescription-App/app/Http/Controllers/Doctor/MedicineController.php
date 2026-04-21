@@ -96,6 +96,8 @@ class MedicineController extends Controller
         $medicine = Medicine::create([
             ...$data,
             'is_active' => true,
+            'is_pending_approval' => true,
+            'submitted_by_user_id' => $request->user()->id,
         ]);
 
         $this->search->invalidate();

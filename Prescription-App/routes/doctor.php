@@ -7,6 +7,7 @@ use App\Http\Controllers\Doctor\FollowUpController;
 use App\Http\Controllers\Doctor\MedicineController;
 use App\Http\Controllers\Doctor\PatientController;
 use App\Http\Controllers\Doctor\PrescriptionController;
+use App\Http\Controllers\Doctor\PrescriptionPrintController;
 use App\Http\Controllers\Doctor\SerialQueueController;
 use App\Http\Controllers\Doctor\StatementController;
 use App\Http\Controllers\Doctor\TemplateController;
@@ -41,6 +42,13 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         Route::post('/prescriptions', [PrescriptionController::class, 'store'])->name('prescriptions.store');
         Route::get('/prescriptions/{prescription}/edit', [PrescriptionController::class, 'edit'])->name('prescriptions.edit');
         Route::match(['put', 'patch'], '/prescriptions/{prescription}', [PrescriptionController::class, 'update'])->name('prescriptions.update');
+
+        // Print / Preview / PDF
+        Route::get('/prescriptions/{prescription}/preview', [PrescriptionPrintController::class, 'preview'])->name('prescriptions.preview');
+        Route::get('/prescriptions/{prescription}/pdf', [PrescriptionPrintController::class, 'pdf'])->name('prescriptions.pdf');
+        Route::get('/prescriptions/{prescription}/download', [PrescriptionPrintController::class, 'download'])->name('prescriptions.download');
+        Route::post('/prescriptions/{prescription}/mark-printed', [PrescriptionPrintController::class, 'markPrinted'])->name('prescriptions.mark-printed');
+        Route::post('/prescriptions/bulk-pdf', [PrescriptionPrintController::class, 'bulkPdf'])->name('prescriptions.bulk-pdf');
 
         // Medicine search, frequent list, missing
         Route::get('/medicines/search', [MedicineController::class, 'searchAction'])->name('medicines.search');

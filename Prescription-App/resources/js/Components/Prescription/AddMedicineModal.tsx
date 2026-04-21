@@ -1,5 +1,6 @@
 import Modal from '@/Components/Modal';
 import MedicineSearch from './MedicineSearch';
+import { MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { Medicine } from '@/types';
 import { useState } from 'react';
 
@@ -7,10 +8,23 @@ interface Props {
     show: boolean;
     onClose: () => void;
     frequent: Medicine[];
-    onPick: (m: Medicine) => void;
+    addedMedicines: MedicineInput[];
+    onPickFromFrequent: (m: Medicine) => void;
+    onPickFromSearch: (m: Medicine) => void;
+    onEditAdded: (index: number) => void;
+    onRemoveAdded: (index: number) => void;
 }
 
-export default function AddMedicineModal({ show, onClose, frequent, onPick }: Props) {
+export default function AddMedicineModal({
+    show,
+    onClose,
+    frequent,
+    addedMedicines,
+    onPickFromFrequent,
+    onPickFromSearch,
+    onEditAdded,
+    onRemoveAdded,
+}: Props) {
     const [missingOpen, setMissingOpen] = useState(false);
 
     return (
@@ -31,7 +45,7 @@ export default function AddMedicineModal({ show, onClose, frequent, onPick }: Pr
                                     <li key={m.id}>
                                         <button
                                             type="button"
-                                            onClick={() => onPick(m)}
+                                            onClick={() => onPickFromFrequent(m)}
                                             className="w-full rounded px-2 py-1 text-left text-sm text-gray-700 hover:bg-blue-50"
                                         >
                                             • {m.brand_name}
@@ -47,9 +61,43 @@ export default function AddMedicineModal({ show, onClose, frequent, onPick }: Pr
 
                     <section className="flex-1 overflow-y-auto p-4">
                         <MedicineSearch
-                            onSelect={(m) => onPick(m)}
+                            onSelect={onPickFromSearch}
                             onOpenMissing={() => setMissingOpen(true)}
                         />
+
+                        {addedMedicines.length > 0 && (
+                            <div className="mt-4 rounded border border-gray-200 bg-gray-50 p-3">
+                                <div className="mb-2 text-xs font-semibold text-gray-700">
+                                    Added ({addedMedicines.length})
+                                </div>
+                                <ul className="space-y-1">
+                                    {addedMedicines.map((m, i) => (
+                                        <li key={i} className="flex items-center justify-between rounded bg-white px-2 py-1 text-sm">
+                                            <span className="truncate text-gray-800">
+                                                <span className="mr-1 text-gray-500">{i + 1}.</span>
+                                                {label(m)}
+                                            </span>
+                                            <span className="flex gap-2 text-xs">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onEditAdded(i)}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onRemoveAdded(i)}
+                                                    className="text-red-600 hover:underline"
+                                                >
+                                                    delete
+                                                </button>
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         <div className="mt-4 flex justify-end">
                             <button
@@ -69,11 +117,25 @@ export default function AddMedicineModal({ show, onClose, frequent, onPick }: Pr
                 onClose={() => setMissingOpen(false)}
                 onCreated={(m) => {
                     setMissingOpen(false);
-                    onPick(m);
+                    onPickFromSearch(m);
                 }}
             />
         </>
     );
+}
+
+function label(m: MedicineInput): string {
+    const abbr = abbreviate(m.medicine_type ?? '');
+    return `${abbr ? abbr + '. ' : ''}${m.medicine_name}${m.strength ? ' ' + m.strength : ''}`;
+}
+
+function abbreviate(type: string): string {
+    const t = type.toLowerCase();
+    if (t.startsWith('tab')) return 'Tab';
+    if (t.startsWith('cap')) return 'Cap';
+    if (t.startsWith('syr')) return 'Syr';
+    if (t.startsWith('inj')) return 'Inj';
+    return type;
 }
 
 function MissingMedicineModal({
@@ -128,6 +190,9 @@ function MissingMedicineModal({
         <Modal show={show} onClose={onClose} maxWidth="lg">
             <div className="p-5">
                 <h3 className="mb-3 text-lg font-semibold text-gray-800">Add Missing Medicine</h3>
+                <p className="mb-2 text-xs text-amber-700">
+                    Medicine will be submitted for admin approval. You can still use it immediately.
+                </p>
                 <div className="space-y-2">
                     <Field label="Brand name *">
                         <input

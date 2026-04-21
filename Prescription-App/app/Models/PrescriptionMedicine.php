@@ -12,7 +12,7 @@ class PrescriptionMedicine extends Model
         'strength', 'generic_name',
         'dose_morning', 'dose_noon', 'dose_afternoon', 'dose_night', 'dose_bedtime',
         'dose_display', 'timing', 'duration_value', 'duration_unit',
-        'custom_instruction', 'sort_order',
+        'custom_instruction', 'additional_doses', 'sort_order',
     ];
 
     protected function casts(): array
@@ -23,6 +23,7 @@ class PrescriptionMedicine extends Model
             'dose_afternoon' => 'decimal:2',
             'dose_night' => 'decimal:2',
             'dose_bedtime' => 'decimal:2',
+            'additional_doses' => 'array',
         ];
     }
 

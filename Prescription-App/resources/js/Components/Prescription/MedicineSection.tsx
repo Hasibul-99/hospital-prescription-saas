@@ -32,35 +32,33 @@ export default function MedicineSection({
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [draft, setDraft] = useState<MedicineInput | null>(null);
 
-    async function pickMedicine(m: Medicine) {
-        let defaults: Partial<MedicineInput> = {};
-
+    async function fetchDefaults(medicineId: number): Promise<Partial<MedicineInput>> {
         try {
-            const res = await fetch(`/doctor/medicine-defaults/${m.id}`, {
+            const res = await fetch(`/doctor/medicine-defaults/${medicineId}`, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.default) {
-                    defaults = {
-                        dose_morning: numOrNull(data.default.dose_morning),
-                        dose_noon: numOrNull(data.default.dose_noon),
-                        dose_afternoon: numOrNull(data.default.dose_afternoon),
-                        dose_night: numOrNull(data.default.dose_night),
-                        dose_bedtime: numOrNull(data.default.dose_bedtime),
-                        timing: data.default.timing,
-                        duration_value: data.default.duration_value,
-                        duration_unit: data.default.duration_unit,
-                        custom_instruction: data.default.custom_instruction,
-                    };
-                }
-            }
+            if (!res.ok) return {};
+            const data = await res.json();
+            if (!data.default) return {};
+            return {
+                dose_morning: numOrNull(data.default.dose_morning),
+                dose_noon: numOrNull(data.default.dose_noon),
+                dose_afternoon: numOrNull(data.default.dose_afternoon),
+                dose_night: numOrNull(data.default.dose_night),
+                dose_bedtime: numOrNull(data.default.dose_bedtime),
+                timing: data.default.timing ?? null,
+                duration_value: data.default.duration_value ?? null,
+                duration_unit: data.default.duration_unit ?? null,
+                custom_instruction: data.default.custom_instruction ?? null,
+            };
         } catch {
-            /* ignore */
+            return {};
         }
+    }
 
-        fetch(`/doctor/medicines/frequent/${m.id}`, {
+    function fireAndForgetAddFrequent(medicineId: number) {
+        fetch(`/doctor/medicines/frequent/${medicineId}`, {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
@@ -70,8 +68,10 @@ export default function MedicineSection({
             },
             credentials: 'same-origin',
         }).catch(() => {});
+    }
 
-        const newMed: MedicineInput = {
+    function buildBase(m: Medicine): MedicineInput {
+        return {
             medicine_id: m.id,
             medicine_name: m.brand_name,
             medicine_type: m.type,
@@ -86,11 +86,38 @@ export default function MedicineSection({
             duration_value: null,
             duration_unit: null,
             custom_instruction: null,
-            ...defaults,
+            additional_doses: null,
         };
+    }
+
+    function hasDoseDefaults(d: Partial<MedicineInput>): boolean {
+        return [d.dose_morning, d.dose_noon, d.dose_afternoon, d.dose_night, d.dose_bedtime].some(
+            (v) => v != null,
+        );
+    }
+
+    async function pickFromSearch(m: Medicine) {
+        const defaults = await fetchDefaults(m.id);
+        fireAndForgetAddFrequent(m.id);
 
         setAddOpen(false);
-        setDraft(newMed);
+        setDraft({ ...buildBase(m), ...defaults });
+        setEditIndex(null);
+        setDoseOpen(true);
+    }
+
+    async function pickFromFrequent(m: Medicine) {
+        const defaults = await fetchDefaults(m.id);
+        const merged: MedicineInput = { ...buildBase(m), ...defaults };
+
+        if (hasDoseDefaults(defaults)) {
+            setAddOpen(false);
+            onAdd(merged);
+            return;
+        }
+
+        setAddOpen(false);
+        setDraft(merged);
         setEditIndex(null);
         setDoseOpen(true);
     }
@@ -142,6 +169,10 @@ export default function MedicineSection({
         setEditIndex(null);
     }
 
+    function removeFromModal(index: number) {
+        if (confirm('Remove this medicine?')) onRemove(index);
+    }
+
     return (
         <SectionAccordion
             title="Rx — Treatment Plan"
@@ -159,7 +190,14 @@ export default function MedicineSection({
                 show={addOpen}
                 onClose={() => setAddOpen(false)}
                 frequent={frequentMedicines}
-                onPick={pickMedicine}
+                addedMedicines={medicines}
+                onPickFromFrequent={pickFromFrequent}
+                onPickFromSearch={pickFromSearch}
+                onEditAdded={(i) => {
+                    setAddOpen(false);
+                    openEdit(i);
+                }}
+                onRemoveAdded={removeFromModal}
             />
 
             <DoseConfigModal

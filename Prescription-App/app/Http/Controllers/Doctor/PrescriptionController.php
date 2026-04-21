@@ -67,7 +67,7 @@ class PrescriptionController extends Controller
         }
 
         if ($request->input('_action') === 'print') {
-            return redirect("/doctor/prescriptions/{$rx->id}/print");
+            return redirect("/doctor/prescriptions/{$rx->id}/preview");
         }
 
         return redirect("/doctor/prescriptions/{$rx->id}/edit")->with('success', 'Prescription saved.');
@@ -108,7 +108,7 @@ class PrescriptionController extends Controller
         }
 
         if ($request->input('_action') === 'print') {
-            return redirect("/doctor/prescriptions/{$prescription->id}/print");
+            return redirect("/doctor/prescriptions/{$prescription->id}/preview");
         }
 
         return redirect("/doctor/prescriptions/{$prescription->id}/edit")->with('success', 'Prescription saved.');

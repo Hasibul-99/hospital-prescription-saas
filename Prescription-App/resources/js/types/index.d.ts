@@ -54,6 +54,17 @@ export interface DoctorProfile {
     prescription_footer_text?: string;
     signature_image?: string;
     default_prescription_language: 'bn' | 'en' | 'both';
+    print_paper_size?: 'A4' | 'Letter';
+    print_show_header?: boolean;
+    print_show_footer?: boolean;
+    print_show_logo?: boolean;
+    print_header_mode?: 'image' | 'text' | 'none';
+    print_footer_mode?: 'image' | 'signature' | 'none';
+    print_font_size?: 'small' | 'medium' | 'large';
+    print_margin_top?: number;
+    print_margin_bottom?: number;
+    print_margin_left?: number;
+    print_margin_right?: number;
 }
 
 export interface Patient {
@@ -192,6 +203,17 @@ export interface PrescriptionMedicine {
     duration_value?: number;
     duration_unit?: string;
     custom_instruction?: string;
+    additional_doses?: Array<{
+        dose_morning?: number | null;
+        dose_noon?: number | null;
+        dose_afternoon?: number | null;
+        dose_night?: number | null;
+        dose_bedtime?: number | null;
+        duration_value?: number | null;
+        duration_unit?: string | null;
+        custom_instruction?: string | null;
+        dose_display?: string | null;
+    }> | null;
     sort_order: number;
 }
 

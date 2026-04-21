@@ -24,6 +24,19 @@ return new class extends Migration
             $table->text('prescription_footer_text')->nullable();
             $table->string('signature_image')->nullable();
             $table->enum('default_prescription_language', ['bn', 'en', 'both'])->default('both');
+
+            $table->enum('print_paper_size', ['A4', 'Letter'])->default('A4');
+            $table->boolean('print_show_header')->default(true);
+            $table->boolean('print_show_footer')->default(true);
+            $table->boolean('print_show_logo')->default(true);
+            $table->enum('print_header_mode', ['image', 'text', 'none'])->default('text');
+            $table->enum('print_footer_mode', ['image', 'signature', 'none'])->default('signature');
+            $table->enum('print_font_size', ['small', 'medium', 'large'])->default('medium');
+            $table->unsignedSmallInteger('print_margin_top')->default(10);
+            $table->unsignedSmallInteger('print_margin_bottom')->default(10);
+            $table->unsignedSmallInteger('print_margin_left')->default(10);
+            $table->unsignedSmallInteger('print_margin_right')->default(10);
+
             $table->timestamps();
 
             $table->index(['hospital_id', 'user_id']);

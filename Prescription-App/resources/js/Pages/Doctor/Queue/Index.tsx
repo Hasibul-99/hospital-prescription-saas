@@ -45,6 +45,46 @@ function typeBadge(type: string): string {
 
 export default function Index({ date, chamber_id, chambers, queue, stats, on_break, holiday }: Props) {
     const [showModal, setShowModal] = useState(false);
+    const [selected, setSelected] = useState<Set<number>>(new Set());
+
+    const printable = queue.filter((a) => a.prescription?.id);
+    const allSelected = printable.length > 0 && printable.every((a) => selected.has(a.prescription!.id));
+
+    function toggleRx(id: number) {
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    }
+
+    function toggleAllRx() {
+        if (allSelected) {
+            setSelected(new Set());
+        } else {
+            setSelected(new Set(printable.map((a) => a.prescription!.id)));
+        }
+    }
+
+    function bulkPrint() {
+        if (selected.size === 0) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/doctor/prescriptions/bulk-pdf';
+        form.target = '_blank';
+        const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '';
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden'; csrf.name = '_token'; csrf.value = token;
+        form.appendChild(csrf);
+        selected.forEach((id) => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = String(id);
+            form.appendChild(inp);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
 
     // Auto-refresh every 10s (polling)
     useEffect(() => {
@@ -155,6 +195,13 @@ export default function Index({ date, chamber_id, chambers, queue, stats, on_bre
                 >
                     Refresh
                 </button>
+                <button
+                    onClick={bulkPrint}
+                    disabled={selected.size === 0}
+                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                >
+                    🖨️ Bulk Print ({selected.size})
+                </button>
             </div>
 
             {/* Queue Table */}
@@ -162,6 +209,15 @@ export default function Index({ date, chamber_id, chambers, queue, stats, on_bre
                 <table className="w-full text-left text-sm">
                     <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                         <tr>
+                            <th className="px-2 py-3">
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={toggleAllRx}
+                                    disabled={printable.length === 0}
+                                    title="Select all with Rx"
+                                />
+                            </th>
                             <th className="px-4 py-3">#</th>
                             <th className="px-4 py-3">Patient</th>
                             <th className="px-4 py-3">Type</th>
@@ -173,11 +229,20 @@ export default function Index({ date, chamber_id, chambers, queue, stats, on_bre
                     <tbody>
                         {queue.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No appointments for this day.</td>
+                                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No appointments for this day.</td>
                             </tr>
                         ) : (
                             queue.map((a) => (
                                 <tr key={a.id} className={`border-b last:border-0 hover:bg-gray-50 ${a.status === 'in_progress' ? 'bg-blue-50/40' : ''}`}>
+                                    <td className="px-2 py-3">
+                                        {a.prescription?.id ? (
+                                            <input
+                                                type="checkbox"
+                                                checked={selected.has(a.prescription.id)}
+                                                onChange={() => toggleRx(a.prescription!.id)}
+                                            />
+                                        ) : null}
+                                    </td>
                                     <td className="px-4 py-3 font-mono text-lg font-bold text-gray-800">{a.serial_number}</td>
                                     <td className="px-4 py-3">
                                         <div className="font-medium text-gray-800">{a.patient?.name}</div>
@@ -209,14 +274,12 @@ export default function Index({ date, chamber_id, chambers, queue, stats, on_bre
                                                 ➕ Rx
                                             </Link>
                                             {a.prescription && (
-                                                <a
-                                                    href={`/doctor/prescriptions/${a.prescription.id}/print`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
+                                                <Link
+                                                    href={`/doctor/prescriptions/${a.prescription.id}/preview`}
                                                     className="rounded bg-gray-100 px-2 py-1 text-gray-700 hover:bg-gray-200"
                                                 >
                                                     🖨️ Print
-                                                </a>
+                                                </Link>
                                             )}
                                             {a.status !== 'completed' && (
                                                 <button

@@ -25,6 +25,17 @@ export interface SectionInput {
     content: string;
 }
 
+export interface AdditionalDose {
+    dose_morning?: number | null;
+    dose_noon?: number | null;
+    dose_afternoon?: number | null;
+    dose_night?: number | null;
+    dose_bedtime?: number | null;
+    duration_value?: number | null;
+    duration_unit?: string | null;
+    custom_instruction?: string | null;
+}
+
 export interface MedicineInput {
     medicine_id?: number | null;
     medicine_name: string;
@@ -40,6 +51,7 @@ export interface MedicineInput {
     duration_value?: number | null;
     duration_unit?: string | null;
     custom_instruction?: string | null;
+    additional_doses?: AdditionalDose[] | null;
 }
 
 export interface PrescriptionFormState {
