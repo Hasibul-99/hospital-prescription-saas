@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Doctor\AppointmentController;
 use App\Http\Controllers\Doctor\DashboardController;
+use App\Http\Controllers\Doctor\DoctorMedicineDefaultController;
 use App\Http\Controllers\Doctor\FollowUpController;
+use App\Http\Controllers\Doctor\MedicineController;
 use App\Http\Controllers\Doctor\PatientController;
 use App\Http\Controllers\Doctor\PrescriptionController;
 use App\Http\Controllers\Doctor\SerialQueueController;
@@ -39,6 +41,18 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         Route::post('/prescriptions', [PrescriptionController::class, 'store'])->name('prescriptions.store');
         Route::get('/prescriptions/{prescription}/edit', [PrescriptionController::class, 'edit'])->name('prescriptions.edit');
         Route::match(['put', 'patch'], '/prescriptions/{prescription}', [PrescriptionController::class, 'update'])->name('prescriptions.update');
+
+        // Medicine search, frequent list, missing
+        Route::get('/medicines/search', [MedicineController::class, 'searchAction'])->name('medicines.search');
+        Route::get('/medicines/frequent', [MedicineController::class, 'frequent'])->name('medicines.frequent');
+        Route::post('/medicines/frequent/{medicine}', [MedicineController::class, 'addFrequent'])->name('medicines.frequent.add');
+        Route::delete('/medicines/frequent/{medicine}', [MedicineController::class, 'removeFrequent'])->name('medicines.frequent.remove');
+        Route::post('/medicines', [MedicineController::class, 'storeMissing'])->name('medicines.store');
+
+        // Doctor per-medicine dose defaults
+        Route::get('/medicine-defaults/{medicine}', [DoctorMedicineDefaultController::class, 'show'])->name('medicine-defaults.show');
+        Route::post('/medicine-defaults/{medicine}', [DoctorMedicineDefaultController::class, 'store'])->name('medicine-defaults.store');
+        Route::delete('/medicine-defaults/{medicine}', [DoctorMedicineDefaultController::class, 'destroy'])->name('medicine-defaults.destroy');
 
         // Templates
         Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');

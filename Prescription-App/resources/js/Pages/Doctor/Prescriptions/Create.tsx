@@ -5,7 +5,7 @@ import ComplaintsSection from '@/Components/Prescription/ComplaintsSection';
 import ExaminationSection from '@/Components/Prescription/ExaminationSection';
 import TextListSection from '@/Components/Prescription/TextListSection';
 import FollowUpPicker from '@/Components/Prescription/FollowUpPicker';
-import SectionAccordion from '@/Components/Prescription/SectionAccordion';
+import MedicineSection from '@/Components/Prescription/MedicineSection';
 import PreviousRxDrawer from '@/Components/Prescription/PreviousRxDrawer';
 import BottomBar from '@/Components/Prescription/BottomBar';
 import FlashMessage from '@/Components/FlashMessage';
@@ -13,11 +13,13 @@ import {
     AdviceSuggestion,
     ComplaintMaster,
     DoctorTemplate,
+    Medicine,
     Patient,
     Appointment,
     Prescription,
 } from '@/types';
 import {
+    MedicineInput,
     PrescriptionFormState,
     usePrescriptionReducer,
     ComplaintInput,
@@ -34,6 +36,7 @@ interface Props {
         complaints?: Array<{ complaint_name: string; duration_text?: string; note?: string }>;
         examinations?: Array<{ examination_name: string; finding_value?: string; note?: string }>;
         sections?: Array<{ section_type: string; content: string }>;
+        medicines?: Array<MedicineInput & { id?: number }>;
     }) | null;
     complaint_masters: ComplaintMaster[];
     duration_presets: string[];
@@ -41,6 +44,15 @@ interface Props {
     previous_prescriptions: Prescription[];
     advice_suggestions: AdviceSuggestion[];
     diagnosis_suggestions: string[];
+    frequent_medicines: Medicine[];
+    instruction_presets: string[];
+    duration_day_presets: number[];
+}
+
+function toNum(v: unknown): number | null {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
 }
 
 function buildInitialState(props: Props): PrescriptionFormState {
@@ -65,7 +77,22 @@ function buildInitialState(props: Props): PrescriptionFormState {
             section_type: s.section_type as SectionInput['section_type'],
             content: s.content,
         })),
-        medicines: [],
+        medicines: (draft?.medicines ?? []).map((m) => ({
+            medicine_id: m.medicine_id ?? null,
+            medicine_name: m.medicine_name,
+            medicine_type: m.medicine_type ?? null,
+            strength: m.strength ?? null,
+            generic_name: m.generic_name ?? null,
+            dose_morning: toNum(m.dose_morning),
+            dose_noon: toNum(m.dose_noon),
+            dose_afternoon: toNum(m.dose_afternoon),
+            dose_night: toNum(m.dose_night),
+            dose_bedtime: toNum(m.dose_bedtime),
+            timing: m.timing ?? null,
+            duration_value: m.duration_value ?? null,
+            duration_unit: m.duration_unit ?? null,
+            custom_instruction: m.custom_instruction ?? null,
+        })),
         follow_up_date: draft?.follow_up_date ?? null,
         follow_up_duration_value: draft?.follow_up_duration_value ?? null,
         follow_up_duration_unit: draft?.follow_up_duration_unit ?? null,
@@ -273,11 +300,16 @@ export default function Create(props: Props) {
                         placeholder="Diagnosis"
                     />
 
-                    <SectionAccordion title="Rx — Treatment Plan" itemCount={state.medicines.length}>
-                        <div className="rounded border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-                            Medicine entry is built in Prompt 6. Coming next.
-                        </div>
-                    </SectionAccordion>
+                    <MedicineSection
+                        medicines={state.medicines}
+                        frequentMedicines={props.frequent_medicines}
+                        instructionPresets={props.instruction_presets}
+                        dayPresets={props.duration_day_presets}
+                        onAdd={(m) => dispatch({ type: 'ADD_MEDICINE', medicine: m })}
+                        onUpdate={(i, patch) => dispatch({ type: 'UPDATE_MEDICINE', index: i, patch })}
+                        onRemove={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
+                        onReorder={(from, to) => dispatch({ type: 'REORDER_MEDICINES', from, to })}
+                    />
 
                     <TextListSection
                         title="Advices"

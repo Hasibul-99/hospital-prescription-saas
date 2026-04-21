@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePrescriptionRequest;
 use App\Models\Appointment;
 use App\Models\ComplaintMaster;
+use App\Models\DoctorFrequentMedicine;
 use App\Models\DoctorTemplate;
 use App\Models\Patient;
 use App\Models\Prescription;
@@ -47,6 +48,9 @@ class PrescriptionController extends Controller
             'previous_prescriptions' => $this->previousRxFor($patient->id, $user->hospital_id),
             'advice_suggestions' => $this->adviceSuggestions(),
             'diagnosis_suggestions' => $this->diagnosisSuggestions(),
+            'frequent_medicines' => $this->frequentMedicinesFor($user),
+            'instruction_presets' => $this->instructionPresets(),
+            'duration_day_presets' => [1, 5, 7, 14, 30],
         ]);
     }
 
@@ -87,6 +91,9 @@ class PrescriptionController extends Controller
             'previous_prescriptions' => $this->previousRxFor($prescription->patient_id, $prescription->hospital_id, $prescription->id),
             'advice_suggestions' => $this->adviceSuggestions(),
             'diagnosis_suggestions' => $this->diagnosisSuggestions(),
+            'frequent_medicines' => $this->frequentMedicinesFor($user),
+            'instruction_presets' => $this->instructionPresets(),
+            'duration_day_presets' => [1, 5, 7, 14, 30],
         ]);
     }
 
@@ -152,6 +159,34 @@ class PrescriptionController extends Controller
             ['en' => 'Walk daily', 'bn' => 'প্রতিদিন হাঁটবেন'],
             ['en' => 'Take medicine regularly', 'bn' => 'নিয়মিত ঔষধ সেবন করবেন'],
             ['en' => 'Come back if symptoms persist', 'bn' => 'সমস্যা থাকলে পুনরায় আসবেন'],
+        ];
+    }
+
+    protected function frequentMedicinesFor($user): array
+    {
+        return DoctorFrequentMedicine::query()
+            ->where('doctor_id', $user->id)
+            ->orderBy('sort_order')
+            ->with('medicine:id,brand_name,generic_name,type,strength,manufacturer')
+            ->get()
+            ->map(fn ($f) => $f->medicine)
+            ->filter()
+            ->values()
+            ->toArray();
+    }
+
+    protected function instructionPresets(): array
+    {
+        return [
+            'খাবারের পরে',
+            'খাবারের আগে',
+            'খাবারের সাথে',
+            '0/6+0/6+0/6 খাবারের পরে',
+            '1/0+1/0+1+1/0 খাবারের পরে',
+            'If Fever or Pain',
+            '2/3 অথবা তিন ও চার ঘণ্টা পরপর খাবারের পরে',
+            'খুব 100°F এ বা তার চেয়ে বেশি হলে',
+            'যন্ত্রণা থাকলে',
         ];
     }
 
