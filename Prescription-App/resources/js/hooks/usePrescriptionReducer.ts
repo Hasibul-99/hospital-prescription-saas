@@ -91,6 +91,7 @@ export type PrescriptionAction =
           follow_up_duration_unit: 'days' | 'months' | 'years' | null;
       }
     | { type: 'LOAD_TEMPLATE'; template: { complaints?: ComplaintInput[]; examinations?: ExaminationInput[]; medicines?: MedicineInput[]; advices?: SectionInput[]; investigations?: SectionInput[]; id?: number } }
+    | { type: 'MERGE_TEMPLATE'; template: { complaints?: ComplaintInput[]; examinations?: ExaminationInput[]; medicines?: MedicineInput[]; advices?: SectionInput[]; investigations?: SectionInput[]; id?: number } }
     | { type: 'RESET_FORM'; state: PrescriptionFormState }
     | { type: 'SET_STATUS'; status: PrescriptionFormState['status'] }
     | { type: 'MARK_CLEAN' };
@@ -206,6 +207,24 @@ function reducer(state: PrescriptionFormState, action: PrescriptionAction): Pres
                 examinations: action.template.examinations ?? [],
                 medicines: action.template.medicines ?? [],
                 sections: [...otherSections, ...advices, ...investigations],
+            });
+        }
+
+        case 'MERGE_TEMPLATE': {
+            const tplAdvices = (action.template.advices ?? [])
+                .map((a) => ({ section_type: 'advice' as const, content: a.content ?? '' }))
+                .filter((a) => a.content);
+            const tplInvestigations = (action.template.investigations ?? [])
+                .map((a) => ({ section_type: 'investigation' as const, content: a.content ?? '' }))
+                .filter((a) => a.content);
+
+            return withDirty({
+                ...state,
+                template_id: action.template.id ?? state.template_id ?? null,
+                complaints: [...state.complaints, ...(action.template.complaints ?? [])],
+                examinations: [...state.examinations, ...(action.template.examinations ?? [])],
+                medicines: [...state.medicines, ...(action.template.medicines ?? [])],
+                sections: [...state.sections, ...tplAdvices, ...tplInvestigations],
             });
         }
 

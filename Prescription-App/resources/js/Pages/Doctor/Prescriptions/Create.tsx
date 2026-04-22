@@ -27,6 +27,7 @@ import {
     SectionInput,
 } from '@/hooks/usePrescriptionReducer';
 import { router } from '@inertiajs/react';
+import { App as AntApp, Modal } from 'antd';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 interface Props {
@@ -101,6 +102,7 @@ function buildInitialState(props: Props): PrescriptionFormState {
 }
 
 export default function Create(props: Props) {
+    const { message, modal } = AntApp.useApp();
     const [state, dispatch] = usePrescriptionReducer(buildInitialState(props));
     const [rxId, setRxId] = useState<number | null>(props.draft?.id ?? null);
     const [saving, setSaving] = useState(false);
@@ -147,13 +149,13 @@ export default function Create(props: Props) {
 
                 return data.id ?? rxId;
             } catch (e) {
-                alert('Failed to save. Please try again.');
+                message.error('Failed to save. Please try again.');
                 return null;
             } finally {
                 setSaving(false);
             }
         },
-        [rxId, dispatch],
+        [rxId, dispatch, message],
     );
 
     useEffect(() => {
@@ -198,11 +200,58 @@ export default function Create(props: Props) {
                 }),
             });
             if (!res.ok) throw new Error('Template save failed');
-            alert(`Template "${name}" saved.`);
+            message.success(`Template "${name}" saved.`);
             router.reload({ only: ['templates'] });
         } catch (e) {
-            alert('Failed to save template.');
+            message.error('Failed to save template.');
         }
+    }
+
+    function applyTemplate(tpl: DoctorTemplate) {
+        const payload = {
+            id: tpl.id,
+            complaints: tpl.complaints as ComplaintInput[] | undefined,
+            examinations: tpl.examinations as ExaminationInput[] | undefined,
+            medicines: [],
+            advices: (tpl.advices as any) ?? [],
+            investigations: (tpl.investigations as any) ?? [],
+        };
+
+        const hasContent =
+            stateRef.current.complaints.length > 0 ||
+            stateRef.current.examinations.length > 0 ||
+            stateRef.current.medicines.length > 0 ||
+            stateRef.current.sections.length > 0;
+
+        if (!hasContent) {
+            dispatch({ type: 'LOAD_TEMPLATE', template: payload });
+            return;
+        }
+
+        modal.confirm({
+            title: `Apply template "${tpl.disease_name}"?`,
+            content: 'Replace current form data, or merge template items into it?',
+            okText: 'Replace',
+            cancelText: 'Cancel',
+            okButtonProps: { danger: true },
+            footer: (_, { OkBtn, CancelBtn }) => (
+                <div className="flex justify-end gap-2">
+                    <CancelBtn />
+                    <button
+                        type="button"
+                        className="rounded border border-gray-300 bg-white px-3 py-1 text-sm hover:bg-gray-50"
+                        onClick={() => {
+                            dispatch({ type: 'MERGE_TEMPLATE', template: payload });
+                            Modal.destroyAll();
+                        }}
+                    >
+                        Merge
+                    </button>
+                    <OkBtn />
+                </div>
+            ),
+            onOk: () => dispatch({ type: 'LOAD_TEMPLATE', template: payload }),
+        });
     }
 
     return (
@@ -210,19 +259,7 @@ export default function Create(props: Props) {
             <TemplateSidebar
                 templates={props.templates}
                 activeId={state.template_id}
-                onSelect={(tpl) =>
-                    dispatch({
-                        type: 'LOAD_TEMPLATE',
-                        template: {
-                            id: tpl.id,
-                            complaints: tpl.complaints as ComplaintInput[] | undefined,
-                            examinations: tpl.examinations as ExaminationInput[] | undefined,
-                            medicines: [],
-                            advices: (tpl.advices as any) ?? [],
-                            investigations: (tpl.investigations as any) ?? [],
-                        },
-                    })
-                }
+                onSelect={applyTemplate}
             />
 
             <div className="flex-1">

@@ -7,6 +7,7 @@ use App\Http\Controllers\Hospital\ReceptionistController;
 use App\Http\Controllers\Hospital\ChamberController;
 use App\Http\Controllers\Hospital\HolidayController;
 use App\Http\Controllers\Hospital\SettingsController;
+use App\Http\Controllers\Hospital\TemplateAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active'])
@@ -24,4 +25,6 @@ Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active']
 
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+        Route::get('/templates/analytics', [TemplateAnalyticsController::class, 'index'])->name('templates.analytics');
     });

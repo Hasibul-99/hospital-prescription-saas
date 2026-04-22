@@ -64,7 +64,11 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
 
         // Templates
         Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');
+        Route::get('/templates/create', [TemplateController::class, 'create'])->name('templates.create');
         Route::get('/templates/{template}', [TemplateController::class, 'show'])->name('templates.show');
+        Route::get('/templates/{template}/edit', [TemplateController::class, 'edit'])->name('templates.edit');
         Route::post('/templates', [TemplateController::class, 'store'])->name('templates.store');
+        Route::match(['put', 'patch'], '/templates/{template}', [TemplateController::class, 'update'])->name('templates.update');
+        Route::post('/templates/{template}/duplicate', [TemplateController::class, 'duplicate'])->name('templates.duplicate');
         Route::delete('/templates/{template}', [TemplateController::class, 'destroy'])->name('templates.destroy');
     });

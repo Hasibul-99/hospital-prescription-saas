@@ -10,6 +10,7 @@ const navItems = [
     { label: 'Patients', href: '/hospital/patients', icon: '🧑' },
     { label: 'Chambers', href: '/hospital/chambers', icon: '🚪' },
     { label: 'Holidays', href: '/hospital/holidays', icon: '📅' },
+    { label: 'Template Analytics', href: '/hospital/templates/analytics', icon: '📈' },
     { label: 'Settings', href: '/hospital/settings', icon: '⚙️' },
 ];
 
