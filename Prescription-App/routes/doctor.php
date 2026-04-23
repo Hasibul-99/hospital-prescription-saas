@@ -5,6 +5,8 @@ use App\Http\Controllers\Doctor\DashboardController;
 use App\Http\Controllers\Doctor\DoctorMedicineDefaultController;
 use App\Http\Controllers\Doctor\FollowUpController;
 use App\Http\Controllers\Doctor\MedicineController;
+use App\Http\Controllers\Doctor\MedicineSettingsController;
+use App\Http\Controllers\Doctor\NotificationController;
 use App\Http\Controllers\Doctor\PatientController;
 use App\Http\Controllers\Doctor\PrescriptionController;
 use App\Http\Controllers\Doctor\PrescriptionPrintController;
@@ -61,6 +63,14 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         Route::get('/medicine-defaults/{medicine}', [DoctorMedicineDefaultController::class, 'show'])->name('medicine-defaults.show');
         Route::post('/medicine-defaults/{medicine}', [DoctorMedicineDefaultController::class, 'store'])->name('medicine-defaults.store');
         Route::delete('/medicine-defaults/{medicine}', [DoctorMedicineDefaultController::class, 'destroy'])->name('medicine-defaults.destroy');
+
+        // Doctor medicine settings
+        Route::get('/settings/medicine-defaults', [MedicineSettingsController::class, 'index'])->name('settings.medicine-defaults');
+        Route::post('/settings/frequent/reorder', [MedicineSettingsController::class, 'reorderFrequent'])->name('settings.frequent.reorder');
+
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{id}/ack', [NotificationController::class, 'ack'])->name('notifications.ack');
 
         // Templates
         Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');

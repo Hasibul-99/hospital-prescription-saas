@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Medicine extends Model
 {
@@ -19,5 +20,10 @@ class Medicine extends Model
             'is_active' => 'boolean',
             'is_pending_approval' => 'boolean',
         ];
+    }
+
+    public function submittedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by_user_id');
     }
 }

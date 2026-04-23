@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { PropsWithChildren, useState } from 'react';
 import { PageProps, Patient } from '@/types';
 import PatientSearch from '@/Components/PatientSearch';
+import NotificationBell from '@/Components/Notifications/NotificationBell';
 
 const navItems = [
     { label: 'Dashboard', href: '/doctor/dashboard', icon: '📊' },
@@ -11,7 +12,7 @@ const navItems = [
     { label: 'Templates', href: '/doctor/templates', icon: '📄' },
     { label: 'Follow-ups', href: '/doctor/follow-ups', icon: '🔔' },
     { label: 'Statements', href: '/doctor/statements', icon: '💰' },
-    { label: 'Settings', href: '/doctor/settings', icon: '⚙️' },
+    { label: 'Medicine Settings', href: '/doctor/settings/medicine-defaults', icon: '💉' },
 ];
 
 export default function DoctorLayout({ children }: PropsWithChildren) {
@@ -42,6 +43,7 @@ export default function DoctorLayout({ children }: PropsWithChildren) {
                 />
 
                 <div className="ml-auto flex items-center gap-4">
+                    <NotificationBell />
                     <span className="text-sm text-gray-600">Dr. {auth.user.name}</span>
                     <Link
                         href="/logout"
