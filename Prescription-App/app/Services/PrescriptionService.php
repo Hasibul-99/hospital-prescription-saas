@@ -16,6 +16,10 @@ class PrescriptionService
     /**
      * Create or update a prescription with all nested relations. Idempotent.
      */
+    public function __construct(private readonly ?AuditLogger $audit = null)
+    {
+    }
+
     public function save(User $doctor, array $data, ?Prescription $existing = null): Prescription
     {
         return DB::transaction(function () use ($doctor, $data, $existing) {
@@ -32,6 +36,7 @@ class PrescriptionService
                 'follow_up_duration_unit' => $data['follow_up_duration_unit'] ?? null,
             ];
 
+            $isNew = $existing === null;
             $rx = $existing ?? new Prescription();
             $rx->fill($attrs)->save();
 
@@ -40,6 +45,11 @@ class PrescriptionService
             if (!empty($data['save_as_template']) && !empty($data['template_name'])) {
                 $this->saveAsTemplate($doctor, $data);
             }
+
+            $this->audit?->record($isNew ? 'prescription.create' : 'prescription.update', $rx, [
+                'medicines' => count($data['medicines'] ?? []),
+                'complaints' => count($data['complaints'] ?? []),
+            ]);
 
             return $rx->fresh(['complaints', 'examinations', 'sections', 'medicines']);
         });

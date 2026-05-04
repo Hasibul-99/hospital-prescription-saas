@@ -8,6 +8,7 @@ use App\Http\Controllers\Hospital\ChamberController;
 use App\Http\Controllers\Hospital\HolidayController;
 use App\Http\Controllers\Hospital\SettingsController;
 use App\Http\Controllers\Hospital\TemplateAnalyticsController;
+use App\Http\Controllers\Hospital\ReportController;
 use App\Http\Controllers\Hospital\TemplateController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,4 +36,7 @@ Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active']
         Route::post('/templates', [TemplateController::class, 'store'])->name('templates.store');
         Route::match(['put', 'patch'], '/templates/{template}', [TemplateController::class, 'update'])->name('templates.update');
         Route::delete('/templates/{template}', [TemplateController::class, 'destroy'])->name('templates.destroy');
+
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [ReportController::class, 'exportCsv'])->name('reports.export');
     });

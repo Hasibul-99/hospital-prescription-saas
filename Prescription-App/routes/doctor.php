@@ -8,6 +8,8 @@ use App\Http\Controllers\Doctor\MedicineController;
 use App\Http\Controllers\Doctor\MedicineSettingsController;
 use App\Http\Controllers\Doctor\NotificationController;
 use App\Http\Controllers\Doctor\PatientController;
+use App\Http\Controllers\Doctor\ReportController as DoctorReportController;
+use App\Http\Controllers\Doctor\SettingsController as DoctorSettingsController;
 use App\Http\Controllers\Doctor\PrescriptionController;
 use App\Http\Controllers\Doctor\PrescriptionPrintController;
 use App\Http\Controllers\Doctor\SerialQueueController;
@@ -71,6 +73,17 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/ack', [NotificationController::class, 'ack'])->name('notifications.ack');
+
+        // Reports
+        Route::get('/reports', [DoctorReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [DoctorReportController::class, 'exportCsv'])->name('reports.export');
+
+        // Settings
+        Route::get('/settings', [DoctorSettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings/profile', [DoctorSettingsController::class, 'updateProfile'])->name('settings.profile');
+        Route::put('/settings/preferences', [DoctorSettingsController::class, 'updatePreferences'])->name('settings.preferences');
+        Route::put('/settings/password', [DoctorSettingsController::class, 'updatePassword'])->name('settings.password');
+        Route::post('/settings/upload', [DoctorSettingsController::class, 'uploadImage'])->name('settings.upload');
 
         // Templates
         Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');

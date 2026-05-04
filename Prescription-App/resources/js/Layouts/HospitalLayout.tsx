@@ -12,6 +12,7 @@ const navItems = [
     { label: 'Holidays', href: '/hospital/holidays', icon: '📅' },
     { label: 'Global Templates', href: '/hospital/templates', icon: '📑' },
     { label: 'Template Analytics', href: '/hospital/templates/analytics', icon: '📈' },
+    { label: 'Reports', href: '/hospital/reports', icon: '📊' },
     { label: 'Settings', href: '/hospital/settings', icon: '⚙️' },
 ];
 

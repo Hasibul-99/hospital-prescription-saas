@@ -40,6 +40,7 @@ return new class extends Migration
             $table->string('avatar')->nullable();
             $table->enum('role', ['super_admin', 'hospital_admin', 'doctor', 'receptionist'])->default('doctor');
             $table->foreignId('hospital_id')->nullable()->constrained('hospitals')->nullOnDelete();
+            $table->enum('preferred_language', ['en', 'bn'])->default('en');
             $table->boolean('is_active')->default(true);
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('last_login_at')->nullable();

@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HospitalController;
 use App\Http\Controllers\Admin\MedicineController;
 use App\Http\Controllers\Admin\MedicineRequestController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,4 +40,11 @@ Route::middleware(['auth', 'verified', 'role:super_admin'])
         Route::post('complaints/{complaint}/presets/reorder', [ComplaintMasterController::class, 'reorderPresets'])->name('complaints.presets.reorder');
         Route::patch('complaints/presets/{preset}', [ComplaintMasterController::class, 'updatePreset'])->name('complaints.presets.update');
         Route::delete('complaints/presets/{preset}', [ComplaintMasterController::class, 'destroyPreset'])->name('complaints.presets.destroy');
+
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [ReportController::class, 'exportCsv'])->name('reports.export');
+
+        Route::get('/settings', [AdminSettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings/platform', [AdminSettingsController::class, 'updatePlatform'])->name('settings.platform');
+        Route::put('/settings/maintenance', [AdminSettingsController::class, 'toggleMaintenance'])->name('settings.maintenance');
     });
