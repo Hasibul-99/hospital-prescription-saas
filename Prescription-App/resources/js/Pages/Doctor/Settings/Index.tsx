@@ -243,6 +243,8 @@ export default function DoctorSettings({ profile, user }: Props) {
                                         print_margin_bottom: profile.print_margin_bottom ?? 15,
                                         print_margin_left: profile.print_margin_left ?? 15,
                                         print_margin_right: profile.print_margin_right ?? 15,
+                                        notify_followup_reminders: profile.notify_followup_reminders ?? true,
+                                        notify_email: profile.notify_email ?? false,
                                     }}
                                 >
                                     <div className="grid gap-4 md:grid-cols-2">
@@ -318,6 +320,12 @@ export default function DoctorSettings({ profile, user }: Props) {
                                         </Form.Item>
                                         <Form.Item label="Margin Right (mm)" name="print_margin_right">
                                             <InputNumber min={0} max={50} style={{ width: '100%' }} />
+                                        </Form.Item>
+                                        <Form.Item label="Follow-up Reminders" name="notify_followup_reminders" valuePropName="checked">
+                                            <Switch />
+                                        </Form.Item>
+                                        <Form.Item label="Email Notifications" name="notify_email" valuePropName="checked">
+                                            <Switch />
                                         </Form.Item>
                                     </div>
                                     <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={savingPrefs}>

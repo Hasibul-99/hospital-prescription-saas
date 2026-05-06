@@ -39,4 +39,7 @@ Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active']
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'exportCsv'])->name('reports.export');
+        Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
+
+        Route::get('/audit-logs', [\App\Http\Controllers\Hospital\AuditLogController::class, 'index'])->name('audit-logs.index');
     });

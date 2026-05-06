@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { PropsWithChildren, useState } from 'react';
 import { PageProps, Patient } from '@/types';
 import PatientSearch from '@/Components/PatientSearch';
+import LanguageSwitcher from '@/Components/Common/LanguageSwitcher';
 
 const navItems = [
     { label: 'Dashboard', href: '/hospital/dashboard', icon: '📊' },
@@ -13,6 +14,7 @@ const navItems = [
     { label: 'Global Templates', href: '/hospital/templates', icon: '📑' },
     { label: 'Template Analytics', href: '/hospital/templates/analytics', icon: '📈' },
     { label: 'Reports', href: '/hospital/reports', icon: '📊' },
+    { label: 'Audit Logs', href: '/hospital/audit-logs', icon: '🛡️' },
     { label: 'Settings', href: '/hospital/settings', icon: '⚙️' },
 ];
 
@@ -44,6 +46,7 @@ export default function HospitalLayout({ children }: PropsWithChildren) {
                 />
 
                 <div className="ml-auto flex items-center gap-4">
+                    <LanguageSwitcher />
                     <span className="text-sm text-gray-600">{auth.user.name}</span>
                     <Link
                         href="/logout"

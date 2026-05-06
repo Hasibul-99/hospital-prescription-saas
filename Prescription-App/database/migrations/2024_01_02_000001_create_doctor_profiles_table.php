@@ -37,6 +37,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('print_margin_left')->default(10);
             $table->unsignedSmallInteger('print_margin_right')->default(10);
 
+            $table->boolean('notify_followup_reminders')->default(true);
+            $table->boolean('notify_email')->default(false);
+
             $table->timestamps();
 
             $table->index(['hospital_id', 'user_id']);

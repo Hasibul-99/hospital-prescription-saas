@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren, useState } from 'react';
 import { PageProps } from '@/types';
+import LanguageSwitcher from '@/Components/Common/LanguageSwitcher';
 
 const navItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
@@ -10,6 +11,7 @@ const navItems = [
     { label: 'Medicine Requests', href: '/admin/medicine-requests', icon: '📝' },
     { label: 'Complaints', href: '/admin/complaints', icon: '🩺' },
     { label: 'Reports', href: '/admin/reports', icon: '📈' },
+    { label: 'Audit Logs', href: '/admin/audit-logs', icon: '🛡️' },
     { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
 ];
 
@@ -36,6 +38,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                 </h1>
 
                 <div className="ml-auto flex items-center gap-4">
+                    <LanguageSwitcher />
                     <span className="text-sm text-gray-600">{auth.user.name}</span>
                     <Link
                         href="/logout"

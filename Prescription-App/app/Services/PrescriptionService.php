@@ -16,8 +16,10 @@ class PrescriptionService
     /**
      * Create or update a prescription with all nested relations. Idempotent.
      */
-    public function __construct(private readonly ?AuditLogger $audit = null)
-    {
+    public function __construct(
+        private readonly ?AuditLogger $audit = null,
+        private readonly ?DashboardStatsService $dashboard = null,
+    ) {
     }
 
     public function save(User $doctor, array $data, ?Prescription $existing = null): Prescription
@@ -50,6 +52,8 @@ class PrescriptionService
                 'medicines' => count($data['medicines'] ?? []),
                 'complaints' => count($data['complaints'] ?? []),
             ]);
+
+            $this->dashboard?->invalidateForDoctor($rx->doctor_id, $rx->hospital_id);
 
             return $rx->fresh(['complaints', 'examinations', 'sections', 'medicines']);
         });

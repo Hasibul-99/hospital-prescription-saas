@@ -65,6 +65,8 @@ export interface DoctorProfile {
     print_margin_bottom?: number;
     print_margin_left?: number;
     print_margin_right?: number;
+    notify_followup_reminders?: boolean;
+    notify_email?: boolean;
 }
 
 export interface Patient {

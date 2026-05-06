@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         // Reports
         Route::get('/reports', [DoctorReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [DoctorReportController::class, 'exportCsv'])->name('reports.export');
+        Route::get('/reports/export-pdf', [DoctorReportController::class, 'exportPdf'])->name('reports.export-pdf');
 
         // Settings
         Route::get('/settings', [DoctorSettingsController::class, 'edit'])->name('settings.edit');

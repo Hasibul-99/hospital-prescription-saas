@@ -7,8 +7,12 @@ use App\Models\DoctorProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
+use Intervention\Image\ImageManager;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
@@ -85,6 +89,8 @@ class SettingsController extends Controller
             'print_margin_bottom' => ['nullable', 'integer', 'min:0', 'max:50'],
             'print_margin_left' => ['nullable', 'integer', 'min:0', 'max:50'],
             'print_margin_right' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'notify_followup_reminders' => ['nullable', 'boolean'],
+            'notify_email' => ['nullable', 'boolean'],
         ]);
 
         $user = $request->user();
@@ -138,7 +144,18 @@ class SettingsController extends Controller
         $kind = $request->input('kind');
         $user = $request->user();
 
-        $path = $request->file('image')->store("doctors/{$user->id}/{$kind}", 'public');
+        $maxWidths = ['avatar' => 400, 'signature' => 600, 'header' => 1600, 'footer' => 1600];
+        $maxWidth = $maxWidths[$kind] ?? 1200;
+
+        $manager = new ImageManager(new Driver());
+        $img = $manager->decodePath($request->file('image')->getRealPath());
+        if ($img->width() > $maxWidth) {
+            $img->scaleDown(width: $maxWidth);
+        }
+        $encoded = (string) $img->encode(new WebpEncoder(quality: 82));
+
+        $path = "doctors/{$user->id}/{$kind}/" . Str::uuid()->toString() . '.webp';
+        Storage::disk('public')->put($path, $encoded);
         $url = Storage::url($path);
 
         if ($kind === 'avatar') {

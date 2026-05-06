@@ -42,35 +42,67 @@ class ReportController extends Controller
 
     public function exportCsv(Request $request)
     {
+        return $this->export($request, 'csv');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        return $this->export($request, 'pdf');
+    }
+
+    protected function export(Request $request, string $format)
+    {
         $user = $request->user();
         abort_unless($user->isHospitalAdmin() || $user->isSuperAdmin(), 403);
 
         $report = (string) $request->input('report', 'doctor_load');
         [$bucket, $from, $to] = $this->parseFilters($request);
 
-        return match ($report) {
-            'doctor_load' => $this->exporter->csvFromColumns(
-                "doctor-load-{$from->toDateString()}.csv",
-                $this->reports->doctorPatientLoad($user->hospital_id, $from, $to),
-                ['doctor_name' => 'Doctor', 'visits' => 'Visits', 'unique_patients' => 'Unique Patients'],
-            ),
-            'revenue' => $this->exporter->csvFromColumns(
-                "revenue-{$bucket}-{$from->toDateString()}.csv",
-                $this->reports->revenue($user->hospital_id, $bucket, $from, $to),
-                ['bucket' => 'Bucket', 'total' => 'Revenue'],
-            ),
-            'revenue_by_doctor' => $this->exporter->csvFromColumns(
-                "revenue-by-doctor-{$from->toDateString()}.csv",
-                $this->reports->revenueByDoctor($user->hospital_id, $from, $to),
-                ['doctor_name' => 'Doctor', 'total' => 'Revenue'],
-            ),
-            'top_medicines' => $this->exporter->csvFromColumns(
-                "top-medicines-{$from->toDateString()}.csv",
-                $this->reports->topMedicines($user->hospital_id, $from, $to),
-                ['label' => 'Medicine', 'value' => 'Count'],
-            ),
-            default => abort(400, 'Unknown report.'),
-        };
+        $defs = [
+            'doctor_load' => [
+                'title' => 'Doctor Patient Load',
+                'rows' => fn () => $this->reports->doctorPatientLoad($user->hospital_id, $from, $to),
+                'columns' => ['doctor_name' => 'Doctor', 'visits' => 'Visits', 'unique_patients' => 'Unique Patients'],
+                'name' => "doctor-load-{$from->toDateString()}",
+            ],
+            'revenue' => [
+                'title' => 'Revenue',
+                'rows' => fn () => $this->reports->revenue($user->hospital_id, $bucket, $from, $to),
+                'columns' => ['bucket' => 'Bucket', 'total' => 'Revenue'],
+                'name' => "revenue-{$bucket}-{$from->toDateString()}",
+            ],
+            'revenue_by_doctor' => [
+                'title' => 'Revenue by Doctor',
+                'rows' => fn () => $this->reports->revenueByDoctor($user->hospital_id, $from, $to),
+                'columns' => ['doctor_name' => 'Doctor', 'total' => 'Revenue'],
+                'name' => "revenue-by-doctor-{$from->toDateString()}",
+            ],
+            'top_medicines' => [
+                'title' => 'Top Medicines',
+                'rows' => fn () => $this->reports->topMedicines($user->hospital_id, $from, $to),
+                'columns' => ['label' => 'Medicine', 'value' => 'Count'],
+                'name' => "top-medicines-{$from->toDateString()}",
+            ],
+        ];
+
+        if (! isset($defs[$report])) {
+            abort(400, 'Unknown report.');
+        }
+
+        $def = $defs[$report];
+        $rows = ($def['rows'])();
+
+        if ($format === 'pdf') {
+            return $this->exporter->pdfFromColumns(
+                "{$def['name']}.pdf",
+                $def['title'],
+                $rows,
+                $def['columns'],
+                ['From' => $from->toDateString(), 'To' => $to->toDateString()],
+            );
+        }
+
+        return $this->exporter->csvFromColumns("{$def['name']}.csv", $rows, $def['columns']);
     }
 
     protected function parseFilters(Request $request): array
