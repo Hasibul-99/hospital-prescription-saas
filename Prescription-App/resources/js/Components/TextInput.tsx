@@ -1,41 +1,49 @@
-import {
-    forwardRef,
-    InputHTMLAttributes,
-    useEffect,
-    useImperativeHandle,
-    useRef,
-} from 'react';
+import { forwardRef, useRef } from 'react';
+import { Input } from 'antd';
+import type { InputRef } from 'antd';
 
-export default forwardRef(function TextInput(
-    {
-        type = 'text',
-        className = '',
-        isFocused = false,
-        ...props
-    }: InputHTMLAttributes<HTMLInputElement> & { isFocused?: boolean },
+interface TextInputProps {
+    type?: string;
+    className?: string;
+    isFocused?: boolean;
+    id?: string;
+    name?: string;
+    value?: string | number;
+    defaultValue?: string | number;
+    placeholder?: string;
+    disabled?: boolean;
+    readOnly?: boolean;
+    maxLength?: number;
+    autoComplete?: string;
+    required?: boolean;
+    onChange?: React.ChangeEventHandler<HTMLInputElement>;
+    onBlur?: React.FocusEventHandler<HTMLInputElement>;
+    onFocus?: React.FocusEventHandler<HTMLInputElement>;
+    onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+}
+
+export default forwardRef<InputRef, TextInputProps>(function TextInput(
+    { type = 'text', className = '', isFocused = false, ...props },
     ref,
 ) {
-    const localRef = useRef<HTMLInputElement>(null);
-
-    useImperativeHandle(ref, () => ({
-        focus: () => localRef.current?.focus(),
-    }));
-
-    useEffect(() => {
-        if (isFocused) {
-            localRef.current?.focus();
-        }
-    }, [isFocused]);
+    if (type === 'password') {
+        return (
+            <Input.Password
+                ref={ref}
+                className={className}
+                autoFocus={isFocused}
+                {...props}
+            />
+        );
+    }
 
     return (
-        <input
-            {...props}
+        <Input
+            ref={ref}
             type={type}
-            className={
-                'rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ' +
-                className
-            }
-            ref={localRef}
+            className={className}
+            autoFocus={isFocused}
+            {...props}
         />
     );
 });

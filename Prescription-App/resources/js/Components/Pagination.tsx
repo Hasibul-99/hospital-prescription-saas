@@ -1,35 +1,29 @@
-import { Link } from '@inertiajs/react';
+import { Pagination as AntPagination } from 'antd';
 
-interface PaginationLink {
-    url: string | null;
-    label: string;
-    active: boolean;
+export interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
 }
 
 interface Props {
-    links: PaginationLink[];
+    meta: PaginationMeta;
+    onChange: (page: number) => void;
 }
 
-export default function Pagination({ links }: Props) {
-    if (links.length <= 3) return null;
+export default function Pagination({ meta, onChange }: Props) {
+    if (meta.last_page <= 1) return null;
 
     return (
-        <nav className="flex items-center justify-center gap-1">
-            {links.map((link, i) => (
-                <Link
-                    key={i}
-                    href={link.url ?? '#'}
-                    preserveScroll
-                    className={`rounded px-3 py-1 text-sm ${
-                        link.active
-                            ? 'bg-blue-600 text-white'
-                            : link.url
-                              ? 'bg-white text-gray-700 hover:bg-gray-100'
-                              : 'cursor-not-allowed text-gray-400'
-                    }`}
-                    dangerouslySetInnerHTML={{ __html: link.label }}
-                />
-            ))}
-        </nav>
+        <div className="flex justify-center py-2">
+            <AntPagination
+                current={meta.current_page}
+                total={meta.total}
+                pageSize={meta.per_page}
+                showSizeChanger={false}
+                onChange={onChange}
+            />
+        </div>
     );
 }

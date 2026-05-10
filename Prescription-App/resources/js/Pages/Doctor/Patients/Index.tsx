@@ -8,8 +8,7 @@ import { ReactNode, useState } from 'react';
 interface Props {
     patients: {
         data: Patient[];
-        links: any[];
-        meta?: any;
+        meta: { current_page: number; last_page: number; per_page: number; total: number };
     };
     filters: {
         search?: string;
@@ -234,7 +233,21 @@ export default function Index({ patients, filters }: Props) {
                 </table>
 
                 <div className="border-t px-4 py-3">
-                    <Pagination links={patients.links} />
+                    <Pagination
+                            meta={patients.meta}
+                            onChange={(page) => router.get('/doctor/patients', {
+                                search: filters.search || undefined,
+                                gender: filters.gender || undefined,
+                                blood_group: filters.blood_group || undefined,
+                                date_from: filters.date_from || undefined,
+                                date_to: filters.date_to || undefined,
+                                age_from: filters.age_from || undefined,
+                                age_to: filters.age_to || undefined,
+                                sort_by: filters.sort_by || undefined,
+                                sort_dir: filters.sort_dir || undefined,
+                                page,
+                            }, { preserveState: true, replace: true })}
+                        />
                 </div>
             </div>
         </>

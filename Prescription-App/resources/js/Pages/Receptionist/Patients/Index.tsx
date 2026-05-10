@@ -8,7 +8,7 @@ import { ReactNode, useState } from 'react';
 interface Props {
     patients: {
         data: Patient[];
-        links: any[];
+        meta: { current_page: number; last_page: number; per_page: number; total: number };
     };
     filters: {
         search?: string;
@@ -124,7 +124,17 @@ export default function Index({ patients, filters }: Props) {
                     </tbody>
                 </table>
                 <div className="border-t px-4 py-3">
-                    <Pagination links={patients.links} />
+                    <Pagination
+                        meta={patients.meta}
+                        onChange={(page) => router.get('/receptionist/patients', {
+                            search: filters.search || undefined,
+                            gender: filters.gender || undefined,
+                            blood_group: filters.blood_group || undefined,
+                            sort_by: filters.sort_by || undefined,
+                            sort_dir: filters.sort_dir || undefined,
+                            page,
+                        }, { preserveState: true, replace: true })}
+                    />
                 </div>
             </div>
         </>

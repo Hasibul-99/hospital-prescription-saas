@@ -114,7 +114,19 @@ export default function Index({ appointments, doctors, filters }: Props) {
                         ))}
                     </tbody>
                 </table>
-                <div className="border-t px-4 py-3"><Pagination links={appointments.links as any} /></div>
+                <div className="border-t px-4 py-3">
+                    <Pagination
+                        meta={appointments.meta}
+                        onChange={(page) => router.get('/receptionist/appointments', {
+                            date_from: filters.date_from || undefined,
+                            date_to: filters.date_to || undefined,
+                            doctor_id: filters.doctor_id || undefined,
+                            status: filters.status || undefined,
+                            type: filters.type || undefined,
+                            page,
+                        }, { preserveState: true })}
+                    />
+                </div>
             </div>
 
             {showModal && (

@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
+import type { InputRef } from 'antd';
 import { FormEventHandler, useRef } from 'react';
 
 export default function UpdatePasswordForm({
@@ -11,8 +12,8 @@ export default function UpdatePasswordForm({
 }: {
     className?: string;
 }) {
-    const passwordInput = useRef<HTMLInputElement>(null);
-    const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const passwordInput = useRef<InputRef>(null);
+    const currentPasswordInput = useRef<InputRef>(null);
 
     const {
         data,
