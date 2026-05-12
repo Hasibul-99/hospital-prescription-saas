@@ -4,7 +4,14 @@
       "Bash(npx tsc *)",
       "Bash(npm install *)",
       "Bash(composer require *)",
-      "Bash(php artisan *)"
+      "Bash(php artisan *)",
+      "Bash(cp \"/Users/hasibulhasan/.claude/projects/-Users-hasibulhasan-Documents-projects-laravel-hospital-prescription-saas/1b6474bb-167d-45cc-aa09-ec9726c109a7/tool-results/webfetch-1778520243424-ht478n.bin\" /tmp/design.gz)",
+      "Bash(gunzip -f /tmp/design.gz)",
+      "Read(//tmp/**)",
+      "Bash(mkdir -p /tmp/design_files)",
+      "Bash(tar -xf /tmp/design -C /tmp/design_files)",
+      "Bash(wc -l /tmp/design_files/hospital-prescription/project/*.jsx /tmp/design_files/hospital-prescription/project/*.css /tmp/design_files/hospital-prescription/project/*.html 2>/dev/null)",
+      "Read(//private/tmp/design_files/hospital-prescription/project/**)"
     ]
   }
 }
