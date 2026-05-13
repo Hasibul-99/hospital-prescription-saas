@@ -17,7 +17,11 @@ type LogRow = {
 type Props = PageProps<{
     logs: {
         data: LogRow[];
-        meta: { current_page: number; per_page: number; total: number };
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+        links: { url: string | null; label: string; active: boolean }[];
     };
     filters: { action: string | null; user_id: string | null };
     actions: string[];
@@ -80,9 +84,9 @@ export default function HospitalAuditLogs({ logs, filters, actions }: Props) {
 
             <div className="mt-4">
                 <Pagination
-                    current={logs.meta.current_page}
-                    pageSize={logs.meta.per_page}
-                    total={logs.meta.total}
+                    current={logs.current_page}
+                    pageSize={logs.per_page}
+                    total={logs.total}
                     showSizeChanger={false}
                     onChange={(page) =>
                         router.get('/hospital/audit-logs', { ...filters, page }, { preserveScroll: true, preserveState: true })

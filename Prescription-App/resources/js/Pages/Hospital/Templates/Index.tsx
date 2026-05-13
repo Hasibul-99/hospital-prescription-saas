@@ -112,9 +112,9 @@ export default function HospitalTemplateIndex({ templates, filters }: Props) {
 
             <div className="mt-6 flex justify-center">
                 <Pagination
-                    current={templates.meta.current_page}
-                    total={templates.meta.total}
-                    pageSize={templates.meta.per_page}
+                    current={templates.current_page}
+                    total={templates.total}
+                    pageSize={templates.per_page}
                     onChange={goPage}
                     showSizeChanger={false}
                 />

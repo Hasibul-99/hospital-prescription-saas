@@ -231,9 +231,9 @@ export default function AdminMedicineIndex({ medicines, filters, types, manufact
 
             <div className="mt-4 flex justify-center">
                 <Pagination
-                    current={medicines.meta.current_page}
-                    total={medicines.meta.total}
-                    pageSize={medicines.meta.per_page}
+                    current={medicines.current_page}
+                    total={medicines.total}
+                    pageSize={medicines.per_page}
                     onChange={(p) => apply({ page: p })}
                     showSizeChanger={false}
                 />

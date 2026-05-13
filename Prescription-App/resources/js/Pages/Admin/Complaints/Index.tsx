@@ -167,9 +167,9 @@ export default function ComplaintsIndex({ complaints, filters, categories }: Pro
 
             <div className="mt-4 flex justify-center">
                 <Pagination
-                    current={complaints.meta.current_page}
-                    total={complaints.meta.total}
-                    pageSize={complaints.meta.per_page}
+                    current={complaints.current_page}
+                    total={complaints.total}
+                    pageSize={complaints.per_page}
                     onChange={(p) => apply({ page: p })}
                     showSizeChanger={false}
                 />

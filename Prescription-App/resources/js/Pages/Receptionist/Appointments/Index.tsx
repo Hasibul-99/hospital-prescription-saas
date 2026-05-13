@@ -116,7 +116,7 @@ export default function Index({ appointments, doctors, filters }: Props) {
                 </table>
                 <div className="border-t px-4 py-3">
                     <Pagination
-                        meta={appointments.meta}
+                        meta={{ current_page: appointments.current_page, last_page: appointments.last_page, per_page: appointments.per_page, total: appointments.total }}
                         onChange={(page) => router.get('/receptionist/appointments', {
                             date_from: filters.date_from || undefined,
                             date_to: filters.date_to || undefined,
