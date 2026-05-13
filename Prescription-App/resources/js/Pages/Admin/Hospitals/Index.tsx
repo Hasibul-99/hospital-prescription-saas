@@ -6,7 +6,10 @@ import { useState } from 'react';
 interface PaginatedHospitals {
     data: (Hospital & { doctors_count: number; patients_count: number })[];
     links: { url: string | null; label: string; active: boolean }[];
-    meta: { current_page: number; last_page: number; total: number; per_page: number };
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
 }
 
 interface Props extends PageProps {
@@ -71,7 +74,7 @@ export default function Index({ hospitals, filters }: Props) {
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">Hospitals</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">{hospitals.meta.total} registered hospitals</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{hospitals.total} registered hospitals</p>
                 </div>
                 <Link
                     href={route('admin.hospitals.create')}
@@ -228,10 +231,10 @@ export default function Index({ hospitals, filters }: Props) {
                 </table>
 
                 {/* Pagination */}
-                {hospitals.meta.last_page > 1 && (
+                {hospitals.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
                         <p className="text-xs text-gray-500">
-                            Page {hospitals.meta.current_page} of {hospitals.meta.last_page} · {hospitals.meta.total} total
+                            Page {hospitals.current_page} of {hospitals.last_page} · {hospitals.total} total
                         </p>
                         <div className="flex gap-1">
                             {hospitals.links.map((link, i) => (
