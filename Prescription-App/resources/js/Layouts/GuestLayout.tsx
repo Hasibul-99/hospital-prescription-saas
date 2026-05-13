@@ -1,24 +1,30 @@
 import { Link } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 
-export default function Guest({ children }: PropsWithChildren) {
+export default function GuestLayout({ children }: PropsWithChildren) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-950 px-4 py-12">
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <Link href="/" className="inline-flex items-center gap-2 justify-center">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h5v5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2Z"/>
+                    <Link href="/" className="inline-flex items-center justify-center gap-3">
+                        <div style={{
+                            width: 40, height: 40, background: '#0f766e',
+                            borderRadius: 10, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 4h6.5a3.5 3.5 0 0 1 0 7H5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M5 4v16" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+                                <path d="M5 11h4l7 9" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                         </div>
+                        <div className="text-left">
+                            <div className="text-xl font-bold text-white tracking-tight">Pulse Rx</div>
+                            <div className="text-xs text-gray-500">Clinic Edition</div>
+                        </div>
                     </Link>
-                    <h2 className="mt-4 text-2xl lg:text-3xl font-bold tracking-tight text-white">
-                        MedixPro
-                    </h2>
-                    <p className="mt-2 text-gray-400">
-                        Healthcare administration simplified
-                    </p>
+                    <p className="mt-4 text-sm text-gray-400">Healthcare administration simplified</p>
                 </div>
 
                 {children}
