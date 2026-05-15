@@ -5,22 +5,20 @@ interface Props {
     templates: DoctorTemplate[];
     activeId?: number | null;
     onSelect: (tpl: DoctorTemplate) => void;
+    onNewRx?: () => void;
 }
 
-export default function TemplateSidebar({ templates, activeId, onSelect }: Props) {
+export default function TemplateSidebar({ templates, activeId, onSelect, onNewRx }: Props) {
     const [q, setQ] = useState('');
     const [loading, setLoading] = useState<number | null>(null);
 
-    const { mine, global } = useMemo(() => {
+    const filtered = useMemo(() => {
         const query = q.toLowerCase().trim();
-        const filtered = query
-            ? templates.filter((t) => t.disease_name.toLowerCase().includes(query))
-            : templates;
-        return {
-            mine: filtered.filter((t) => !t.is_global),
-            global: filtered.filter((t) => t.is_global),
-        };
+        return query ? templates.filter((t) => t.disease_name.toLowerCase().includes(query)) : templates;
     }, [templates, q]);
+
+    const mine = filtered.filter((t) => !t.is_global);
+    const global = filtered.filter((t) => t.is_global);
 
     async function load(tpl: DoctorTemplate) {
         setLoading(tpl.id);
@@ -38,60 +36,119 @@ export default function TemplateSidebar({ templates, activeId, onSelect }: Props
     }
 
     return (
-        <aside className="sticky top-12 h-[calc(100vh-3rem)] w-[250px] shrink-0 overflow-y-auto border-r bg-white p-3">
-            <h3 className="mb-2 text-xs font-semibold uppercase text-gray-500">Templates</h3>
-            <input
-                type="text"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search templates..."
-                className="mb-3 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-            />
+        <aside style={{
+            background: '#fff',
+            borderRight: '1px solid #e3e7e3',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            minHeight: 0,
+        }}>
+            {/* Head */}
+            <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #e3e7e3' }}>
+                <div style={{
+                    fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                    textTransform: 'uppercase', color: '#6a7a72',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    marginBottom: 8,
+                }}>
+                    <span>Saved templates</span>
+                    <span style={{ color: '#9aa8a0', fontWeight: 500 }}>{filtered.length}</span>
+                </div>
+                {/* Search */}
+                <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#9aa8a0', pointerEvents: 'none' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    </span>
+                    <input
+                        type="text"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder="Search templates…"
+                        style={{
+                            width: '100%', padding: '7px 10px 7px 30px',
+                            border: '1px solid #e3e7e3', background: '#f6f7f5',
+                            borderRadius: 7, fontSize: 13, outline: 'none',
+                            fontFamily: 'inherit',
+                        }}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = '#0a8754'; e.currentTarget.style.background = '#fff'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = '#e3e7e3'; e.currentTarget.style.background = '#f6f7f5'; }}
+                    />
+                </div>
+            </div>
 
-            <Group label="My Templates" items={mine} activeId={activeId} loading={loading} onSelect={load} />
-            <Group label="Global Templates" items={global} activeId={activeId} loading={loading} onSelect={load} />
+            {/* Template list */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 12px' }}>
+                {mine.length > 0 && (
+                    <>
+                        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6a7a72', padding: '8px 6px 4px' }}>My Templates</div>
+                        {mine.map((t) => <TplItem key={t.id} tpl={t} active={activeId === t.id} loading={loading === t.id} onSelect={load} />)}
+                    </>
+                )}
+                {global.length > 0 && (
+                    <>
+                        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6a7a72', padding: '8px 6px 4px' }}>Global Templates</div>
+                        {global.map((t) => <TplItem key={t.id} tpl={t} active={activeId === t.id} loading={loading === t.id} onSelect={load} />)}
+                    </>
+                )}
+                {filtered.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '20px 12px', color: '#6a7a72', fontSize: 13 }}>
+                        <div style={{ fontSize: 22, marginBottom: 4, opacity: 0.5 }}>⌕</div>
+                        No templates match "{q}"
+                    </div>
+                )}
+            </div>
+
+            {/* Footer: New blank Rx */}
+            <div style={{ borderTop: '1px solid #e3e7e3', padding: '10px 12px' }}>
+                <button
+                    type="button"
+                    onClick={onNewRx}
+                    style={{
+                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        gap: 6, padding: '8px 10px', borderRadius: 8,
+                        background: '#f0f8f3', color: '#0d6e46', fontWeight: 600, fontSize: 13,
+                        border: '1px dashed rgba(10,135,84,.35)', cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#e6f4ec'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#f0f8f3'; }}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New blank Rx
+                </button>
+            </div>
         </aside>
     );
 }
 
-function Group({
-    label,
-    items,
-    activeId,
-    loading,
-    onSelect,
-}: {
-    label: string;
-    items: DoctorTemplate[];
-    activeId?: number | null;
-    loading: number | null;
-    onSelect: (t: DoctorTemplate) => void;
+function TplItem({ tpl, active, loading, onSelect }: {
+    tpl: DoctorTemplate; active: boolean; loading: boolean; onSelect: (t: DoctorTemplate) => void;
 }) {
-    if (items.length === 0) return null;
+    const [hover, setHover] = useState(false);
     return (
-        <div className="mb-4">
-            <div className="mb-1 text-xs font-semibold text-gray-600">{label}</div>
-            <ul className="space-y-1">
-                {items.map((t) => (
-                    <li key={t.id}>
-                        <button
-                            type="button"
-                            onClick={() => onSelect(t)}
-                            disabled={loading === t.id}
-                            className={`w-full rounded px-2 py-1.5 text-left text-sm transition-colors ${
-                                activeId === t.id
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'text-gray-700 hover:bg-gray-100'
-                            } ${loading === t.id ? 'opacity-50' : ''}`}
-                        >
-                            <div className="font-medium">{t.disease_name}</div>
-                            <div className="text-xs text-gray-500">
-                                Updated: {new Date(t.updated_at).toLocaleDateString()}
-                            </div>
-                        </button>
-                    </li>
-                ))}
-            </ul>
-        </div>
+        <button
+            type="button"
+            onClick={() => onSelect(tpl)}
+            disabled={loading}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            style={{
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '8px 10px', borderRadius: 8, marginBottom: 1,
+                position: 'relative', cursor: loading ? 'wait' : 'pointer',
+                background: active ? '#e6f4ec' : hover ? '#f6f7f5' : 'transparent',
+                opacity: loading ? 0.5 : 1, border: 'none',
+                transition: 'background .12s',
+            }}
+        >
+            <div style={{ fontWeight: 600, fontSize: 13.5, color: '#0f1a14', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {tpl.is_global && <span style={{ color: '#0a8754' }}>★</span>}
+                {tpl.disease_name}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#6a7a72', marginTop: 2 }}>
+                <span>Updated {new Date(tpl.updated_at).toLocaleDateString('en-GB')}</span>
+                {loading && <span style={{ color: '#0a8754' }}>Loading…</span>}
+            </div>
+        </button>
     );
 }

@@ -15,6 +15,9 @@ interface Props {
     onUpdate: (index: number, patch: Partial<MedicineInput>) => void;
     onRemove: (index: number) => void;
     onReorder: (from: number, to: number) => void;
+    /** When provided, the component is controlled externally — no SectionAccordion rendered */
+    externalOpen?: boolean;
+    onExternalClose?: () => void;
 }
 
 export default function MedicineSection({
@@ -26,8 +29,11 @@ export default function MedicineSection({
     onUpdate,
     onRemove,
     onReorder,
+    externalOpen,
+    onExternalClose,
 }: Props) {
     const [addOpen, setAddOpen] = useState(false);
+    const controlled = externalOpen !== undefined;
     const [doseOpen, setDoseOpen] = useState(false);
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [draft, setDraft] = useState<MedicineInput | null>(null);
@@ -173,28 +179,18 @@ export default function MedicineSection({
         if (confirm('Remove this medicine?')) onRemove(index);
     }
 
-    return (
-        <SectionAccordion
-            title="Rx — Treatment Plan"
-            itemCount={medicines.length}
-            onAdd={() => setAddOpen(true)}
-        >
-            <MedicineList
-                medicines={medicines}
-                onReorder={onReorder}
-                onEdit={openEdit}
-                onRemove={onRemove}
-            />
-
+    const modals = (
+        <>
             <AddMedicineModal
-                show={addOpen}
-                onClose={() => setAddOpen(false)}
+                show={controlled ? (externalOpen ?? false) : addOpen}
+                onClose={() => { setAddOpen(false); onExternalClose?.(); }}
                 frequent={frequentMedicines}
                 addedMedicines={medicines}
                 onPickFromFrequent={pickFromFrequent}
                 onPickFromSearch={pickFromSearch}
                 onEditAdded={(i) => {
                     setAddOpen(false);
+                    onExternalClose?.();
                     openEdit(i);
                 }}
                 onRemoveAdded={removeFromModal}
@@ -212,6 +208,24 @@ export default function MedicineSection({
                 instructionPresets={instructionPresets}
                 dayPresets={dayPresets}
             />
+        </>
+    );
+
+    if (controlled) return modals;
+
+    return (
+        <SectionAccordion
+            title="Rx — Treatment Plan"
+            itemCount={medicines.length}
+            onAdd={() => setAddOpen(true)}
+        >
+            <MedicineList
+                medicines={medicines}
+                onReorder={onReorder}
+                onEdit={openEdit}
+                onRemove={onRemove}
+            />
+            {modals}
         </SectionAccordion>
     );
 }

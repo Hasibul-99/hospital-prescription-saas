@@ -4,8 +4,8 @@ import PatientInfoBar from '@/Components/Prescription/PatientInfoBar';
 import ComplaintsSection from '@/Components/Prescription/ComplaintsSection';
 import ExaminationSection from '@/Components/Prescription/ExaminationSection';
 import TextListSection from '@/Components/Prescription/TextListSection';
-import FollowUpPicker from '@/Components/Prescription/FollowUpPicker';
 import MedicineSection from '@/Components/Prescription/MedicineSection';
+import RxPreviewColumn from '@/Components/Prescription/RxPreviewColumn';
 import PreviousRxDrawer from '@/Components/Prescription/PreviousRxDrawer';
 import BottomBar from '@/Components/Prescription/BottomBar';
 import FlashMessage from '@/Components/FlashMessage';
@@ -108,6 +108,7 @@ export default function Create(props: Props) {
     const [saving, setSaving] = useState(false);
     const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
     const [showPrevious, setShowPrevious] = useState(false);
+    const [showMedicineModal, setShowMedicineModal] = useState(false);
     const stateRef = useRef(state);
     stateRef.current = state;
 
@@ -115,10 +116,7 @@ export default function Create(props: Props) {
         async (action: 'draft' | 'print' = 'draft'): Promise<number | null> => {
             setSaving(true);
             try {
-                const payload = {
-                    ...stateRef.current,
-                    _json: 1,
-                };
+                const payload = { ...stateRef.current, _json: 1 };
                 const url = rxId ? `/doctor/prescriptions/${rxId}` : '/doctor/prescriptions';
                 const method = rxId ? 'PUT' : 'POST';
 
@@ -129,8 +127,7 @@ export default function Create(props: Props) {
                         'X-Requested-With': 'XMLHttpRequest',
                         Accept: 'application/json',
                         'X-CSRF-TOKEN':
-                            (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)
-                                ?.content ?? '',
+                            (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify(payload),
@@ -148,7 +145,7 @@ export default function Create(props: Props) {
                 }
 
                 return data.id ?? rxId;
-            } catch (e) {
+            } catch {
                 message.error('Failed to save. Please try again.');
                 return null;
             } finally {
@@ -160,22 +157,28 @@ export default function Create(props: Props) {
 
     useEffect(() => {
         const t = setInterval(() => {
-            if (stateRef.current.dirty && !saving) {
-                save('draft');
-            }
+            if (stateRef.current.dirty && !saving) save('draft');
         }, 30000);
         return () => clearInterval(t);
     }, [save, saving]);
 
     useEffect(() => {
         function beforeUnload(e: BeforeUnloadEvent) {
-            if (stateRef.current.dirty) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
+            if (stateRef.current.dirty) { e.preventDefault(); e.returnValue = ''; }
         }
         window.addEventListener('beforeunload', beforeUnload);
         return () => window.removeEventListener('beforeunload', beforeUnload);
+    }, []);
+
+    useEffect(() => {
+        function onKey(e: KeyboardEvent) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowMedicineModal(true);
+            }
+        }
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
     }, []);
 
     async function saveAsTemplate(name: string) {
@@ -202,7 +205,7 @@ export default function Create(props: Props) {
             if (!res.ok) throw new Error('Template save failed');
             message.success(`Template "${name}" saved.`);
             router.reload({ only: ['templates'] });
-        } catch (e) {
+        } catch {
             message.error('Failed to save template.');
         }
     }
@@ -255,164 +258,169 @@ export default function Create(props: Props) {
     }
 
     return (
-        <div className="flex min-h-[calc(100vh-3rem)]">
-            <TemplateSidebar
-                templates={props.templates}
-                activeId={state.template_id}
-                onSelect={applyTemplate}
-            />
+        /* Full-height grid: [content row] [bottom bar] */
+        <div style={{ height: '100%', display: 'grid', gridTemplateRows: '1fr 56px', overflow: 'hidden' }}>
 
-            <div className="flex-1">
-                <PatientInfoBar
-                    patient={props.patient}
-                    date={state.date}
-                    onOpenPreviousRx={() => setShowPrevious(true)}
+            {/* ── Three-column content row ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '248px 1fr 320px', overflow: 'hidden', minHeight: 0 }}>
+
+                {/* LEFT: Template sidebar */}
+                <TemplateSidebar
+                    templates={props.templates}
+                    activeId={state.template_id}
+                    onSelect={applyTemplate}
+                    onNewRx={() => router.get('/doctor/prescriptions/create')}
                 />
 
-                <div className="mx-auto max-w-5xl px-4 py-4">
-                    <FlashMessage />
-
-                    <ComplaintsSection
-                        complaints={state.complaints}
-                        masters={props.complaint_masters}
-                        durationPresets={props.duration_presets}
-                        onAdd={(c) => dispatch({ type: 'ADD_COMPLAINT', complaint: c })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_COMPLAINT', index: i })}
-                        onUpdate={(i, patch) =>
-                            dispatch({
-                                type: 'UPDATE_COMPLAINT_DURATION',
-                                index: i,
-                                duration_text: patch.duration_text,
-                                note: patch.note,
-                            })
-                        }
+                {/* CENTER: Composer column */}
+                <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                    {/* Patient info strip */}
+                    <PatientInfoBar
+                        patient={props.patient}
+                        date={state.date}
+                        onOpenPreviousRx={() => setShowPrevious(true)}
                     />
 
-                    <ExaminationSection
-                        items={state.examinations}
-                        onAdd={(e) => dispatch({ type: 'ADD_EXAMINATION', examination: e })}
-                        onUpdate={(i, patch) => dispatch({ type: 'UPDATE_EXAMINATION', index: i, patch })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_EXAMINATION', index: i })}
-                    />
+                    <div style={{ padding: '12px 16px 20px', flex: 1 }}>
+                        <FlashMessage />
 
-                    <TextListSection
-                        title="Past History"
-                        sectionType="past_history"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        placeholder="e.g., Diabetes mellitus since 2015"
-                    />
+                        <ComplaintsSection
+                            complaints={state.complaints}
+                            masters={props.complaint_masters}
+                            durationPresets={props.duration_presets}
+                            onAdd={(c) => dispatch({ type: 'ADD_COMPLAINT', complaint: c })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_COMPLAINT', index: i })}
+                            onUpdate={(i, patch) =>
+                                dispatch({
+                                    type: 'UPDATE_COMPLAINT_DURATION',
+                                    index: i,
+                                    duration_text: patch.duration_text,
+                                    note: patch.note,
+                                })
+                            }
+                        />
 
-                    <TextListSection
-                        title="Drug History"
-                        sectionType="drug_history"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        placeholder="e.g., Metformin 500mg BD"
-                    />
+                        <ExaminationSection
+                            items={state.examinations}
+                            onAdd={(e) => dispatch({ type: 'ADD_EXAMINATION', examination: e })}
+                            onUpdate={(i, patch) => dispatch({ type: 'UPDATE_EXAMINATION', index: i, patch })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_EXAMINATION', index: i })}
+                        />
 
-                    <TextListSection
-                        title="Investigations"
-                        sectionType="investigation"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        suggestions={['CBC', 'Blood Sugar', 'X-ray Chest', 'ECG', 'Urine R/E', 'S. Creatinine']}
-                        placeholder="Investigation name"
-                    />
+                        <TextListSection
+                            title="Past History"
+                            sectionType="past_history"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="e.g., Diabetes mellitus since 2015"
+                        />
 
-                    <TextListSection
-                        title="Diagnosis"
-                        sectionType="diagnosis"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        suggestions={props.diagnosis_suggestions}
-                        placeholder="Diagnosis"
-                    />
+                        <TextListSection
+                            title="Drug History"
+                            sectionType="drug_history"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="e.g., Metformin 500mg BD"
+                        />
 
-                    <MedicineSection
-                        medicines={state.medicines}
-                        frequentMedicines={props.frequent_medicines}
-                        instructionPresets={props.instruction_presets}
-                        dayPresets={props.duration_day_presets}
-                        onAdd={(m) => dispatch({ type: 'ADD_MEDICINE', medicine: m })}
-                        onUpdate={(i, patch) => dispatch({ type: 'UPDATE_MEDICINE', index: i, patch })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
-                        onReorder={(from, to) => dispatch({ type: 'REORDER_MEDICINES', from, to })}
-                    />
+                        <TextListSection
+                            title="Investigations"
+                            sectionType="investigation"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            suggestions={['CBC', 'Blood Sugar', 'X-ray Chest', 'ECG', 'Urine R/E', 'S. Creatinine']}
+                            placeholder="Investigation name"
+                        />
 
-                    <TextListSection
-                        title="Advices"
-                        sectionType="advice"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        bilingualSuggestions={props.advice_suggestions}
-                        placeholder="Advice"
-                    />
+                        <TextListSection
+                            title="Diagnosis"
+                            sectionType="diagnosis"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            suggestions={props.diagnosis_suggestions}
+                            placeholder="Diagnosis"
+                        />
 
-                    <TextListSection
-                        title="Next Plans"
-                        sectionType="next_plan"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        placeholder="Next plan"
-                    />
+                        <TextListSection
+                            title="Advices"
+                            sectionType="advice"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            bilingualSuggestions={props.advice_suggestions}
+                            placeholder="Advice"
+                        />
 
-                    <TextListSection
-                        title="Hospitalizations"
-                        sectionType="hospitalization"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        placeholder="Hospitalization notes"
-                    />
-
-                    <TextListSection
-                        title="Operation Notes"
-                        sectionType="operation_note"
-                        allSections={state.sections}
-                        onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                        onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                        onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                        placeholder="Operation note"
-                    />
-
-                    <FollowUpPicker
-                        followUpDate={state.follow_up_date}
-                        durationValue={state.follow_up_duration_value}
-                        durationUnit={state.follow_up_duration_unit}
-                        onChange={(follow_up_date, follow_up_duration_value, follow_up_duration_unit) =>
-                            dispatch({
-                                type: 'SET_FOLLOW_UP',
-                                follow_up_date,
-                                follow_up_duration_value,
-                                follow_up_duration_unit,
-                            })
-                        }
-                        onSaveAsTemplate={saveAsTemplate}
-                    />
+                        <TextListSection
+                            title="Next Plans"
+                            sectionType="next_plan"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="Next plan"
+                        />
+                    </div>
                 </div>
 
-                <BottomBar
-                    saving={saving}
-                    dirty={state.dirty}
-                    lastSavedAt={lastSavedAt}
-                    onSave={() => save('draft')}
-                    onSavePrint={() => save('print')}
-                />
+                {/* RIGHT: Rx preview column */}
+                <div style={{ borderLeft: '1px solid #e3e7e3', overflowY: 'auto', background: '#f6f7f5' }}>
+                    <RxPreviewColumn
+                        medicines={state.medicines}
+                        followUpDate={state.follow_up_date}
+                        followUpDurationValue={state.follow_up_duration_value}
+                        followUpDurationUnit={state.follow_up_duration_unit}
+                        onOpenMedicineModal={() => setShowMedicineModal(true)}
+                        onEditMedicine={(i) => {
+                            setShowMedicineModal(true);
+                        }}
+                        onRemoveMedicine={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
+                        onFollowUpChange={(date, value, unit) =>
+                            dispatch({
+                                type: 'SET_FOLLOW_UP',
+                                follow_up_date: date,
+                                follow_up_duration_value: value,
+                                follow_up_duration_unit: unit,
+                            })
+                        }
+                    />
+                </div>
             </div>
+
+            {/* ── Bottom action bar ── */}
+            <BottomBar
+                saving={saving}
+                dirty={state.dirty}
+                lastSavedAt={lastSavedAt}
+                onSave={() => save('draft')}
+                onSavePrint={() => save('print')}
+                onSaveTemplate={saveAsTemplate}
+                onNewRx={() => router.get('/doctor/prescriptions/create')}
+                onPreview={() => rxId && window.open(`/doctor/prescriptions/${rxId}/print`, '_blank')}
+            />
+
+            {/* Medicine modals — controlled externally */}
+            <MedicineSection
+                medicines={state.medicines}
+                frequentMedicines={props.frequent_medicines}
+                instructionPresets={props.instruction_presets}
+                dayPresets={props.duration_day_presets}
+                onAdd={(m) => dispatch({ type: 'ADD_MEDICINE', medicine: m })}
+                onUpdate={(i, patch) => dispatch({ type: 'UPDATE_MEDICINE', index: i, patch })}
+                onRemove={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
+                onReorder={(from, to) => dispatch({ type: 'REORDER_MEDICINES', from, to })}
+                externalOpen={showMedicineModal}
+                onExternalClose={() => setShowMedicineModal(false)}
+            />
 
             <PreviousRxDrawer
                 show={showPrevious}

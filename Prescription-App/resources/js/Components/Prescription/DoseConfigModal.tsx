@@ -1,5 +1,5 @@
 import Modal from '@/Components/Modal';
-import { AdditionalDose, MedicineInput } from '@/hooks/usePrescriptionReducer';
+import { MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -11,384 +11,349 @@ interface Props {
     dayPresets: number[];
 }
 
-type SlotKey = 'dose_morning' | 'dose_noon' | 'dose_afternoon' | 'dose_night' | 'dose_bedtime';
-
-const SLOTS: { key: SlotKey; label: string }[] = [
-    { key: 'dose_morning', label: 'সকাল (Morning)' },
-    { key: 'dose_noon', label: 'দুপুর (Noon)' },
-    { key: 'dose_afternoon', label: 'বিকাল (Afternoon)' },
-    { key: 'dose_night', label: 'রাত (Night)' },
-    { key: 'dose_bedtime', label: 'শয়নে (Bedtime)' },
+const SLOTS = [
+    { key: 'dose_morning' as const,   label: 'Morning',  bn: 'সকাল'  },
+    { key: 'dose_noon' as const,      label: 'Noon',     bn: 'দুপুর'  },
+    { key: 'dose_afternoon' as const, label: 'Evening',  bn: 'বিকাল'  },
+    { key: 'dose_night' as const,     label: 'Night',    bn: 'রাত'    },
 ];
 
-const DURATION_UNITS = ['days', 'weeks', 'months', 'years', 'continue', 'N_A'] as const;
-
-const TIMING_OPTIONS: { value: string; label: string }[] = [
-    { value: '', label: '—' },
-    { value: 'before_meal', label: 'Before meal (খাবারের আগে)' },
-    { value: 'after_meal', label: 'After meal (খাবারের পরে)' },
-    { value: 'empty_stomach', label: 'Empty stomach' },
-    { value: 'with_food', label: 'With food (খাবারের সাথে)' },
-    { value: 'custom', label: 'Custom' },
+const INSTRUCTION_OPTS = [
+    { en: 'After meal',    bn: 'খাবারের পরে'       },
+    { en: 'Before meal',   bn: 'খাবারের আগে'        },
+    { en: 'With meal',     bn: 'খাবারের সাথে'       },
+    { en: 'Empty stomach', bn: 'খালি পেটে'          },
+    { en: 'Bedtime',       bn: 'ঘুমানোর আগে'        },
+    { en: 'As needed',     bn: 'প্রয়োজন অনুযায়ী' },
 ];
 
-function emptyAdditional(): AdditionalDose {
-    return {
-        dose_morning: null,
-        dose_noon: null,
-        dose_afternoon: null,
-        dose_night: null,
-        dose_bedtime: null,
-        duration_value: null,
-        duration_unit: 'days',
-        custom_instruction: null,
-    };
-}
+const QUICK_NOTES = [
+    { en: 'If fever ≥ 100°F',            bn: 'জ্বর ১০০°F বা তার বেশি হলে' },
+    { en: 'If pain persists',             bn: 'ব্যথা থাকলে'                  },
+    { en: 'Stop after symptoms resolve',  bn: ''                              },
+    { en: 'Take only if needed',          bn: ''                              },
+];
 
-export default function DoseConfigModal({
-    show,
-    onClose,
-    medicine,
-    onSave,
-    instructionPresets,
-    dayPresets,
-}: Props) {
+const TAKE_FOR_PRESETS = [1, 3, 5, 7, 10, 14, 30];
+
+export default function DoseConfigModal({ show, onClose, medicine, onSave, dayPresets }: Props) {
     const [form, setForm] = useState<MedicineInput | null>(medicine);
     const [saveAsDefault, setSaveAsDefault] = useState(false);
-    const [editingSlot, setEditingSlot] = useState<SlotKey | null>(null);
 
     useEffect(() => {
         setForm(medicine);
         setSaveAsDefault(false);
-        setEditingSlot(null);
     }, [medicine]);
 
     if (!form) return null;
 
-    function toggleSlot(key: SlotKey) {
-        setForm((f) => {
-            if (!f) return f;
-            const current = f[key];
-            const next = current == null ? 1 : null;
-            return { ...f, [key]: next };
-        });
+    function getSlot(key: typeof SLOTS[number]['key']): number {
+        return (form as any)[key] ?? 0;
     }
 
-    function setSlotValue(key: SlotKey, val: string) {
-        setForm((f) => {
-            if (!f) return f;
-            const n = val === '' ? null : Number(val);
-            return { ...f, [key]: Number.isNaN(n as number) ? null : n };
-        });
+    function toggleSlot(key: typeof SLOTS[number]['key']) {
+        const cur = getSlot(key);
+        setForm((f) => f ? { ...f, [key]: cur > 0 ? null : 1 } : f);
     }
 
-    function appendInstruction(preset: string) {
-        setForm((f) => {
-            if (!f) return f;
-            const prev = f.custom_instruction?.trim();
-            const merged = prev ? `${prev}; ${preset}` : preset;
-            return { ...f, custom_instruction: merged };
-        });
+    function setSlotQty(key: typeof SLOTS[number]['key'], delta: number) {
+        const next = Math.max(0, (getSlot(key) || 0) + delta);
+        setForm((f) => f ? { ...f, [key]: next === 0 ? null : next } : f);
     }
 
-    function addAdditional() {
-        setForm((f) => {
-            if (!f) return f;
-            return { ...f, additional_doses: [...(f.additional_doses ?? []), emptyAdditional()] };
-        });
+    function setSlotRaw(key: typeof SLOTS[number]['key'], val: string) {
+        const n = val === '' ? null : parseFloat(val);
+        setForm((f) => f ? { ...f, [key]: (n === null || isNaN(n)) ? null : n } : f);
     }
 
-    function updateAdditional(idx: number, patch: Partial<AdditionalDose>) {
-        setForm((f) => {
-            if (!f) return f;
-            const list = [...(f.additional_doses ?? [])];
-            list[idx] = { ...list[idx], ...patch };
-            return { ...f, additional_doses: list };
-        });
-    }
+    const dosePattern = SLOTS.map((s) => getSlot(s.key) || 0).join('+');
+    const anyActive = SLOTS.some((s) => (form as any)[s.key] != null && (form as any)[s.key] > 0);
 
-    function removeAdditional(idx: number) {
-        setForm((f) => {
-            if (!f) return f;
-            const list = (f.additional_doses ?? []).filter((_, i) => i !== idx);
-            return { ...f, additional_doses: list.length ? list : null };
-        });
-    }
+    const header = [
+        form.medicine_type ? abbreviate(form.medicine_type) + '.' : '',
+        form.medicine_name,
+        form.strength ?? '',
+    ].filter(Boolean).join(' ');
 
     function commit() {
         if (!form) return;
         onSave(form, saveAsDefault);
     }
 
-    const header = `${form.medicine_type ? abbreviate(form.medicine_type) + '. ' : ''}${form.medicine_name}${form.strength ? ' ' + form.strength : ''}`;
+    const allPresets = [...new Set([...TAKE_FOR_PRESETS, ...(dayPresets ?? [])])].sort((a, b) => a - b);
 
     return (
-        <Modal show={show} onClose={onClose} maxWidth="2xl">
-            <div className="max-h-[85vh] overflow-y-auto p-5">
-                <h3 className="mb-3 text-lg font-semibold text-gray-800">{header}</h3>
+        <Modal show={show} onClose={onClose} maxWidth="lg">
+            <div style={{ fontFamily: "'Inter', system-ui, sans-serif", maxHeight: '85vh', overflowY: 'auto' }}>
 
-                <div className="rounded border border-gray-200 p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                        <div className="text-xs font-semibold text-gray-700">Dose Schedule</div>
-                        <button
-                            type="button"
-                            onClick={addAdditional}
-                            className="text-xs text-blue-600 hover:underline"
-                        >
-                            + Add more
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-5 gap-2">
-                        {SLOTS.map((s) => {
-                            const active = (form as any)[s.key] != null;
-                            const isEditing = editingSlot === s.key;
-                            return (
-                                <div key={s.key} className="flex flex-col items-center rounded border border-gray-200 p-2">
-                                    <div className="flex items-center gap-1 text-[11px] text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={active}
-                                            onChange={() => toggleSlot(s.key)}
-                                            className="cursor-pointer"
-                                        />
-                                        <span>{s.label}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setEditingSlot(isEditing ? null : s.key)}
-                                            className="text-gray-400 hover:text-blue-600"
-                                            title="Edit dose"
-                                            aria-label="Edit dose"
+                {/* Header */}
+                <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid #e3e7e3' }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#0f1a14' }}>{header}</div>
+                    <div style={{ fontSize: 12, color: '#6a7a72', marginTop: 2 }}>Configure dose schedule</div>
+                </div>
+
+                <div style={{ padding: '16px 20px 20px' }}>
+
+                    {/* Dose schedule section */}
+                    <div style={{ marginBottom: 16 }}>
+                        <div style={sectionLabel}>
+                            Dosing schedule
+                            <span style={{ color: '#9aa8a0', fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 11.5 }}>
+                                {' '}— tap slot to toggle, use +/− to set quantity
+                            </span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                            {SLOTS.map((s) => {
+                                const qty = getSlot(s.key);
+                                const active = qty != null && (form as any)[s.key] != null;
+                                return (
+                                    <div
+                                        key={s.key}
+                                        onClick={() => toggleSlot(s.key)}
+                                        style={{
+                                            borderRadius: 10, padding: '10px 8px',
+                                            border: `1px solid ${active ? 'rgba(10,135,84,.4)' : '#e3e7e3'}`,
+                                            background: active ? 'rgba(10,135,84,.06)' : '#f6f7f5',
+                                            cursor: 'pointer', userSelect: 'none',
+                                            transition: 'all .12s',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <div style={{ fontSize: 11, fontWeight: 600, color: active ? '#0a8754' : '#6a7a72' }}>
+                                                {s.label}
+                                            </div>
+                                            <div style={{
+                                                width: 16, height: 16, borderRadius: 4,
+                                                border: `1.5px solid ${active ? '#0a8754' : '#c8d0c8'}`,
+                                                background: active ? '#0a8754' : 'transparent',
+                                                display: 'grid', placeItems: 'center', flexShrink: 0,
+                                            }}>
+                                                {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#9aa8a0', fontFamily: "'Noto Sans Bengali', sans-serif", marginBottom: 10 }}>
+                                            {s.bn}
+                                        </div>
+                                        {/* qty row — stop propagation so click doesn't toggle */}
+                                        <div
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                         >
-                                            ✏️
-                                        </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSlotQty(s.key, -1)}
+                                                disabled={!active || qty <= 0}
+                                                style={qtyBtn(active)}
+                                            >−</button>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.5"
+                                                value={active ? (qty ?? 0) : 0}
+                                                onChange={(e) => setSlotRaw(s.key, e.target.value)}
+                                                onClick={() => { if (!active) toggleSlot(s.key); }}
+                                                style={{
+                                                    flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 600,
+                                                    border: `1px solid ${active ? 'rgba(10,135,84,.3)' : '#e3e7e3'}`,
+                                                    borderRadius: 5, padding: '3px 0',
+                                                    background: active ? '#fff' : '#eff0ee',
+                                                    color: active ? '#0f1a14' : '#9aa8a0',
+                                                    outline: 'none',
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => { if (!active) toggleSlot(s.key); setSlotQty(s.key, 1); }}
+                                                style={qtyBtn(true)}
+                                            >+</button>
+                                        </div>
                                     </div>
-                                    {(active || isEditing) && (
-                                        <input
-                                            type="number"
-                                            step="0.25"
-                                            min="0"
-                                            value={(form as any)[s.key] ?? ''}
-                                            onChange={(e) => setSlotValue(s.key, e.target.value)}
-                                            onFocus={() => setEditingSlot(s.key)}
-                                            className="mt-1 w-16 rounded border border-gray-300 px-1 py-0.5 text-center text-sm"
-                                        />
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {(form.additional_doses ?? []).map((ad, i) => (
-                    <div key={i} className="mt-2 rounded border border-gray-200 bg-gray-50 p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                            <div className="text-xs font-semibold text-gray-700">এবং, — Additional dose #{i + 1}</div>
-                            <button
-                                type="button"
-                                onClick={() => removeAdditional(i)}
-                                className="text-xs text-red-600 hover:underline"
-                            >
-                                Remove
-                            </button>
+                                );
+                            })}
                         </div>
-                        <div className="grid grid-cols-5 gap-2">
-                            {SLOTS.map((s) => (
-                                <input
-                                    key={s.key}
-                                    type="text"
-                                    value={(ad as any)[s.key] ?? ''}
-                                    onChange={(e) => {
-                                        const raw = e.target.value;
-                                        updateAdditional(i, { [s.key]: raw === '' ? null : raw } as Partial<AdditionalDose>);
-                                    }}
-                                    placeholder={s.label.split(' ')[0]}
-                                    className="w-full rounded border border-gray-300 px-1 py-0.5 text-center text-xs"
-                                />
-                            ))}
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <input
-                                type="number"
-                                min="0"
-                                value={ad.duration_value ?? ''}
-                                onChange={(e) =>
-                                    updateAdditional(i, {
-                                        duration_value: e.target.value === '' ? null : Number(e.target.value),
-                                    })
-                                }
-                                placeholder="Duration"
-                                className="w-20 rounded border border-gray-300 px-2 py-0.5 text-xs"
-                            />
-                            <select
-                                value={ad.duration_unit ?? 'days'}
-                                onChange={(e) => updateAdditional(i, { duration_unit: e.target.value })}
-                                className="rounded border border-gray-300 px-1 py-0.5 text-xs"
-                            >
-                                {DURATION_UNITS.map((u) => (
-                                    <option key={u} value={u}>{unitLabel(u)}</option>
-                                ))}
-                            </select>
-                            <input
-                                type="text"
-                                value={ad.custom_instruction ?? ''}
-                                onChange={(e) => updateAdditional(i, { custom_instruction: e.target.value })}
-                                placeholder="Instruction (optional)"
-                                className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs"
-                            />
-                        </div>
-                    </div>
-                ))}
-
-                <div className="mt-3 rounded border border-gray-200 p-3">
-                    <label className="text-xs font-semibold text-gray-700">Timing</label>
-                    <select
-                        value={form.timing ?? ''}
-                        onChange={(e) => setForm({ ...form, timing: e.target.value || null })}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                    >
-                        {TIMING_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="mt-3 rounded border border-gray-200 p-3">
-                    <label className="text-xs font-semibold text-gray-700">Instruction</label>
-                    <textarea
-                        value={form.custom_instruction ?? ''}
-                        onChange={(e) => setForm({ ...form, custom_instruction: e.target.value })}
-                        rows={2}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                        placeholder="e.g., খাবারের পরে"
-                    />
-                    <div className="mt-2 flex flex-wrap gap-1">
-                        {instructionPresets.map((p) => (
-                            <button
-                                key={p}
-                                type="button"
-                                onClick={() => appendInstruction(p)}
-                                className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-700 hover:bg-blue-50"
-                            >
-                                + {p}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="mt-3 rounded border border-gray-200 p-3">
-                    <label className="text-xs font-semibold text-gray-700">Take For (Duration)</label>
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {dayPresets.map((d) => {
-                            const active = form.duration_value === d && form.duration_unit === 'days';
-                            return (
-                                <button
-                                    key={d}
-                                    type="button"
-                                    onClick={() => setForm({ ...form, duration_value: d, duration_unit: 'days' })}
-                                    className={`rounded border px-2 py-0.5 text-xs ${
-                                        active
-                                            ? 'border-blue-500 bg-blue-500 text-white'
-                                            : 'border-gray-300 bg-white text-gray-700 hover:bg-blue-50'
-                                    }`}
-                                >
-                                    {d} day{d > 1 ? 's' : ''}
-                                </button>
-                            );
-                        })}
-                        <input
-                            type="number"
-                            min="0"
-                            value={
-                                form.duration_unit === 'days' && !dayPresets.includes(Number(form.duration_value))
-                                    ? (form.duration_value ?? '')
-                                    : ''
-                            }
-                            onChange={(e) =>
-                                setForm({
-                                    ...form,
-                                    duration_value: e.target.value === '' ? null : Number(e.target.value),
-                                    duration_unit: 'days',
-                                })
-                            }
-                            placeholder="Custom days"
-                            className="w-24 rounded border border-gray-300 px-2 py-0.5 text-xs"
-                        />
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                        {DURATION_UNITS.filter((u) => u !== 'days').map((unit) => (
-                            <label
-                                key={unit}
-                                className={`flex cursor-pointer items-center gap-1 rounded border px-2 py-0.5 text-xs ${
-                                    form.duration_unit === unit
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                        : 'border-gray-300 text-gray-700'
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    checked={form.duration_unit === unit}
-                                    onChange={() => setForm({ ...form, duration_unit: unit })}
-                                />
-                                {unitLabel(unit)}
-                            </label>
-                        ))}
-                        {form.duration_unit && !['days', 'continue', 'N_A'].includes(form.duration_unit) && (
-                            <input
-                                type="number"
-                                min="0"
-                                value={form.duration_value ?? ''}
-                                onChange={(e) =>
-                                    setForm({ ...form, duration_value: e.target.value === '' ? null : Number(e.target.value) })
-                                }
-                                placeholder={`# ${form.duration_unit}`}
-                                className="w-24 rounded border border-gray-300 px-2 py-0.5 text-xs"
-                            />
+                        {anyActive && (
+                            <div style={{ marginTop: 8, fontSize: 12, color: '#6a7a72' }}>
+                                Pattern:{' '}
+                                <span style={{ fontFamily: 'monospace', color: '#0a8754', fontWeight: 700 }}>{dosePattern}</span>
+                            </div>
                         )}
                     </div>
-                </div>
 
-                {form.medicine_id && (
-                    <label className="mt-3 flex items-center gap-2 text-xs text-gray-700">
-                        <input
-                            type="checkbox"
-                            checked={saveAsDefault}
-                            onChange={(e) => setSaveAsDefault(e.target.checked)}
+                    {/* Two-column: Instruction + Take for */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                        {/* Instruction */}
+                        <div>
+                            <div style={sectionLabel}>Instruction</div>
+                            <select
+                                value={form.timing ?? ''}
+                                onChange={(e) => setForm({ ...form, timing: e.target.value || null })}
+                                style={selectStyle}
+                            >
+                                <option value="">— None —</option>
+                                {INSTRUCTION_OPTS.map((o) => (
+                                    <option key={o.en} value={o.en}>{o.en}{o.bn ? ` — ${o.bn}` : ''}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Take for */}
+                        <div>
+                            <div style={sectionLabel}>Take for</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                                {allPresets.map((n) => {
+                                    const active = form.duration_value === n && form.duration_unit === 'days';
+                                    return (
+                                        <button
+                                            key={n}
+                                            type="button"
+                                            onClick={() => setForm({ ...form, duration_value: n, duration_unit: 'days' })}
+                                            style={{
+                                                padding: '3px 8px', borderRadius: 999, fontSize: 12, fontWeight: 500,
+                                                border: `1px solid ${active ? '#0a8754' : '#e3e7e3'}`,
+                                                background: active ? '#0a8754' : '#fff',
+                                                color: active ? '#fff' : '#2b3a32',
+                                                cursor: 'pointer',
+                                            }}
+                                        >{n}</button>
+                                    );
+                                })}
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={form.duration_value ?? ''}
+                                    onChange={(e) => setForm({
+                                        ...form,
+                                        duration_value: e.target.value === '' ? null : Number(e.target.value),
+                                        duration_unit: form.duration_unit ?? 'days',
+                                    })}
+                                    placeholder="#"
+                                    style={{ width: 48, padding: '3px 6px', border: '1px solid #e3e7e3', borderRadius: 6, fontSize: 12, outline: 'none', fontFamily: 'inherit' }}
+                                    onFocus={(e) => { e.currentTarget.style.borderColor = '#0a8754'; }}
+                                    onBlur={(e) => { e.currentTarget.style.borderColor = '#e3e7e3'; }}
+                                />
+                                {/* Unit toggle */}
+                                <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid #e3e7e3' }}>
+                                    {(['days', 'months', 'years', 'N/A'] as const).map((u) => {
+                                        const active = (form.duration_unit ?? 'days') === u;
+                                        return (
+                                            <button
+                                                key={u}
+                                                type="button"
+                                                onClick={() => setForm({ ...form, duration_unit: u })}
+                                                style={{
+                                                    padding: '3px 7px', fontSize: 11, fontWeight: 500,
+                                                    border: 'none',
+                                                    background: active ? '#0a8754' : '#fff',
+                                                    color: active ? '#fff' : '#6a7a72',
+                                                    cursor: 'pointer',
+                                                    borderRight: u !== 'N/A' ? '1px solid #e3e7e3' : 'none',
+                                                }}
+                                            >{u}</button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Custom note */}
+                    <div style={{ marginBottom: 16 }}>
+                        <div style={sectionLabel}>Custom note / Bengali instruction</div>
+                        <textarea
+                            value={form.custom_instruction ?? ''}
+                            onChange={(e) => setForm({ ...form, custom_instruction: e.target.value })}
+                            placeholder="e.g. জ্বর ১০০°F বা তার বেশি হলে খাবেন"
+                            rows={2}
+                            style={{
+                                width: '100%', padding: '8px 10px', border: '1px solid #e3e7e3', borderRadius: 7,
+                                fontSize: 13, fontFamily: "'Noto Sans Bengali', 'Inter', sans-serif",
+                                outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                            }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = '#0a8754'; }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = '#e3e7e3'; }}
                         />
-                        Set as default settings for this medicine
-                    </label>
-                )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                            {QUICK_NOTES.map((n) => (
+                                <button
+                                    key={n.en}
+                                    type="button"
+                                    onClick={() => setForm({ ...form, custom_instruction: n.bn || n.en })}
+                                    style={{
+                                        padding: '3px 10px', borderRadius: 999, fontSize: 12,
+                                        border: '1px solid #e3e7e3', background: '#fff', color: '#2b3a32',
+                                        cursor: 'pointer', fontFamily: "'Noto Sans Bengali', 'Inter', sans-serif",
+                                    }}
+                                >
+                                    {n.bn || n.en}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-                <div className="mt-4 flex justify-end gap-2">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded border border-gray-300 bg-white px-4 py-1.5 text-sm hover:bg-gray-50"
-                    >
-                        Close
-                    </button>
-                    <button
-                        type="button"
-                        onClick={commit}
-                        className="rounded bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                    >
-                        ✏️ Update
-                    </button>
+                    {/* Save as default */}
+                    {form.medicine_id && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#2b3a32', cursor: 'pointer', marginBottom: 16 }}>
+                            <input
+                                type="checkbox"
+                                checked={saveAsDefault}
+                                onChange={(e) => setSaveAsDefault(e.target.checked)}
+                                style={{ accentColor: '#0a8754' }}
+                            />
+                            Save as default dose for {form.medicine_name}
+                        </label>
+                    )}
+
+                    {/* Footer buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 4 }}>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            style={{
+                                padding: '7px 16px', borderRadius: 7, fontSize: 13, fontWeight: 500,
+                                border: '1px solid #e3e7e3', background: '#fff', color: '#2b3a32', cursor: 'pointer',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f6f7f5'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
+                        >Cancel</button>
+                        <button
+                            type="button"
+                            onClick={commit}
+                            style={{
+                                padding: '7px 20px', borderRadius: 7, fontSize: 13, fontWeight: 600,
+                                border: 'none', background: '#0a8754', color: '#fff', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: 6,
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#0d6e46'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#0a8754'; }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            {form.medicine_id ? 'Update' : 'Add to Rx'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </Modal>
     );
 }
 
-function unitLabel(u: string): string {
-    switch (u) {
-        case 'days': return 'Days';
-        case 'weeks': return 'Weeks';
-        case 'months': return 'Months';
-        case 'years': return 'Years';
-        case 'continue': return 'চলবে (Continue)';
-        case 'N_A': return 'N/A';
-        default: return u;
-    }
+const sectionLabel: React.CSSProperties = {
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+    textTransform: 'uppercase', color: '#0d6e46', marginBottom: 8,
+};
+
+const selectStyle: React.CSSProperties = {
+    width: '100%', padding: '7px 10px', border: '1px solid #e3e7e3',
+    borderRadius: 7, fontSize: 13, fontFamily: 'inherit', outline: 'none',
+    background: '#fff', color: '#0f1a14',
+};
+
+function qtyBtn(active: boolean): React.CSSProperties {
+    return {
+        width: 22, height: 22, borderRadius: 5, border: `1px solid ${active ? 'rgba(10,135,84,.3)' : '#e3e7e3'}`,
+        background: active ? '#fff' : '#eff0ee', color: active ? '#0a8754' : '#9aa8a0',
+        fontSize: 14, fontWeight: 600, cursor: active ? 'pointer' : 'not-allowed',
+        display: 'grid', placeItems: 'center', flexShrink: 0,
+    };
 }
 
 function abbreviate(type: string): string {
