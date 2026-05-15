@@ -36,7 +36,7 @@ class PatientController extends Controller
             ->withQueryString();
 
         return Inertia::render('Receptionist/Patients/Index', [
-            'patients' => $patients,
+            'patients' => $this->paginateFor($patients),
             'filters' => $request->only(['search', 'gender', 'blood_group', 'age_from', 'age_to', 'sort_by', 'sort_dir']),
         ]);
     }

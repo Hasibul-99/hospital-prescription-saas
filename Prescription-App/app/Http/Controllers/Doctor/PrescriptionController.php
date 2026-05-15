@@ -24,6 +24,10 @@ class PrescriptionController extends Controller
     {
         $this->authorize('create', Prescription::class);
 
+        if (!$request->filled('patient_id')) {
+            return redirect()->route('doctor.queue.index');
+        }
+
         $user = $request->user();
         $patient = Patient::findOrFail($request->input('patient_id'));
         $appointmentId = $request->input('appointment_id');

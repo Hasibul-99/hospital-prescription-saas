@@ -38,7 +38,7 @@ class ComplaintMasterController extends Controller
             ->pluck('category');
 
         return Inertia::render('Admin/Complaints/Index', [
-            'complaints' => $complaints,
+            'complaints' => $this->paginateFor($complaints),
             'filters' => compact('q', 'category', 'status'),
             'categories' => $categories,
         ]);

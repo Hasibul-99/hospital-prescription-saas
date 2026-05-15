@@ -28,7 +28,7 @@ class UserController extends Controller
         $hospitals = Hospital::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Admin/Users/Index', [
-            'users'     => $users,
+            'users'     => $this->paginateFor($users),
             'hospitals' => $hospitals,
             'filters'   => $request->only(['search', 'role', 'hospital_id']),
         ]);

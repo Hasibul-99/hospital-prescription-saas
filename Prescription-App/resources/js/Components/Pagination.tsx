@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function Pagination({ meta, onChange }: Props) {
-    if (meta.last_page <= 1) return null;
+    if (!meta || meta.last_page <= 1) return null;
 
     return (
         <div className="flex justify-center py-2">

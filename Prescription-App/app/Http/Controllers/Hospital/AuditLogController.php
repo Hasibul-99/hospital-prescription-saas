@@ -43,7 +43,7 @@ class AuditLogController extends Controller
             ->pluck('action');
 
         return Inertia::render('Hospital/AuditLogs/Index', [
-            'logs' => $logs,
+            'logs' => $this->paginateFor($logs),
             'filters' => ['action' => $action, 'user_id' => $userFilter],
             'actions' => $actions,
         ]);

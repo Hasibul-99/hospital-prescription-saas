@@ -55,7 +55,7 @@ class MedicineController extends Controller
         $pendingCount = Medicine::query()->where('is_pending_approval', true)->count();
 
         return Inertia::render('Admin/Medicines/Index', [
-            'medicines' => $medicines,
+            'medicines' => $this->paginateFor($medicines),
             'filters' => compact('q', 'type', 'manufacturer', 'status', 'sort', 'dir'),
             'types' => $types,
             'manufacturers' => $manufacturers,

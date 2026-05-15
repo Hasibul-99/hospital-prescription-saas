@@ -41,7 +41,7 @@ class AppointmentController extends Controller
             ->get(['id', 'name']);
 
         return Inertia::render('Receptionist/Appointments/Index', [
-            'appointments' => $appointments,
+            'appointments' => $this->paginateFor($appointments),
             'doctors' => $doctors,
             'filters' => $request->only(['date_from', 'date_to', 'doctor_id', 'status', 'type']),
         ]);

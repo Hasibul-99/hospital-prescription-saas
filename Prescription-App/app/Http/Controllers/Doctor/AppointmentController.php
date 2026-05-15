@@ -37,7 +37,7 @@ class AppointmentController extends Controller
             ->withQueryString();
 
         return Inertia::render('Doctor/Appointments/Index', [
-            'appointments' => $appointments,
+            'appointments' => $this->paginateFor($appointments),
             'filters' => $request->only(['date_from', 'date_to', 'status', 'type', 'chamber_id']),
             'chambers' => $this->queue->chambersForDoctor($user->id),
         ]);

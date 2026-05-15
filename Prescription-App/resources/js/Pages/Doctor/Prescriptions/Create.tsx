@@ -181,6 +181,12 @@ export default function Create(props: Props) {
         return () => window.removeEventListener('keydown', onKey);
     }, []);
 
+    function newRx() {
+        setRxId(null);
+        setLastSavedAt(null);
+        dispatch({ type: 'RESET_FORM', state: buildInitialState(props) });
+    }
+
     async function saveAsTemplate(name: string) {
         try {
             const res = await fetch('/doctor/templates', {
@@ -269,7 +275,7 @@ export default function Create(props: Props) {
                     templates={props.templates}
                     activeId={state.template_id}
                     onSelect={applyTemplate}
-                    onNewRx={() => router.get('/doctor/prescriptions/create')}
+                    onNewRx={newRx}
                 />
 
                 {/* CENTER: Composer column */}
@@ -404,7 +410,7 @@ export default function Create(props: Props) {
                 onSave={() => save('draft')}
                 onSavePrint={() => save('print')}
                 onSaveTemplate={saveAsTemplate}
-                onNewRx={() => router.get('/doctor/prescriptions/create')}
+                onNewRx={newRx}
                 onPreview={() => rxId && window.open(`/doctor/prescriptions/${rxId}/print`, '_blank')}
             />
 

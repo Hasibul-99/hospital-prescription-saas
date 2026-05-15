@@ -36,7 +36,7 @@ class AuditLogController extends Controller
         $actions = AuditLog::query()->select('action')->distinct()->pluck('action');
 
         return Inertia::render('Admin/AuditLogs/Index', [
-            'logs' => $logs,
+            'logs' => $this->paginateFor($logs),
             'filters' => ['action' => $action, 'hospital_id' => $hospitalId],
             'actions' => $actions,
         ]);

@@ -117,7 +117,7 @@ class SerialQueueService
                 $q->where('date', $date)
                   ->orWhere(function ($q) use ($carbon) {
                       $q->where('is_recurring_yearly', true)
-                        ->whereRaw("strftime('%m-%d', date) = ?", [$carbon->format('m-d')]);
+                        ->whereRaw("DATE_FORMAT(date, '%m-%d') = ?", [$carbon->format('m-d')]);
                   });
             })
             ->first();

@@ -20,7 +20,15 @@ class PatientController extends Controller
             ->withQueryString();
 
         return Inertia::render('Doctor/Patients/Index', [
-            'patients' => $patients,
+            'patients' => [
+                'data' => $patients->items(),
+                'meta' => [
+                    'current_page' => $patients->currentPage(),
+                    'last_page'    => $patients->lastPage(),
+                    'per_page'     => $patients->perPage(),
+                    'total'        => $patients->total(),
+                ],
+            ],
             'filters' => $request->only(['search', 'gender', 'blood_group', 'date_from', 'date_to', 'age_from', 'age_to', 'sort_by', 'sort_dir']),
         ]);
     }

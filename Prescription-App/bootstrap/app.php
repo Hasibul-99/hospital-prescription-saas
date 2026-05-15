@@ -24,5 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // If CSRF token expires on the logout request the session is gone anyway —
+        // just redirect to the login page instead of showing a 419.
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('logout') || $request->routeIs('logout')) {
+                return redirect('/login');
+            }
+        });
     })->create();

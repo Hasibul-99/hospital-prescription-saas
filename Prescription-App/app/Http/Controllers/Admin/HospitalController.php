@@ -24,7 +24,7 @@ class HospitalController extends Controller
             ->withQueryString();
 
         return Inertia::render('Admin/Hospitals/Index', [
-            'hospitals' => $hospitals,
+            'hospitals' => $this->paginateFor($hospitals),
             'filters' => $request->only(['search', 'plan', 'status']),
         ]);
     }

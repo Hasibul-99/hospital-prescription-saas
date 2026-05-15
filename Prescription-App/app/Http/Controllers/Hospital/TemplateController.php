@@ -42,7 +42,7 @@ class TemplateController extends Controller
             ]);
 
         return Inertia::render('Hospital/Templates/Index', [
-            'templates' => $templates,
+            'templates' => $this->paginateFor($templates),
             'filters' => ['q' => $q],
         ]);
     }

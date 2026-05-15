@@ -31,7 +31,7 @@ class MedicineRequestController extends Controller
             ->withQueryString();
 
         return Inertia::render('Admin/MedicineRequests/Index', [
-            'requests' => $requests,
+            'requests' => $this->paginateFor($requests),
             'filters' => ['q' => $q],
         ]);
     }

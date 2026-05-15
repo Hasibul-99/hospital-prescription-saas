@@ -58,7 +58,7 @@ class TemplateController extends Controller
             ]);
 
         return Inertia::render('Doctor/Templates/Index', [
-            'templates' => $templates,
+            'templates' => $this->paginateFor($templates),
             'filters' => ['q' => $q, 'tab' => $tab],
             'can_create_global' => $user->can('createGlobal', DoctorTemplate::class),
         ]);
