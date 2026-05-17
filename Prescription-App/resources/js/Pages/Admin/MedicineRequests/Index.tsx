@@ -115,9 +115,9 @@ export default function MedicineRequestsIndex({ requests, filters }: Props) {
 
             <div className="mt-4 flex justify-center">
                 <Pagination
-                    current={requests.current_page}
-                    total={requests.total}
-                    pageSize={requests.per_page}
+                    current={requests.meta.current_page}
+                    total={requests.meta.total}
+                    pageSize={requests.meta.per_page}
                     onChange={goPage}
                     showSizeChanger={false}
                 />

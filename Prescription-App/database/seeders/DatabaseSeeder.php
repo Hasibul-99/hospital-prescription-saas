@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             MedicineSeeder::class,
             ComplaintMasterSeeder::class,
+            GlobalTemplateSeeder::class,
 
             // Demo tenant data
             DemoHospitalSeeder::class,
