@@ -270,13 +270,22 @@ export type PageProps<
     };
 };
 
-export interface PaginatedData<T> {
-    data: T[];
-    links: { url: string | null; label: string; active: boolean }[];
+export interface PaginationMeta {
     current_page: number;
     last_page: number;
     per_page: number;
     total: number;
-    from: number | null;
-    to: number | null;
+}
+
+export interface PaginatedData<T> {
+    data: T[];
+    meta: PaginationMeta;
+    /** present when using raw paginator toArray() instead of paginateFor() */
+    links?: { url: string | null; label: string; active: boolean }[];
+    current_page?: number;
+    last_page?: number;
+    per_page?: number;
+    total?: number;
+    from?: number | null;
+    to?: number | null;
 }
