@@ -4,6 +4,7 @@ import AppointmentModal from '@/Components/AppointmentModal';
 import { Link, router } from '@inertiajs/react';
 import { Appointment, Chamber, HospitalHoliday, QueueStats } from '@/types';
 import { ReactNode, useEffect, useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface Props {
     date: string;

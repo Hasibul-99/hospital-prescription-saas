@@ -1,4 +1,5 @@
 import { DoctorProfile, Hospital, Patient, Prescription, PrescriptionMedicine } from '@/types';
+import { timingLabel } from '@/utils/timingLabel';
 
 interface Props {
     prescription: Prescription & {
@@ -246,15 +247,6 @@ function formatDuration(value?: number | null, unit?: string | null): string {
     return `${value} ${unit}`;
 }
 
-function timingLabel(t?: string | null): string {
-    switch (t) {
-        case 'before_meal': return 'খাবারের আগে';
-        case 'after_meal': return 'খাবারের পরে';
-        case 'empty_stomach': return 'Empty stomach';
-        case 'with_food': return 'খাবারের সাথে';
-        default: return '';
-    }
-}
 
 function abbreviate(type: string): string {
     const t = type.toLowerCase();

@@ -21,6 +21,7 @@ import {
 import type { UploadProps } from 'antd';
 import { LockOutlined, SaveOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 type Props = PageProps<{
     profile: DoctorProfile;
@@ -75,8 +76,7 @@ export default function DoctorSettings({ profile, user }: Props) {
             action: '/doctor/settings/upload',
             data: { kind },
             headers: {
-                'X-CSRF-TOKEN':
-                    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
             withCredentials: true,

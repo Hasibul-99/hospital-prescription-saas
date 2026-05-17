@@ -28,6 +28,7 @@ import {
     UploadOutlined,
 } from '@ant-design/icons';
 import { useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface MedicineRow {
     id: number;
@@ -63,7 +64,7 @@ export default function AdminMedicineIndex({ medicines, filters, types, manufact
         name: 'file',
         action: '/admin/medicines/bulk-import',
         headers: {
-            'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+            ...csrfHeaders(),
             'X-Requested-With': 'XMLHttpRequest',
         },
         accept: '.csv,.json',

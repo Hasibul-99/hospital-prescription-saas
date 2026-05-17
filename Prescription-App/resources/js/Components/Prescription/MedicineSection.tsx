@@ -5,6 +5,7 @@ import SectionAccordion from './SectionAccordion';
 import { MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { Medicine } from '@/types';
 import { useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface Props {
     medicines: MedicineInput[];
@@ -69,8 +70,7 @@ export default function MedicineSection({
             headers: {
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN':
-                    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
             },
             credentials: 'same-origin',
         }).catch(() => {});
@@ -149,8 +149,7 @@ export default function MedicineSection({
                         'Content-Type': 'application/json',
                         Accept: 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN':
-                            (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                        ...csrfHeaders(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({

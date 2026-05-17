@@ -2,6 +2,7 @@ import { Dropdown, Button } from 'antd';
 import { GlobalOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { setLanguage } from '@/i18n';
+import { csrfHeaders } from '@/utils/csrf';
 
 export default function LanguageSwitcher() {
     const { i18n } = useTranslation();
@@ -23,8 +24,7 @@ export default function LanguageSwitcher() {
                         headers: {
                             'Content-Type': 'application/json',
                             Accept: 'application/json',
-                            'X-CSRF-TOKEN':
-                                (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                            ...csrfHeaders(),
                         },
                         body: JSON.stringify({ locale: key }),
                     });

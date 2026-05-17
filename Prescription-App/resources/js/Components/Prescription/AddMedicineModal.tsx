@@ -1,7 +1,9 @@
 import Modal from '@/Components/Modal';
 import { MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { Medicine } from '@/types';
+import { timingLabel } from '@/utils/timingLabel';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface Props {
     show: boolean;
@@ -292,7 +294,7 @@ function MedRow({ index, medicine: m, onEdit, onRemove }: {
                 </div>
                 <div style={{ fontSize: 11.5, color: '#6a7a72', marginTop: 2, display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
                     {hasAnyDose && <span style={{ fontFamily: 'monospace', color: '#0a8754', fontWeight: 600 }}>{doseStr}</span>}
-                    {m.timing && <span>{m.timing}</span>}
+                    {m.timing && <span>{timingLabel(m.timing)}</span>}
                     {m.duration_value && <span>{m.duration_value} {m.duration_unit ?? 'days'}</span>}
                     {m.custom_instruction && <span style={{ fontStyle: 'italic' }}>{m.custom_instruction}</span>}
                 </div>
@@ -351,7 +353,7 @@ function MissingMedicineModal({ show, onClose, onCreated }: {
                 headers: {
                     'Content-Type': 'application/json', Accept: 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                    ...csrfHeaders(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify(form),

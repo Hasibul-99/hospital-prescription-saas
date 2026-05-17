@@ -35,6 +35,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface FrequentRow {
     id: number;
@@ -105,7 +106,7 @@ export default function MedicineDefaults({ frequent: initialFrequent, defaults, 
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
             },
         });
         if (!res.ok) {
@@ -128,7 +129,7 @@ export default function MedicineDefaults({ frequent: initialFrequent, defaults, 
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
             },
         });
         if (!res.ok) {
@@ -155,7 +156,7 @@ export default function MedicineDefaults({ frequent: initialFrequent, defaults, 
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
             },
             body: JSON.stringify({
                 ordered_medicine_ids: next.map((f) => f.medicine?.id).filter(Boolean),
@@ -169,7 +170,7 @@ export default function MedicineDefaults({ frequent: initialFrequent, defaults, 
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
             },
         });
         if (!res.ok) {

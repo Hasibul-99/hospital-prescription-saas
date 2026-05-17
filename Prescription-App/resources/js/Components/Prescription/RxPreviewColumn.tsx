@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MedicineInput } from '@/hooks/usePrescriptionReducer';
+import { timingLabel } from '@/utils/timingLabel';
 
 const HOSPITALIZATION_PRESETS = [
     'Routine follow-up',
@@ -245,7 +246,7 @@ function MedRow({ index, medicine: m, onEdit, onRemove }: {
                 </div>
                 <div style={{ fontSize: 11.5, color: '#6a7a72', marginTop: 2, display: 'flex', flexWrap: 'wrap', gap: '2px 6px', fontFamily: "'Noto Sans Bengali', 'Inter', sans-serif" }}>
                     {hasAnyDose && <span style={{ fontFamily: 'monospace', color: '#0a8754', fontWeight: 700 }}>{doseStr}</span>}
-                    {m.timing && <span>· {m.timing}</span>}
+                    {m.timing && <span>· {timingLabel(m.timing)}</span>}
                     {m.duration_value && <span>· {m.duration_value} {m.duration_unit ?? 'days'}</span>}
                     {m.custom_instruction && <span style={{ fontStyle: 'italic' }}>· {m.custom_instruction}</span>}
                 </div>

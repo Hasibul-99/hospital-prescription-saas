@@ -28,7 +28,7 @@ class DoctorMedicineDefaultController extends Controller
             'dose_afternoon' => ['nullable', 'numeric', 'min:0'],
             'dose_night' => ['nullable', 'numeric', 'min:0'],
             'dose_bedtime' => ['nullable', 'numeric', 'min:0'],
-            'timing' => ['nullable', 'in:before_meal,after_meal,empty_stomach,with_food,custom'],
+            'timing' => ['nullable', 'in:before_meal,after_meal,with_food,empty_stomach,bedtime,as_needed'],
             'duration_value' => ['nullable', 'integer', 'min:0'],
             'duration_unit' => ['nullable', 'in:days,weeks,months,years,continue,N_A'],
             'custom_instruction' => ['nullable', 'string', 'max:500'],

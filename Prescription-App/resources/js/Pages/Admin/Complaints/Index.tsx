@@ -7,6 +7,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
 import { EditOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface ComplaintRow {
     id: number;
@@ -32,7 +33,7 @@ export default function ComplaintsIndex({ complaints, filters, categories }: Pro
         name: 'file',
         action: '/admin/complaints/bulk-import',
         headers: {
-            'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+            ...csrfHeaders(),
             'X-Requested-With': 'XMLHttpRequest',
         },
         accept: '.json',

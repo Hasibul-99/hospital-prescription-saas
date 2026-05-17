@@ -29,6 +29,7 @@ import {
 import { router } from '@inertiajs/react';
 import { App as AntApp, Modal } from 'antd';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface Props {
     patient: Patient;
@@ -126,8 +127,7 @@ export default function Create(props: Props) {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         Accept: 'application/json',
-                        'X-CSRF-TOKEN':
-                            (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                        ...csrfHeaders(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify(payload),
@@ -141,7 +141,7 @@ export default function Create(props: Props) {
                 dispatch({ type: 'MARK_CLEAN' });
 
                 if (action === 'print' && data.id) {
-                    window.open(`/doctor/prescriptions/${data.id}/print`, '_blank');
+                    window.open(`/doctor/prescriptions/${data.id}/preview`, '_blank');
                 }
 
                 return data.id ?? rxId;
@@ -195,8 +195,7 @@ export default function Create(props: Props) {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     Accept: 'application/json',
-                    'X-CSRF-TOKEN':
-                        (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                    ...csrfHeaders(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({
@@ -411,7 +410,7 @@ export default function Create(props: Props) {
                 onSavePrint={() => save('print')}
                 onSaveTemplate={saveAsTemplate}
                 onNewRx={newRx}
-                onPreview={() => rxId && window.open(`/doctor/prescriptions/${rxId}/print`, '_blank')}
+                onPreview={() => rxId && window.open(`/doctor/prescriptions/${rxId}/preview`, '_blank')}
             />
 
             {/* Medicine modals — controlled externally */}

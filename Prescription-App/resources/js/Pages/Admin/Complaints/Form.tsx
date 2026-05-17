@@ -20,6 +20,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface DurationPreset {
     id: number;
@@ -122,7 +123,7 @@ export default function ComplaintForm({ complaint }: Props) {
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
+                ...csrfHeaders(),
             },
             body: JSON.stringify({ ordered_ids: next.map((p) => p.id) }),
         });

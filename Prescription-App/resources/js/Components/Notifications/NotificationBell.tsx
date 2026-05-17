@@ -1,6 +1,7 @@
 import { Badge, Button, Dropdown, Empty, List, Typography } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
+import { csrfHeaders } from '@/utils/csrf';
 
 interface NotificationItem {
     id: number;

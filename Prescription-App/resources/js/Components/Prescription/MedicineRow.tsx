@@ -1,4 +1,5 @@
 import { AdditionalDose, MedicineInput } from '@/hooks/usePrescriptionReducer';
+import { timingLabel } from '@/utils/timingLabel';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -111,15 +112,6 @@ function formatDuration(value: number | null | undefined, unit: string | null | 
     return `${value} ${unit}`;
 }
 
-function timingLabel(t: string | null | undefined): string {
-    switch (t) {
-        case 'before_meal': return 'খাবারের আগে';
-        case 'after_meal': return 'খাবারের পরে';
-        case 'empty_stomach': return 'Empty stomach';
-        case 'with_food': return 'খাবারের সাথে';
-        default: return '';
-    }
-}
 
 function abbreviate(type: string): string {
     const t = type.toLowerCase();

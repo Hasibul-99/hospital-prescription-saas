@@ -46,7 +46,7 @@ class StorePrescriptionRequest extends FormRequest
             'medicines.*.dose_afternoon' => 'nullable|numeric|min:0',
             'medicines.*.dose_night' => 'nullable|numeric|min:0',
             'medicines.*.dose_bedtime' => 'nullable|numeric|min:0',
-            'medicines.*.timing' => 'nullable|in:before_meal,after_meal,empty_stomach,with_food,custom',
+            'medicines.*.timing' => 'nullable|in:before_meal,after_meal,with_food,empty_stomach,bedtime,as_needed',
             'medicines.*.duration_value' => 'nullable|integer|min:0',
             'medicines.*.duration_unit' => 'nullable|in:days,weeks,months,years,continue,N_A',
             'medicines.*.custom_instruction' => 'nullable|string|max:1000',

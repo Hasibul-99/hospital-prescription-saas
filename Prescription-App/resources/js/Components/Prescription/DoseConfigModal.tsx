@@ -1,5 +1,6 @@
 import Modal from '@/Components/Modal';
 import { MedicineInput } from '@/hooks/usePrescriptionReducer';
+import { TIMING_OPTIONS } from '@/utils/timingLabel';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -18,14 +19,6 @@ const SLOTS = [
     { key: 'dose_night' as const,     label: 'Night',    bn: 'রাত'    },
 ];
 
-const INSTRUCTION_OPTS = [
-    { en: 'After meal',    bn: 'খাবারের পরে'       },
-    { en: 'Before meal',   bn: 'খাবারের আগে'        },
-    { en: 'With meal',     bn: 'খাবারের সাথে'       },
-    { en: 'Empty stomach', bn: 'খালি পেটে'          },
-    { en: 'Bedtime',       bn: 'ঘুমানোর আগে'        },
-    { en: 'As needed',     bn: 'প্রয়োজন অনুযায়ী' },
-];
 
 const QUICK_NOTES = [
     { en: 'If fever ≥ 100°F',            bn: 'জ্বর ১০০°F বা তার বেশি হলে' },
@@ -190,8 +183,8 @@ export default function DoseConfigModal({ show, onClose, medicine, onSave, dayPr
                                 style={selectStyle}
                             >
                                 <option value="">— None —</option>
-                                {INSTRUCTION_OPTS.map((o) => (
-                                    <option key={o.en} value={o.en}>{o.en}{o.bn ? ` — ${o.bn}` : ''}</option>
+                                {TIMING_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value ?? ''}>{o.en}{o.bn ? ` — ${o.bn}` : ''}</option>
                                 ))}
                             </select>
                         </div>
