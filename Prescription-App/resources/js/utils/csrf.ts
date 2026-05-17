@@ -14,7 +14,9 @@ export function csrfHeaders(): Record<string, string> {
     if (xsrf) return { 'X-XSRF-TOKEN': xsrf };
 
     const meta = document.head?.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
-    return { 'X-CSRF-TOKEN': meta?.content ?? '' };
+    if (meta?.content) return { 'X-CSRF-TOKEN': meta.content };
+
+    return {};
 }
 
 /**

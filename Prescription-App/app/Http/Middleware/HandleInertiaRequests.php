@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? $user->loadMissing('hospital') : null,
             ],
+            'csrf_token' => fn () => csrf_token(),
             'locale' => fn () => app()->getLocale(),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
