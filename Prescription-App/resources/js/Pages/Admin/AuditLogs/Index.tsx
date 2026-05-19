@@ -1,6 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Pagination';
 import { Head, router } from '@inertiajs/react';
-import { Card, Pagination, Select, Table, Tag, Typography } from 'antd';
+import { Card, Select, Table, Tag, Typography } from 'antd';
 import { PageProps } from '@/types';
 
 type LogRow = {
@@ -18,11 +19,7 @@ type LogRow = {
 type Props = PageProps<{
     logs: {
         data: LogRow[];
-        current_page: number;
-        per_page: number;
-        total: number;
-        last_page: number;
-        links: { url: string | null; label: string; active: boolean }[];
+        meta: { current_page: number; last_page: number; per_page: number; total: number };
     };
     filters: { action: string | null; hospital_id: string | null };
     actions: string[];
@@ -86,10 +83,7 @@ export default function AdminAuditLogs({ logs, filters, actions }: Props) {
 
             <div className="mt-4">
                 <Pagination
-                    current={logs.current_page}
-                    pageSize={logs.per_page}
-                    total={logs.total}
-                    showSizeChanger={false}
+                    meta={logs.meta}
                     onChange={(page) =>
                         router.get('/admin/audit-logs', { ...filters, page }, { preserveScroll: true, preserveState: true })
                     }

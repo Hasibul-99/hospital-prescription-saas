@@ -1,15 +1,12 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Pagination';
 import { Hospital, PageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 interface PaginatedHospitals {
     data: (Hospital & { doctors_count: number; patients_count: number })[];
-    links: { url: string | null; label: string; active: boolean }[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
+    meta: { current_page: number; last_page: number; per_page: number; total: number };
 }
 
 interface Props extends PageProps {
@@ -74,7 +71,7 @@ export default function Index({ hospitals, filters }: Props) {
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">Hospitals</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">{hospitals.total} registered hospitals</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{hospitals.meta.total} registered hospitals</p>
                 </div>
                 <Link
                     href={route('admin.hospitals.create')}
@@ -231,32 +228,15 @@ export default function Index({ hospitals, filters }: Props) {
                 </table>
 
                 {/* Pagination */}
-                {hospitals.last_page > 1 && (
-                    <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500">
-                            Page {hospitals.current_page} of {hospitals.last_page} · {hospitals.total} total
-                        </p>
-                        <div className="flex gap-1">
-                            {hospitals.links.map((link, i) => (
-                                link.url ? (
-                                    <Link
-                                        key={i}
-                                        href={link.url}
-                                        className={`rounded px-2.5 py-1 text-xs ${link.active ? 'font-semibold text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                        style={link.active ? { background: '#0f766e' } : {}}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ) : (
-                                    <span
-                                        key={i}
-                                        className="rounded px-2.5 py-1 text-xs text-gray-300"
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                )
-                            ))}
-                        </div>
-                    </div>
-                )}
+                <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+                    <p className="text-xs text-gray-500">
+                        Page {hospitals.meta.current_page} of {hospitals.meta.last_page} · {hospitals.meta.total} total
+                    </p>
+                    <Pagination
+                        meta={hospitals.meta}
+                        onChange={(page) => router.get('/admin/hospitals', { ...filters, page }, { preserveState: true, preserveScroll: true })}
+                    />
+                </div>
             </div>
         </AdminLayout>
     );

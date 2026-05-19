@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Pagination';
 import { PageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -15,10 +16,7 @@ interface User {
 
 interface PaginatedUsers {
     data: User[];
-    links: { url: string | null; label: string; active: boolean }[];
-    current_page: number;
-    last_page: number;
-    total: number;
+    meta: { current_page: number; last_page: number; per_page: number; total: number };
 }
 
 interface Props extends PageProps {
@@ -67,7 +65,7 @@ export default function Index({ users, hospitals, filters }: Props) {
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">Users</h2>
-                    <p className="mt-0.5 text-sm text-gray-500">{users.total} users total</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{users.meta.total} users total</p>
                 </div>
                 <Link
                     href={route('admin.users.create')}
@@ -177,24 +175,15 @@ export default function Index({ users, hospitals, filters }: Props) {
                     </tbody>
                 </table>
 
-                {users.last_page > 1 && (
-                    <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-                        <p className="text-xs text-gray-500">Page {users.current_page} of {users.last_page} · {users.total} total</p>
-                        <div className="flex gap-1">
-                            {users.links.map((link, i) => (
-                                link.url ? (
-                                    <Link key={i} href={link.url}
-                                        className={`rounded px-2.5 py-1 text-xs ${link.active ? 'font-semibold text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                        style={link.active ? { background: '#0f766e' } : {}}
-                                        dangerouslySetInnerHTML={{ __html: link.label }} />
-                                ) : (
-                                    <span key={i} className="rounded px-2.5 py-1 text-xs text-gray-300"
-                                        dangerouslySetInnerHTML={{ __html: link.label }} />
-                                )
-                            ))}
-                        </div>
-                    </div>
-                )}
+                <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+                    <p className="text-xs text-gray-500">
+                        Page {users.meta.current_page} of {users.meta.last_page} · {users.meta.total} total
+                    </p>
+                    <Pagination
+                        meta={users.meta}
+                        onChange={(page) => router.get('/admin/users', { ...filters, page }, { preserveState: true, preserveScroll: true })}
+                    />
+                </div>
             </div>
         </AdminLayout>
     );

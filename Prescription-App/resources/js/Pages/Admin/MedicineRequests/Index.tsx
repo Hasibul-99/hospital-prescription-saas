@@ -1,8 +1,9 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import FlashMessage from '@/Components/FlashMessage';
+import Pagination from '@/Components/Pagination';
 import { Head, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import { Button, Input, Pagination, Popconfirm, Space, Table, Typography } from 'antd';
+import { Button, Input, Popconfirm, Space, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { CheckOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useState } from 'react';
@@ -114,13 +115,7 @@ export default function MedicineRequestsIndex({ requests, filters }: Props) {
             />
 
             <div className="mt-4 flex justify-center">
-                <Pagination
-                    current={requests.meta.current_page}
-                    total={requests.meta.total}
-                    pageSize={requests.meta.per_page}
-                    onChange={goPage}
-                    showSizeChanger={false}
-                />
+                <Pagination meta={requests.meta} onChange={goPage} />
             </div>
         </AdminLayout>
     );

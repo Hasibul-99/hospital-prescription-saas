@@ -1,12 +1,12 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import FlashMessage from '@/Components/FlashMessage';
+import Pagination from '@/Components/Pagination';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
 import {
     Badge,
     Button,
     Input,
-    Pagination,
     Popconfirm,
     Select,
     Space,
@@ -232,11 +232,8 @@ export default function AdminMedicineIndex({ medicines, filters, types, manufact
 
             <div className="mt-4 flex justify-center">
                 <Pagination
-                    current={medicines.current_page}
-                    total={medicines.total}
-                    pageSize={medicines.per_page}
+                    meta={medicines.meta}
                     onChange={(p) => apply({ page: p })}
-                    showSizeChanger={false}
                 />
             </div>
         </AdminLayout>

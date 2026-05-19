@@ -2,7 +2,8 @@ import DoctorLayout from '@/Layouts/DoctorLayout';
 import FlashMessage from '@/Components/FlashMessage';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import { Button, Card, Col, Empty, Input, Pagination, Popconfirm, Row, Space, Tabs, Tag } from 'antd';
+import Pagination from '@/Components/Pagination';
+import { Button, Card, Col, Empty, Input, Popconfirm, Row, Space, Tabs, Tag } from 'antd';
 import { CopyOutlined, DeleteOutlined, EditOutlined, FileAddOutlined, SearchOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 
@@ -126,13 +127,7 @@ export default function Index({ templates, filters }: Props) {
             )}
 
             <div className="mt-6 flex justify-center">
-                <Pagination
-                    current={templates.current_page}
-                    total={templates.total}
-                    pageSize={templates.per_page}
-                    onChange={goPage}
-                    showSizeChanger={false}
-                />
+                <Pagination meta={templates.meta} onChange={goPage} />
             </div>
         </DoctorLayout>
     );

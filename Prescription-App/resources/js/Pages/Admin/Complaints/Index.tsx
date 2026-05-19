@@ -2,7 +2,8 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import FlashMessage from '@/Components/FlashMessage';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import { Button, Input, Pagination, Popconfirm, Select, Space, Table, Tag, Typography, Upload, App as AntApp } from 'antd';
+import Pagination from '@/Components/Pagination';
+import { Button, Input, Popconfirm, Select, Space, Table, Tag, Typography, Upload, App as AntApp } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
 import { EditOutlined, PlusOutlined, SearchOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
@@ -168,11 +169,8 @@ export default function ComplaintsIndex({ complaints, filters, categories }: Pro
 
             <div className="mt-4 flex justify-center">
                 <Pagination
-                    current={complaints.current_page}
-                    total={complaints.total}
-                    pageSize={complaints.per_page}
+                    meta={complaints.meta}
                     onChange={(p) => apply({ page: p })}
-                    showSizeChanger={false}
                 />
             </div>
         </AdminLayout>
