@@ -19,3 +19,8 @@ Schedule::command('medixpro:generate-daily-statements')
     ->timezone('Asia/Dhaka')
     ->onOneServer()
     ->withoutOverlapping();
+
+Schedule::command('auth:purge-unverified')
+    ->hourly()
+    ->onOneServer()
+    ->withoutOverlapping();

@@ -76,6 +76,61 @@ Every business model should have a Laravel Policy. Matrix:
 
 Generate policies with `php artisan make:policy <Model>Policy --model=<Model>` and register them in `AuthServiceProvider`.
 
+## Email OTP verification (signup) and password reset
+
+The default Breeze email-link verification and password-reset-token flows are **replaced** by a 4-digit OTP flow.
+
+### Flows
+
+**Signup**
+1. `POST /register` — creates user with `email_verified_at = null`, queues `OtpMail` (`registration`), redirects to `/verify-otp?email=…`.
+2. `POST /verify-otp` — validates code, sets `email_verified_at`, logs user in, redirects to role-based dashboard.
+3. `POST /resend-otp` — issues a new code subject to 60 s cooldown + 5/hour cap.
+
+If a registration comes in for an existing **unverified** email, the user record is overwritten with the new name + password and a fresh OTP is issued (still cooldown-bound). If the email is already **verified**, registration is rejected with a generic "already registered" error.
+
+**Password reset**
+1. `POST /forgot-password` — if user exists, queues `OtpMail` (`password_reset`). Always returns generic success; **does not leak whether the email is registered**.
+2. `POST /reset-password` — validates code, updates password, redirects to login.
+
+### Security controls (all enforced server-side)
+- Codes hashed with `Hash::make` / verified with `Hash::check`.
+- 10-minute expiry.
+- 5-attempt cap per code — invalidated on the 6th attempt.
+- 60-second resend cooldown + 5/hour hard cap per (email, purpose).
+- One active code per (email, purpose) — new issuance deletes prior rows.
+- Route-level throttle: `register` and `forgot-password` 5/min, `verify-otp` and `reset-password` 10/min.
+
+All knobs live in `App\Services\OtpService` constants (`OTP_LENGTH`, `EXPIRY_MINUTES`, `MAX_ATTEMPTS`, `RESEND_COOLDOWN_S`, `HOURLY_SEND_CAP`).
+
+### .env requirements
+
+```env
+# Mail (Gmail SMTP example — fine for launch, ~500/day cap)
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-account@gmail.com
+MAIL_PASSWORD=your-app-password    # Gmail app password, not the account password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="no-reply@your-domain.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+# Queue (must NOT be sync in prod — OtpMail implements ShouldQueue)
+QUEUE_CONNECTION=database
+```
+
+### Required background processes
+- **Queue worker** — `OtpMail` is queued, so a worker must run. In dev: `php artisan queue:work`. In prod: Supervisor or systemd unit.
+- **Cleanup schedule** — `auth:purge-unverified` runs hourly via `routes/console.php`, deleting unverified users older than 24 h and expired OTP rows. Requires the Laravel scheduler entry in cron (`* * * * * cd /path && php artisan schedule:run`).
+
+### Manual run
+- `php artisan auth:purge-unverified` — manual sweep.
+- `php artisan auth:purge-unverified --hours=48` — customize cutoff.
+
+### Future hardening
+`// TODO: transactional provider at scale` — move from Gmail SMTP to Resend/Postmark/SES when sending volume nears Gmail's 500/day. OTP length is a one-line change in `OtpService::OTP_LENGTH` (currently 4 to match the existing UI; consider 6 in production).
+
 ## Implementation status
 
 | Piece | Status |
@@ -89,3 +144,6 @@ Generate policies with `php artisan make:policy <Model>Policy --model=<Model>` a
 | Role-grouped route files | **TODO** |
 | Policies | **TODO** |
 | Inertia shared props (hospital, permissions, locale) | **TODO** |
+| Email OTP verification (signup) | Done |
+| Password reset via OTP | Done |
+| Cleanup of stale unverified users | Done (scheduled hourly) |

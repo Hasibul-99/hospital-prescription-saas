@@ -2,57 +2,99 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\OtpVerification;
 use App\Models\User;
-use Illuminate\Auth\Events\Verified;
+use App\Services\OtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class EmailVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_email_verification_screen_can_be_rendered(): void
+    public function test_verify_otp_happy_path_logs_user_in(): void
     {
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->create(['email_verified_at' => null]);
+        $code = '1234';
+        OtpVerification::create([
+            'email'        => $user->email,
+            'code'         => Hash::make($code),
+            'purpose'      => OtpService::PURPOSE_REGISTRATION,
+            'expires_at'   => now()->addMinutes(10),
+            'attempts'     => 0,
+            'last_sent_at' => now(),
+        ]);
 
-        $response = $this->actingAs($user)->get('/verify-email');
+        $this->post(route('verification.otp.verify'), ['email' => $user->email, 'code' => $code])
+            ->assertRedirect();
 
-        $response->assertStatus(200);
+        $this->assertAuthenticatedAs($user->fresh());
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        $this->assertDatabaseMissing('otp_verifications', ['email' => $user->email]);
     }
 
-    public function test_email_can_be_verified(): void
+    public function test_verify_otp_wrong_code_increments_attempts(): void
     {
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->create(['email_verified_at' => null]);
+        OtpVerification::create([
+            'email'        => $user->email,
+            'code'         => Hash::make('1234'),
+            'purpose'      => OtpService::PURPOSE_REGISTRATION,
+            'expires_at'   => now()->addMinutes(10),
+            'attempts'     => 0,
+            'last_sent_at' => now(),
+        ]);
 
-        Event::fake();
+        $this->post(route('verification.otp.verify'), ['email' => $user->email, 'code' => '0000'])
+            ->assertSessionHasErrors('code');
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1($user->email)]
-        );
-
-        $response = $this->actingAs($user)->get($verificationUrl);
-
-        Event::assertDispatched(Verified::class);
-        $this->assertTrue($user->fresh()->hasVerifiedEmail());
-        $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+        $this->assertGuest();
+        $this->assertEquals(1, OtpVerification::where('email', $user->email)->first()->attempts);
     }
 
-    public function test_email_is_not_verified_with_invalid_hash(): void
+    public function test_verify_otp_expired_code_rejects(): void
     {
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->create(['email_verified_at' => null]);
+        OtpVerification::create([
+            'email'        => $user->email,
+            'code'         => Hash::make('1234'),
+            'purpose'      => OtpService::PURPOSE_REGISTRATION,
+            'expires_at'   => now()->subMinute(),
+            'attempts'     => 0,
+            'last_sent_at' => now()->subMinutes(15),
+        ]);
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1('wrong-email')]
-        );
+        $this->post(route('verification.otp.verify'), ['email' => $user->email, 'code' => '1234'])
+            ->assertSessionHasErrors('code');
 
-        $this->actingAs($user)->get($verificationUrl);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('otp_verifications', ['email' => $user->email]);
+    }
 
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+    public function test_verify_otp_attempt_cap_invalidates_code(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => null]);
+        OtpVerification::create([
+            'email'        => $user->email,
+            'code'         => Hash::make('1234'),
+            'purpose'      => OtpService::PURPOSE_REGISTRATION,
+            'expires_at'   => now()->addMinutes(10),
+            'attempts'     => 0,
+            'last_sent_at' => now(),
+        ]);
+
+        for ($i = 0; $i < OtpService::MAX_ATTEMPTS; $i++) {
+            $this->post(route('verification.otp.verify'), ['email' => $user->email, 'code' => '0000']);
+        }
+
+        // After cap, code is invalidated
+        $this->assertDatabaseMissing('otp_verifications', ['email' => $user->email]);
+
+        // Even correct code now rejected
+        $this->post(route('verification.otp.verify'), ['email' => $user->email, 'code' => '1234'])
+            ->assertSessionHasErrors('code');
+
+        $this->assertGuest();
     }
 }

@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\OtpService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -16,54 +17,61 @@ use Inertia\Response;
 
 class NewPasswordController extends Controller
 {
-    /**
-     * Display the password reset view.
-     */
-    public function create(Request $request): Response
+    public function __construct(private readonly OtpService $otp)
     {
-        return Inertia::render('Auth/ResetPassword', [
-            'email' => $request->email,
-            'token' => $request->route('token'),
+    }
+
+    /**
+     * Show the OTP + new password screen.
+     */
+    public function create(Request $request): Response|RedirectResponse
+    {
+        $email = strtolower(trim((string) $request->query('email', '')));
+
+        if ($email === '') {
+            return redirect()->route('password.request');
+        }
+
+        return Inertia::render('Auth/ResetPasswordOtp', [
+            'email'            => $email,
+            'cooldown_seconds' => $this->otp->resendCooldownSeconds($email, OtpService::PURPOSE_PASSWORD_RESET),
+            'otp_length'       => OtpService::OTP_LENGTH,
         ]);
     }
 
     /**
-     * Handle an incoming new password request.
+     * Verify OTP and set new password.
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
+            'email'    => 'required|email',
+            'code'     => 'required|string',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
-                $user->forceFill([
-                    'password' => Hash::make($request->password),
-                    'remember_token' => Str::random(60),
-                ])->save();
+        $email = strtolower(trim($request->email));
 
-                event(new PasswordReset($user));
-            }
-        );
+        $this->otp->verify($email, $request->code, OtpService::PURPOSE_PASSWORD_RESET);
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
-        if ($status == Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            // Generic message — don't leak existence
+            throw ValidationException::withMessages([
+                'code' => ['Invalid or expired code.'],
+            ]);
         }
 
-        throw ValidationException::withMessages([
-            'email' => [trans($status)],
-        ]);
+        $user->forceFill([
+            'password'       => Hash::make($request->password),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        event(new PasswordReset($user));
+
+        return redirect()->route('login')->with('status', 'Password updated. Please log in.');
     }
 }
