@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Mail\OtpMail;
 use App\Models\OtpVerification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class OtpService
 {
@@ -61,30 +63,53 @@ class OtpService
 
         $code = $this->generateCode();
 
-        OtpVerification::where('email', $email)
-            ->where('purpose', $purpose)
-            ->delete();
+        DB::transaction(function () use ($email, $purpose, $code) {
+            OtpVerification::where('email', $email)
+                ->where('purpose', $purpose)
+                ->delete();
 
-        OtpVerification::create([
-            'email'        => $email,
-            'code'         => Hash::make($code),
-            'purpose'      => $purpose,
-            'expires_at'   => now()->addMinutes(self::EXPIRY_MINUTES),
-            'attempts'     => 0,
-            'last_sent_at' => now(),
-        ]);
+            OtpVerification::create([
+                'email'        => $email,
+                'code'         => Hash::make($code),
+                'purpose'      => $purpose,
+                'expires_at'   => now()->addMinutes(self::EXPIRY_MINUTES),
+                'attempts'     => 0,
+                'last_sent_at' => now(),
+            ]);
+        });
 
         return $code;
     }
 
     /**
      * Issue and send the OTP via queued mail.
+     * If mail dispatch fails, the freshly-issued OTP row is rolled back so the
+     * user is not stranded with an undelivered code (and cooldown does not
+     * lock them out from retrying).
+     *
+     * @throws ValidationException
      */
     public function issueAndSend(string $email, string $purpose): void
     {
         $code = $this->issue($email, $purpose);
 
-        Mail::to($email)->queue(new OtpMail($code, $purpose));
+        try {
+            Mail::to($email)->queue(new OtpMail($code, $purpose));
+        } catch (Throwable $e) {
+            OtpVerification::where('email', $email)
+                ->where('purpose', $purpose)
+                ->delete();
+
+            Log::error('OTP mail dispatch failed', [
+                'email'   => $email,
+                'purpose' => $purpose,
+                'error'   => $e->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'email' => ['We could not send the email right now. Please try again in a moment.'],
+            ]);
+        }
 
         Log::info('OTP issued', ['email' => $email, 'purpose' => $purpose]);
     }

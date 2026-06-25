@@ -115,4 +115,52 @@ class PasswordResetTest extends TestCase
 
         Mail::assertNothingQueued();
     }
+
+    public function test_reset_password_with_expired_otp_rejects(): void
+    {
+        $user = User::factory()->create();
+        OtpVerification::create([
+            'email'        => $user->email,
+            'code'         => Hash::make('4321'),
+            'purpose'      => OtpService::PURPOSE_PASSWORD_RESET,
+            'expires_at'   => now()->subMinute(),
+            'attempts'     => 0,
+            'last_sent_at' => now()->subMinutes(15),
+        ]);
+
+        $oldHash = $user->password;
+
+        $this->post('/reset-password', [
+            'email'                 => $user->email,
+            'code'                  => '4321',
+            'password'              => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertSessionHasErrors('code');
+
+        $this->assertSame($oldHash, $user->fresh()->password);
+        $this->assertDatabaseMissing('otp_verifications', ['email' => $user->email]);
+    }
+
+    public function test_otp_hourly_send_cap_enforced(): void
+    {
+        $email = 'hourly@example.com';
+        $svc = app(OtpService::class);
+
+        // Pre-seed HOURLY_SEND_CAP sent rows within the last hour, oldest
+        // last_sent_at well outside the 60s cooldown window so cooldown is
+        // not what trips us. The latest row is the one issue() reads.
+        for ($i = 0; $i < OtpService::HOURLY_SEND_CAP; $i++) {
+            OtpVerification::create([
+                'email'        => $email,
+                'code'         => Hash::make((string) (1000 + $i)),
+                'purpose'      => OtpService::PURPOSE_REGISTRATION,
+                'expires_at'   => now()->addMinutes(10),
+                'attempts'     => 0,
+                'last_sent_at' => now()->subMinutes(2 + $i),
+            ]);
+        }
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $svc->issue($email, OtpService::PURPOSE_REGISTRATION);
+    }
 }

@@ -2,7 +2,7 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import OtpInput from '@/Components/OtpInput';
 import InputError from '@/Components/InputError';
 import { Head, router, useForm } from '@inertiajs/react';
-import { FormEventHandler, useEffect, useState } from 'react';
+import { FormEventHandler, useEffect, useRef, useState } from 'react';
 
 interface Props {
     email: string;
@@ -20,6 +20,10 @@ export default function VerifyOtp({ email, purpose, cooldown_seconds, otp_length
     const [cooldown, setCooldown] = useState(cooldown_seconds);
     const [resendStatus, setResendStatus] = useState<string | null>(null);
 
+    // Track the last code we sent to the server so the auto-submit useEffect
+    // does not re-fire for an already-rejected code (loop).
+    const lastSubmittedRef = useRef<string>('');
+
     useEffect(() => {
         if (cooldown <= 0) return;
         const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
@@ -28,20 +32,29 @@ export default function VerifyOtp({ email, purpose, cooldown_seconds, otp_length
 
     const codeReady = data.code.length === otp_length;
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
+    function doSubmit() {
+        lastSubmittedRef.current = data.code;
         post(route('verification.otp.verify'), {
             preserveScroll: true,
+            onSuccess: () => {
+                setResendStatus(null);
+            },
             onError: () => {
                 reset('code');
             },
         });
+    }
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        doSubmit();
     };
 
     function resend() {
         if (cooldown > 0) return;
         setResendStatus(null);
         clearErrors();
+        lastSubmittedRef.current = '';
         router.post(
             route('verification.otp.resend'),
             { email, purpose },
@@ -57,7 +70,9 @@ export default function VerifyOtp({ email, purpose, cooldown_seconds, otp_length
     }
 
     useEffect(() => {
-        if (codeReady && !processing) submit({ preventDefault: () => {} } as unknown as React.FormEvent);
+        if (codeReady && !processing && data.code !== lastSubmittedRef.current) {
+            doSubmit();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data.code]);
 

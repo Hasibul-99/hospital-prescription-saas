@@ -8,6 +8,7 @@ use App\Services\OtpService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -54,23 +55,37 @@ class NewPasswordController extends Controller
 
         $email = strtolower(trim($request->email));
 
+        // Verify outside the transaction so attempts/expiry side effects
+        // (increment, deletion of an expired or capped row) persist even when
+        // the verification fails.
         $this->otp->verify($email, $request->code, OtpService::PURPOSE_PASSWORD_RESET);
 
-        $user = User::where('email', $email)->first();
+        DB::transaction(function () use ($email, $request) {
+            $user = User::where('email', $email)->first();
 
-        if (! $user) {
-            // Generic message — don't leak existence
-            throw ValidationException::withMessages([
-                'code' => ['Invalid or expired code.'],
-            ]);
-        }
+            if (! $user) {
+                // Generic message — don't leak existence
+                throw ValidationException::withMessages([
+                    'code' => ['Invalid or expired code.'],
+                ]);
+            }
 
-        $user->forceFill([
-            'password'       => Hash::make($request->password),
-            'remember_token' => Str::random(60),
-        ])->save();
+            $user->forceFill([
+                'password'       => Hash::make($request->password),
+                'remember_token' => Str::random(60),
+            ])->save();
 
-        event(new PasswordReset($user));
+            // Invalidate any other active web sessions for this user when the
+            // session driver is database-backed. File/redis sessions don't
+            // store user_id and cannot be purged out-of-band.
+            if (config('session.driver') === 'database') {
+                DB::table(config('session.table', 'sessions'))
+                    ->where('user_id', $user->id)
+                    ->delete();
+            }
+
+            event(new PasswordReset($user));
+        });
 
         return redirect()->route('login')->with('status', 'Password updated. Please log in.');
     }

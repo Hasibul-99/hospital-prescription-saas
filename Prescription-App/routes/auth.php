@@ -14,7 +14,7 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:otp-email-send');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
@@ -26,7 +26,7 @@ Route::middleware('guest')->group(function () {
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
         ->name('password.email')
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:otp-email-send');
 
     // OTP-based password reset
     Route::get('reset-password', [NewPasswordController::class, 'create'])
@@ -46,7 +46,7 @@ Route::middleware('guest')->group(function () {
 
     Route::post('resend-otp', [OtpVerificationController::class, 'resend'])
         ->name('verification.otp.resend')
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:otp-email-send');
 });
 
 Route::middleware('auth')->group(function () {
