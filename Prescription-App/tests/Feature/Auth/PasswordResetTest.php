@@ -160,21 +160,16 @@ class PasswordResetTest extends TestCase
         $email = 'hourly@example.com';
         $svc = app(OtpService::class);
 
-        // Pre-seed HOURLY_SEND_CAP sent rows within the last hour, oldest
-        // last_sent_at well outside the 60s cooldown window so cooldown is
-        // not what trips us. The latest row is the one issue() reads.
+        // Drive HOURLY_SEND_CAP real issues, stepping past the 60s cooldown
+        // between each so it's the hourly cap — not cooldown — that trips on
+        // the next call. This exercises the actual send path; the cap is
+        // counted in the cache and must survive issue()'s row deletion.
         for ($i = 0; $i < OtpService::HOURLY_SEND_CAP; $i++) {
-            OtpVerification::create([
-                'email'        => $email,
-                'code'         => Hash::make((string) (1000 + $i)),
-                'purpose'      => OtpService::PURPOSE_REGISTRATION,
-                'expires_at'   => now()->addMinutes(10),
-                'attempts'     => 0,
-                'last_sent_at' => now()->subMinutes(2 + $i),
-            ]);
+            $svc->issue($email, OtpService::PURPOSE_PASSWORD_RESET);
+            $this->travel(OtpService::RESEND_COOLDOWN_S + 1)->seconds();
         }
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
-        $svc->issue($email, OtpService::PURPOSE_REGISTRATION);
+        $svc->issue($email, OtpService::PURPOSE_PASSWORD_RESET);
     }
 }

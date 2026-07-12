@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Mail\OtpMail;
 use App\Models\OtpVerification;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -50,12 +50,13 @@ class OtpService
             }
         }
 
-        $hourlyCount = OtpVerification::where('email', $email)
-            ->where('purpose', $purpose)
-            ->where('last_sent_at', '>=', now()->subHour())
-            ->count();
+        // Hourly send cap. Counted in the cache over a fixed 1-hour window
+        // rather than from otp_verifications rows: codes expire in minutes and
+        // the single-active-code delete below wipes history, so a row count can
+        // never span the hour. The cache counter is decoupled from code state.
+        $sendKey = $this->sendCountKey($email, $purpose);
 
-        if ($hourlyCount >= self::HOURLY_SEND_CAP) {
+        if ((int) Cache::get($sendKey, 0) >= self::HOURLY_SEND_CAP) {
             throw ValidationException::withMessages([
                 'email' => ['Too many requests. Try again later.'],
             ]);
@@ -78,6 +79,11 @@ class OtpService
             ]);
         });
 
+        // Fixed window: seed the key with a 1-hour TTL only when absent, then
+        // increment (increment preserves the existing TTL across cache stores).
+        Cache::add($sendKey, 0, now()->addHour());
+        Cache::increment($sendKey);
+
         return $code;
     }
 
@@ -99,6 +105,13 @@ class OtpService
             OtpVerification::where('email', $email)
                 ->where('purpose', $purpose)
                 ->delete();
+
+            // Refund the send-count slot — an undelivered code shouldn't eat
+            // into the user's hourly quota.
+            $sendKey = $this->sendCountKey($email, $purpose);
+            if ((int) Cache::get($sendKey, 0) > 0) {
+                Cache::decrement($sendKey);
+            }
 
             Log::error('OTP mail dispatch failed', [
                 'email'   => $email,
@@ -196,5 +209,10 @@ class OtpService
         $max = (10 ** self::OTP_LENGTH) - 1;
 
         return str_pad((string) random_int(0, $max), self::OTP_LENGTH, '0', STR_PAD_LEFT);
+    }
+
+    protected function sendCountKey(string $email, string $purpose): string
+    {
+        return 'otp-send-count:' . $purpose . ':' . sha1(strtolower(trim($email)));
     }
 }
