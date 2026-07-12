@@ -97,12 +97,12 @@ class PasswordResetTest extends TestCase
     public function test_resend_otp_respects_cooldown(): void
     {
         Mail::fake();
-        $user = User::factory()->create(['email_verified_at' => null]);
+        $user = User::factory()->create();
 
         OtpVerification::create([
             'email'        => $user->email,
             'code'         => Hash::make('1111'),
-            'purpose'      => OtpService::PURPOSE_REGISTRATION,
+            'purpose'      => OtpService::PURPOSE_PASSWORD_RESET,
             'expires_at'   => now()->addMinutes(10),
             'attempts'     => 0,
             'last_sent_at' => now(),
@@ -110,8 +110,22 @@ class PasswordResetTest extends TestCase
 
         $this->post(route('verification.otp.resend'), [
             'email'   => $user->email,
-            'purpose' => 'registration',
+            'purpose' => 'password_reset',
         ])->assertSessionHasErrors('email');
+
+        Mail::assertNothingQueued();
+    }
+
+    public function test_resend_otp_rejects_registration_purpose(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create();
+
+        // Registration is disabled — only password_reset is a valid purpose.
+        $this->post(route('verification.otp.resend'), [
+            'email'   => $user->email,
+            'purpose' => 'registration',
+        ])->assertSessionHasErrors('purpose');
 
         Mail::assertNothingQueued();
     }

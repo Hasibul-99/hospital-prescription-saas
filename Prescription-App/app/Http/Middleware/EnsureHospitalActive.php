@@ -12,7 +12,16 @@ class EnsureHospitalActive
     {
         $user = $request->user();
 
-        if ($user && !$user->isSuperAdmin() && $user->hospital) {
+        if ($user && !$user->isSuperAdmin()) {
+            // A non-super-admin with no hospital has no tenant to operate in.
+            // Block outright rather than letting them reach tenant routes.
+            if (!$user->hospital_id || !$user->hospital) {
+                if ($request->wantsJson()) {
+                    return response()->json(['message' => 'No active hospital for this account.'], 403);
+                }
+                abort(403, 'Your account is not linked to a hospital.');
+            }
+
             if (!$user->hospital->is_active || !$user->hospital->isSubscriptionActive()) {
                 if ($request->wantsJson()) {
                     return response()->json([

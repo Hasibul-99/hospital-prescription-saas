@@ -6,15 +6,13 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\OtpVerificationController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store'])
-        ->middleware('throttle:otp-email-send');
+    // No public self-registration. Staff accounts are provisioned by a
+    // super_admin (hospitals + hospital admins) or a hospital_admin (doctors,
+    // receptionists). A publicly created account would land with hospital_id
+    // = null and role = doctor, which the tenant scope must never trust.
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
@@ -36,14 +34,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.store')
         ->middleware('throttle:10,1');
 
-    // OTP verify (registration)
-    Route::get('verify-otp', [OtpVerificationController::class, 'show'])
-        ->name('verification.otp');
-
-    Route::post('verify-otp', [OtpVerificationController::class, 'verify'])
-        ->name('verification.otp.verify')
-        ->middleware('throttle:10,1');
-
+    // Resend OTP — password reset only (registration is disabled).
     Route::post('resend-otp', [OtpVerificationController::class, 'resend'])
         ->name('verification.otp.resend')
         ->middleware('throttle:otp-email-send');
