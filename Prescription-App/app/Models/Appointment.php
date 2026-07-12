@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Appointment extends Model
 {
@@ -41,16 +42,49 @@ class Appointment extends Model
     }
 
     /**
+     * Serialize serial-number assignment. nextSerial() reads "max + 1", so two
+     * concurrent bookings for the same (doctor, date) can otherwise pick the
+     * same serial (there is no unique constraint to catch it — chamber_id is
+     * nullable, so a composite unique wouldn't cover chamber-less clinics).
+     *
+     * Lock the (doctor, date) range for the duration of generate + insert. On
+     * MySQL/InnoDB the lockForUpdate takes gap locks on the
+     * (doctor_id, appointment_date, serial_number) index even when no rows
+     * exist yet, blocking a concurrent booking until this one commits; on
+     * SQLite the write transaction serializes regardless.
+     */
+    public function save(array $options = [])
+    {
+        if ($this->exists || ! empty($this->serial_number) || empty($this->doctor_id) || empty($this->appointment_date)) {
+            return parent::save($options);
+        }
+
+        return DB::transaction(function () use ($options) {
+            static::withoutGlobalScopes()
+                ->where('doctor_id', $this->doctor_id)
+                ->whereDate('appointment_date', \Carbon\Carbon::parse($this->appointment_date)->toDateString())
+                ->lockForUpdate()
+                ->get();
+
+            return parent::save($options);
+        });
+    }
+
+    /**
      * Next serial number for (doctor, chamber, date) scope. Resets daily.
      */
     public static function nextSerial(int $doctorId, ?int $chamberId, $date): int
     {
         $date = \Carbon\Carbon::parse($date)->toDateString();
 
+        // whereDate (date-only compare) rather than a raw equality: a `date`
+        // column keeps a "00:00:00" time component on SQLite, so a plain
+        // string match against 'Y-m-d' silently misses every row there even
+        // though it matches on MySQL. whereDate is correct on both drivers.
         $max = static::withoutGlobalScopes()
             ->where('doctor_id', $doctorId)
             ->where('chamber_id', $chamberId)
-            ->where('appointment_date', $date)
+            ->whereDate('appointment_date', $date)
             ->max('serial_number');
 
         return ($max ?? 0) + 1;

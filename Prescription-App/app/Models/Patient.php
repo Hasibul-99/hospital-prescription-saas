@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\BelongsToHospital;
+use App\Traits\GeneratesUniqueUid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,7 +11,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Patient extends Model
 {
-    use BelongsToHospital, SoftDeletes;
+    use BelongsToHospital, GeneratesUniqueUid, SoftDeletes;
+
+    protected function uidColumn(): string
+    {
+        return 'patient_uid';
+    }
 
     protected $fillable = [
         'hospital_id', 'patient_uid', 'name',
