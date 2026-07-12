@@ -4,18 +4,37 @@ The project is structured as 10 prompts in [../../Prescription-Software/project-
 
 ## Status snapshot
 
+All ten prompts are built end-to-end. The table below reflects reality as of
+2026-07-12; per-prompt detail lives in the `prompt-*-report.md` files.
+
 | # | Prompt | Status | Notes |
 |---|---|---|---|
-| 1 | DB schema, migrations, models, `BelongsToHospital`, `HospitalScope` | 🟡 **Mostly done** | Migrations + models + trait in place. Verify columns match spec; no seeders yet. |
-| 2 | Role-based auth, Super Admin panel, Hospital Admin panel | 🟠 **Partial** | `RoleMiddleware`, `EnsureHospitalActive`, `HospitalScope` exist. **No role routes, controllers, Inertia pages, policies, or login redirect.** |
-| 3 | Patient management | 🔴 Not started | |
-| 4 | Appointments & serial queue | 🟢 **~95% Done** | See [prompt-4-report.md](prompt-4-report.md). Broadcast events deferred; polling covers real-time. |
-| 5 | Prescription builder — core form | 🟢 **~90% Done** | See [prompt-5-report.md](prompt-5-report.md). Medicine section placeholder (Prompt 6); print target deferred (Prompt 7). |
-| 6 | Medicine entry & dose config | 🔴 Not started | Part of the builder. |
-| 7 | Print / PDF / PNG export | 🔴 Not started | |
-| 8 | Disease templates | 🔴 Not started | |
-| 9 | Global medicine DB + doctor personalization | 🔴 Not started | |
-| 10 | Reports, settings, i18n, Docker deploy | 🔴 Not started | |
+| 1 | DB schema, migrations, models, `BelongsToHospital`, `HospitalScope` | 🟢 **Done** | Migrations + models + traits + seeders in place. |
+| 2 | Role-based auth, Super Admin panel, Hospital Admin panel | 🟢 **Done** | Role routes, controllers, Inertia pages, policies, login redirect all built. See "Post-build hardening" below. |
+| 3 | Patient management | 🟢 **Done** | Filters, webcam capture, CSV export. |
+| 4 | Appointments & serial queue | 🟢 **Done** | See [prompt-4-report.md](prompt-4-report.md). Broadcast events deferred; polling covers real-time. |
+| 5 | Prescription builder — core form | 🟢 **Done** | See [prompt-5-report.md](prompt-5-report.md). |
+| 6 | Medicine entry & dose config | 🟢 **Done** | Frequent list, per-doctor defaults, missing-medicine flow. |
+| 7 | Print / PDF / PNG export | 🟢 **Done** | DomPDF server-side + client fallback. |
+| 8 | Disease templates | 🟢 **Done** | Doctor + global templates, analytics. |
+| 9 | Global medicine DB + doctor personalization | 🟢 **Done** | See [prompt-9-report.md](prompt-9-report.md). Hospital-level medicine restrictions deferred (spec-optional). |
+| 10 | Reports, settings, i18n, Docker deploy | 🟢 **Done** | See [prompt-10-report.md](prompt-10-report.md). |
+
+## Post-build hardening (2026-07)
+
+Work done after the 10 prompts, not part of the original spec:
+
+- **OTP email verification + password reset** — hashed codes, attempt cap, 60s cooldown, hourly send cap (cache-backed), enumeration-safe messages, scheduled purge of stale unverified users.
+- **Tenant-isolation fix (critical)** — removed public self-registration (staff are admin-provisioned); `BelongsToHospital` now fails closed for a non-super-admin with a null `hospital_id` (`whereRaw('1 = 0')`); `EnsureHospitalActive` rejects hospital-less non-super-admins. Covered by `tests/Feature/Auth/TenantIsolationTest.php`.
+- **Race-safe ID generation** — `patient_uid` / `prescription_uid` retry on unique-violation (`App\Traits\GeneratesUniqueUid`); `Appointment` serials are generated under a `(doctor, date)` row lock. `nextSerial` uses `whereDate` (was silently always-1 on SQLite).
+- **Receptionist dashboard** — the previously-missing `Receptionist\DashboardController` + page.
+- **Security misc** — maintenance bypass secret is now random-per-activation (was hardcoded); OTP length raised 4 → 6 digits.
+
+### Still open (known gaps)
+
+- `platform.name` / `platform.logo_url` live in the cache, not a table — non-durable across `cache:clear` with a volatile driver.
+- Audit log only records prescription create/update — no login events, patient edits, or delete trails.
+- Notification preferences (reminder on/off) and report PDF export are deferred (see [prompt-10-report.md](prompt-10-report.md)).
 
 ## Prompt 1 — finish line checklist
 

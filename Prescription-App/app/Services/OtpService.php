@@ -14,7 +14,7 @@ use Throwable;
 
 class OtpService
 {
-    public const OTP_LENGTH        = 4;
+    public const OTP_LENGTH        = 6;
     public const EXPIRY_MINUTES    = 10;
     public const MAX_ATTEMPTS      = 5;
     public const RESEND_COOLDOWN_S = 60;

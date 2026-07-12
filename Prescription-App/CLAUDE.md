@@ -77,22 +77,22 @@ Prescription-App/
 
 ## Build roadmap (what's done / what's next)
 
-The build is broken into 10 prompts in [../Prescription-Software/project-doc.md](../Prescription-Software/project-doc.md). Status:
+The build is broken into 10 prompts in [../Prescription-Software/project-doc.md](../Prescription-Software/project-doc.md). **All ten are built end-to-end** (as of 2026-07). Focus now is hardening and net-new features, not the original prompts.
 
 | # | Prompt | Status |
 |---|---|---|
-| 1 | DB schema, migrations, models, `BelongsToHospital`, `HospitalScope` | **Done** (migrations + models + trait in place; verify & seed before moving on) |
-| 2 | Role-based auth, Super Admin panel, Hospital Admin panel | **In progress** — middleware exists, role routes & controllers & Inertia pages not built |
-| 3 | Patient management | Not started |
-| 4 | Appointments & serial queue | Not started |
-| 5 | Prescription builder (core form) | Not started — **most critical feature** |
-| 6 | Medicine entry + dose config | Not started |
-| 7 | Print / PDF / PNG export | Not started |
-| 8 | Disease templates | Not started |
-| 9 | Global medicine DB + doctor personalization | Not started |
-| 10 | Reports, settings, i18n, Docker deploy | Not started |
+| 1 | DB schema, migrations, models, `BelongsToHospital`, `HospitalScope` | **Done** |
+| 2 | Role-based auth, Super Admin panel, Hospital Admin panel | **Done** |
+| 3 | Patient management | **Done** |
+| 4 | Appointments & serial queue | **Done** |
+| 5 | Prescription builder (core form) | **Done** |
+| 6 | Medicine entry + dose config | **Done** |
+| 7 | Print / PDF / PNG export | **Done** |
+| 8 | Disease templates | **Done** |
+| 9 | Global medicine DB + doctor personalization | **Done** |
+| 10 | Reports, settings, i18n, Docker deploy | **Done** |
 
-Full detail in [docs/07-build-roadmap.md](docs/07-build-roadmap.md).
+Post-build hardening (OTP auth, tenant-isolation fix, race-safe UID/serial generation, receptionist dashboard) and the remaining known gaps are tracked in [docs/07-build-roadmap.md](docs/07-build-roadmap.md).
 
 ## How to work on this project
 

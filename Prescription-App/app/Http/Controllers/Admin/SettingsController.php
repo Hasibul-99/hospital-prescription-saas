@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
@@ -44,8 +45,12 @@ class SettingsController extends Controller
         $request->validate(['enable' => ['required', 'boolean']]);
 
         if ($request->boolean('enable')) {
-            Artisan::call('down', ['--secret' => 'medixpro-bypass']);
-            return back()->with('success', 'Maintenance mode ON. Bypass: /medixpro-bypass');
+            // Fresh unpredictable secret per activation, shown once. Never a
+            // hardcoded value — a static bypass token in source is a backdoor.
+            $secret = Str::random(32);
+            Artisan::call('down', ['--secret' => $secret]);
+
+            return back()->with('success', "Maintenance mode ON. Bypass URL (copy now, shown once): /{$secret}");
         }
 
         Artisan::call('up');
