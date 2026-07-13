@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -15,8 +15,8 @@ class SettingsController extends Controller
     {
         return Inertia::render('Admin/Settings/Index', [
             'platform' => [
-                'name' => Cache::get('platform.name', config('app.name', 'MedixPro')),
-                'logo_url' => Cache::get('platform.logo_url'),
+                'name' => PlatformSetting::get('platform.name', config('app.name', 'MedixPro')),
+                'logo_url' => PlatformSetting::get('platform.logo_url'),
             ],
             'plans' => config('subscription.plans'),
             'maintenance_mode' => app()->isDownForMaintenance(),
@@ -30,11 +30,11 @@ class SettingsController extends Controller
             'logo_url' => ['nullable', 'url', 'max:500'],
         ]);
 
-        Cache::forever('platform.name', $data['name']);
+        PlatformSetting::put('platform.name', $data['name']);
         if ($data['logo_url'] ?? null) {
-            Cache::forever('platform.logo_url', $data['logo_url']);
+            PlatformSetting::put('platform.logo_url', $data['logo_url']);
         } else {
-            Cache::forget('platform.logo_url');
+            PlatformSetting::forget('platform.logo_url');
         }
 
         return back()->with('success', 'Platform settings saved.');
