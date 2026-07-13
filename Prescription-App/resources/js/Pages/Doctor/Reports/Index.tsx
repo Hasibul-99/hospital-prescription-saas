@@ -47,6 +47,11 @@ export default function DoctorReports({ filters, patient_count, disease_breakdow
         window.location.href = `/doctor/reports/export?${params}`;
     }
 
+    function exportFullPdf() {
+        const params = new URLSearchParams({ ...filters, report: 'full' }).toString();
+        window.location.href = `/doctor/reports/export-pdf?${params}`;
+    }
+
     return (
         <DoctorLayout>
             <Head title="Reports" />
@@ -73,6 +78,9 @@ export default function DoctorReports({ filters, patient_count, disease_breakdow
                             apply({ from: range[0].format('YYYY-MM-DD'), to: range[1].format('YYYY-MM-DD') });
                         }}
                     />
+                    <Button type="primary" icon={<DownloadOutlined />} onClick={exportFullPdf}>
+                        Full PDF
+                    </Button>
                 </div>
             </div>
 

@@ -45,6 +45,10 @@ export default function AdminReports({ filters, totals, subscription_breakdown, 
         window.location.href = `/admin/reports/export?${params}`;
     }
 
+    function exportFullPdf() {
+        window.location.href = '/admin/reports/export-pdf?report=full';
+    }
+
     const totalMonthlyRevenue = revenue_per_hospital.reduce((s, h) => s + h.monthly_fee, 0);
 
     return (
@@ -56,16 +60,21 @@ export default function AdminReports({ filters, totals, subscription_breakdown, 
                 <Typography.Title level={4} className="!mb-0">
                     Platform Reports
                 </Typography.Title>
-                <Segmented
-                    value={filters.months}
-                    onChange={(v) => changeMonths(Number(v))}
-                    options={[
-                        { label: '3m', value: 3 },
-                        { label: '6m', value: 6 },
-                        { label: '12m', value: 12 },
-                        { label: '24m', value: 24 },
-                    ]}
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                    <Segmented
+                        value={filters.months}
+                        onChange={(v) => changeMonths(Number(v))}
+                        options={[
+                            { label: '3m', value: 3 },
+                            { label: '6m', value: 6 },
+                            { label: '12m', value: 12 },
+                            { label: '24m', value: 24 },
+                        ]}
+                    />
+                    <Button type="primary" icon={<DownloadOutlined />} onClick={exportFullPdf}>
+                        Full PDF
+                    </Button>
+                </div>
             </div>
 
             <Row gutter={[12, 12]} className="mb-4">

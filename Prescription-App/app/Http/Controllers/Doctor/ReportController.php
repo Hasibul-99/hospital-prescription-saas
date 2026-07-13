@@ -52,6 +52,11 @@ class ReportController extends Controller
         [$bucket, $from, $to] = $this->parseFilters($request);
         $user = $request->user();
 
+        // Consolidated PDF combining every section in one document.
+        if ($format === 'pdf' && $report === 'full') {
+            return $this->fullPdf($user, $bucket, $from, $to);
+        }
+
         $defs = [
             'patient_count' => [
                 'title' => 'Patient Count',
@@ -91,6 +96,46 @@ class ReportController extends Controller
         }
 
         return $this->exporter->csvFromColumns("{$def['name']}.csv", $rows, $def['columns']);
+    }
+
+    protected function fullPdf($user, string $bucket, Carbon $from, Carbon $to)
+    {
+        $compliance = $this->reports->followUpCompliance($user->id, $user->hospital_id, $from, $to);
+
+        $sections = [
+            [
+                'title' => 'Patient Count (' . ucfirst($bucket) . ')',
+                'columns' => ['bucket' => 'Bucket', 'count' => 'Patients'],
+                'rows' => $this->reports->patientCount($user->id, $user->hospital_id, $bucket, $from, $to),
+            ],
+            [
+                'title' => 'Disease Breakdown',
+                'columns' => ['label' => 'Diagnosis', 'value' => 'Count'],
+                'rows' => $this->reports->diseaseBreakdown($user->id, $user->hospital_id, $from, $to),
+                'chart' => ['label' => 'label', 'value' => 'value'],
+            ],
+            [
+                'title' => 'Top Medicines',
+                'columns' => ['label' => 'Medicine', 'value' => 'Count'],
+                'rows' => $this->reports->topMedicines($user->id, $user->hospital_id, $from, $to),
+                'chart' => ['label' => 'label', 'value' => 'value'],
+            ],
+            [
+                'title' => 'Follow-up Compliance',
+                'summary' => [
+                    'Prescriptions with follow-up' => $compliance['expected'],
+                    'Patients who returned' => $compliance['returned'],
+                    'Compliance rate' => $compliance['rate'] . '%',
+                ],
+            ],
+        ];
+
+        return $this->exporter->pdfFullReport(
+            "doctor-report-{$from->toDateString()}-to-{$to->toDateString()}.pdf",
+            'Doctor Report',
+            $sections,
+            ['From' => $from->toDateString(), 'To' => $to->toDateString(), 'Doctor' => $user->name],
+        );
     }
 
     protected function parseFilters(Request $request): array

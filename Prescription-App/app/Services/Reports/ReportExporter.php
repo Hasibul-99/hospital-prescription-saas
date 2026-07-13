@@ -25,6 +25,28 @@ class ReportExporter
         return $pdf->download($filename);
     }
 
+    /**
+     * Consolidated multi-section PDF. Each section is:
+     *   ['title' => string,
+     *    'columns' => [key => label, ...],   // table columns (omit for summary-only)
+     *    'rows' => array<array>,             // table rows
+     *    'chart' => ['label' => key, 'value' => key] | null,  // render CSS bars
+     *    'summary' => [label => value] | null]                // key/value block
+     */
+    public function pdfFullReport(string $filename, string $title, array $sections, array $meta = []): \Symfony\Component\HttpFoundation\Response
+    {
+        $body = view('reports.full-pdf', [
+            'title' => $title,
+            'sections' => $sections,
+            'meta' => $meta,
+            'generated_at' => now()->toDateTimeString(),
+        ])->render();
+
+        $pdf = Pdf::loadHTML($body)->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
+    }
+
     public function csv(string $filename, array $rows, array $headers): StreamedResponse
     {
         return response()->streamDownload(function () use ($rows, $headers) {

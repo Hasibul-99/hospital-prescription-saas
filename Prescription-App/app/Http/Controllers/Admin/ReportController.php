@@ -43,6 +43,10 @@ class ReportController extends Controller
     {
         $report = (string) $request->input('report', 'revenue_per_hospital');
 
+        if ($format === 'pdf' && $report === 'full') {
+            return $this->fullPdf();
+        }
+
         $defs = [
             'revenue_per_hospital' => [
                 'title' => 'Revenue per Hospital',
@@ -76,5 +80,46 @@ class ReportController extends Controller
         }
 
         return $this->exporter->csvFromColumns("{$def['name']}.csv", $rows, $def['columns']);
+    }
+
+    protected function fullPdf()
+    {
+        $totals = $this->reports->totals();
+
+        $sections = [
+            [
+                'title' => 'Platform Totals',
+                'summary' => [
+                    'Hospitals' => $totals['hospitals'],
+                    'Doctors' => $totals['doctors'],
+                    'Patients' => $totals['patients'],
+                    'Prescriptions' => $totals['prescriptions'],
+                ],
+            ],
+            [
+                'title' => 'Subscription Breakdown',
+                'columns' => ['status' => 'Status', 'count' => 'Hospitals'],
+                'rows' => $this->reports->subscriptionBreakdown(),
+                'chart' => ['label' => 'status', 'value' => 'count'],
+            ],
+            [
+                'title' => 'Hospital Growth (last 12 months)',
+                'columns' => ['bucket' => 'Month', 'count' => 'New Hospitals'],
+                'rows' => $this->reports->hospitalGrowth(12),
+                'chart' => ['label' => 'bucket', 'value' => 'count'],
+            ],
+            [
+                'title' => 'Revenue per Hospital',
+                'columns' => ['name' => 'Hospital', 'plan' => 'Plan', 'monthly_fee' => 'Monthly Fee', 'status' => 'Status', 'ends_at' => 'Ends At'],
+                'rows' => $this->reports->revenuePerHospital(),
+            ],
+        ];
+
+        return $this->exporter->pdfFullReport(
+            'platform-report-' . now()->toDateString() . '.pdf',
+            'Platform Report',
+            $sections,
+            ['Generated' => now()->toDateString()],
+        );
     }
 }

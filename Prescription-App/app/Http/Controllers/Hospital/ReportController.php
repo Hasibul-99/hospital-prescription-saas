@@ -58,6 +58,10 @@ class ReportController extends Controller
         $report = (string) $request->input('report', 'doctor_load');
         [$bucket, $from, $to] = $this->parseFilters($request);
 
+        if ($format === 'pdf' && $report === 'full') {
+            return $this->fullPdf($user, $bucket, $from, $to);
+        }
+
         $defs = [
             'doctor_load' => [
                 'title' => 'Doctor Patient Load',
@@ -103,6 +107,61 @@ class ReportController extends Controller
         }
 
         return $this->exporter->csvFromColumns("{$def['name']}.csv", $rows, $def['columns']);
+    }
+
+    protected function fullPdf($user, string $bucket, Carbon $from, Carbon $to)
+    {
+        $util = $this->reports->utilization($user->hospital_id, $from, $to);
+        $nvr = $this->reports->newVsReturning($user->hospital_id, $from, $to);
+
+        $sections = [
+            [
+                'title' => 'Doctor Patient Load',
+                'columns' => ['doctor_name' => 'Doctor', 'visits' => 'Visits', 'unique_patients' => 'Unique Patients'],
+                'rows' => $this->reports->doctorPatientLoad($user->hospital_id, $from, $to),
+            ],
+            [
+                'title' => 'Revenue (' . ucfirst($bucket) . ')',
+                'columns' => ['bucket' => 'Bucket', 'total' => 'Revenue'],
+                'rows' => $this->reports->revenue($user->hospital_id, $bucket, $from, $to),
+                'chart' => ['label' => 'bucket', 'value' => 'total'],
+            ],
+            [
+                'title' => 'Revenue by Doctor',
+                'columns' => ['doctor_name' => 'Doctor', 'total' => 'Revenue'],
+                'rows' => $this->reports->revenueByDoctor($user->hospital_id, $from, $to),
+                'chart' => ['label' => 'doctor_name', 'value' => 'total'],
+            ],
+            [
+                'title' => 'Top Medicines',
+                'columns' => ['label' => 'Medicine', 'value' => 'Count'],
+                'rows' => $this->reports->topMedicines($user->hospital_id, $from, $to),
+                'chart' => ['label' => 'label', 'value' => 'value'],
+            ],
+            [
+                'title' => 'Utilization',
+                'summary' => [
+                    'Total appointments' => $util['total_appointments'],
+                    'Completed' => $util['completed'],
+                    'Absent' => $util['absent'],
+                    'Completion rate' => $util['completion_rate'] . '%',
+                ],
+            ],
+            [
+                'title' => 'New vs Returning Patients',
+                'summary' => [
+                    'New patients' => $nvr['new'],
+                    'Returning patients' => $nvr['returning'],
+                ],
+            ],
+        ];
+
+        return $this->exporter->pdfFullReport(
+            "hospital-report-{$from->toDateString()}-to-{$to->toDateString()}.pdf",
+            'Hospital Report',
+            $sections,
+            ['From' => $from->toDateString(), 'To' => $to->toDateString(), 'Hospital' => $user->hospital?->name ?? ''],
+        );
     }
 
     protected function parseFilters(Request $request): array

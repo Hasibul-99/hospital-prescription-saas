@@ -65,6 +65,11 @@ export default function HospitalReports({
         window.location.href = `/hospital/reports/export?${params}`;
     }
 
+    function exportFullPdf() {
+        const params = new URLSearchParams({ ...filters, report: 'full' }).toString();
+        window.location.href = `/hospital/reports/export-pdf?${params}`;
+    }
+
     const newRetData = [
         { name: 'New', value: new_vs_returning.new },
         { name: 'Returning', value: new_vs_returning.returning },
@@ -96,6 +101,9 @@ export default function HospitalReports({
                             apply({ from: range[0].format('YYYY-MM-DD'), to: range[1].format('YYYY-MM-DD') });
                         }}
                     />
+                    <Button type="primary" icon={<DownloadOutlined />} onClick={exportFullPdf}>
+                        Full PDF
+                    </Button>
                 </div>
             </div>
 
