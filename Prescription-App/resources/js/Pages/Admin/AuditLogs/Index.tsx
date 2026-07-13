@@ -25,6 +25,14 @@ type Props = PageProps<{
     actions: string[];
 }>;
 
+function actionColor(action: string): string {
+    if (action.endsWith('.delete')) return 'red';
+    if (action.startsWith('auth.')) return 'green';
+    if (action.endsWith('.create')) return 'geekblue';
+    if (action.endsWith('.update')) return 'gold';
+    return 'blue';
+}
+
 export default function AdminAuditLogs({ logs, filters, actions }: Props) {
     function applyFilter(key: string, value: string | undefined) {
         router.get('/admin/audit-logs', { ...filters, [key]: value }, { preserveScroll: true, preserveState: true });
@@ -66,7 +74,7 @@ export default function AdminAuditLogs({ logs, filters, actions }: Props) {
                     {
                         title: 'Action',
                         dataIndex: 'action',
-                        render: (a: string) => <Tag color="blue">{a}</Tag>,
+                        render: (a: string) => <Tag color={actionColor(a)}>{a}</Tag>,
                     },
                     {
                         title: 'Subject',

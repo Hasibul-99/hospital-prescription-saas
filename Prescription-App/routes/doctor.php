@@ -7,6 +7,7 @@ use App\Http\Controllers\Doctor\FollowUpController;
 use App\Http\Controllers\Doctor\MedicineController;
 use App\Http\Controllers\Doctor\MedicineSettingsController;
 use App\Http\Controllers\Doctor\NotificationController;
+use App\Http\Controllers\Doctor\PatientAllergyController;
 use App\Http\Controllers\Doctor\PatientController;
 use App\Http\Controllers\Doctor\ReportController as DoctorReportController;
 use App\Http\Controllers\Doctor\SettingsController as DoctorSettingsController;
@@ -25,6 +26,10 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
 
         Route::resource('patients', PatientController::class);
         Route::get('patients-export', [PatientController::class, 'export'])->name('patients.export');
+
+        // Patient allergies (drug-safety)
+        Route::post('/patients/{patient}/allergies', [PatientAllergyController::class, 'store'])->name('patients.allergies.store');
+        Route::delete('/allergies/{allergy}', [PatientAllergyController::class, 'destroy'])->name('allergies.destroy');
 
         // Serial Queue (main working screen)
         Route::get('/queue', [SerialQueueController::class, 'index'])->name('queue.index');

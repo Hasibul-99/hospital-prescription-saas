@@ -29,12 +29,14 @@ Work done after the 10 prompts, not part of the original spec:
 - **Race-safe ID generation** — `patient_uid` / `prescription_uid` retry on unique-violation (`App\Traits\GeneratesUniqueUid`); `Appointment` serials are generated under a `(doctor, date)` row lock. `nextSerial` uses `whereDate` (was silently always-1 on SQLite).
 - **Receptionist dashboard** — the previously-missing `Receptionist\DashboardController` + page.
 - **Security misc** — maintenance bypass secret is now random-per-activation (was hardcoded); OTP length raised 4 → 6 digits.
+- **Audit log expansion** — now records `auth.login` / `auth.logout` (in `AuthenticatedSessionController`) and `patient.create/update/delete` + `appointment.delete` via `App\Observers\PatientObserver` / `AppointmentObserver` (registered with `#[ObservedBy]`). `AuditLogger::record` is exception-safe so a failed audit write never breaks the operation. Viewers colour-code actions by category.
+- **Drug / allergy warnings** — `patient_allergies` table + `PatientAllergy` model (hospital-scoped) with a `Patient::allergies` relation. Managed from the prescription builder via `Doctor\PatientAllergyController` (JSON endpoints so the builder updates in place without an Inertia reload that would lose the in-progress draft). The builder's `AllergyBanner` component lists recorded allergies and flags any prescribed medicine whose brand/generic matches an allergen (case-insensitive substring, both directions). **Limitation:** no drug-class awareness — allergen "Penicillin" does not flag "Amoxicillin"; that needs a drug-class map we don't have yet.
 
 ### Still open (known gaps)
 
 - `platform.name` / `platform.logo_url` live in the cache, not a table — non-durable across `cache:clear` with a volatile driver.
-- Audit log only records prescription create/update — no login events, patient edits, or delete trails.
-- Notification preferences (reminder on/off) and report PDF export are deferred (see [prompt-10-report.md](prompt-10-report.md)).
+- Notification preferences UI (columns `notify_followup_reminders` / `notify_email` exist on `doctor_profiles`; the reminder job doesn't yet honour them) and report PDF export are deferred (see [prompt-10-report.md](prompt-10-report.md)).
+- Audit log has no delete trail for prescriptions (no delete path exposed) and no dedicated retention/purge policy.
 
 ## Prompt 1 — finish line checklist
 

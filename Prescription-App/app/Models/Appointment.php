@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Observers\AppointmentObserver;
 use App\Traits\BelongsToHospital;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
+#[ObservedBy([AppointmentObserver::class])]
 class Appointment extends Model
 {
     use BelongsToHospital, SoftDeletes;

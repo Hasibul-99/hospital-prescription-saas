@@ -92,6 +92,12 @@ export interface Patient {
     age_display?: string;
 }
 
+export interface PatientAllergy {
+    id: number;
+    allergen: string;
+    note?: string | null;
+}
+
 export interface Appointment {
     id: number;
     hospital_id: number;

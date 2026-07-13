@@ -44,6 +44,7 @@ class PrescriptionController extends Controller
 
         return Inertia::render('Doctor/Prescriptions/Create', [
             'patient' => $patient,
+            'allergies' => $patient->allergies()->latest('id')->get(['id', 'allergen', 'note']),
             'appointment' => $appointment,
             'draft' => $draft,
             'complaint_masters' => ComplaintMaster::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name_en', 'name_bn', 'category']),
@@ -87,6 +88,7 @@ class PrescriptionController extends Controller
 
         return Inertia::render('Doctor/Prescriptions/Create', [
             'patient' => $prescription->patient,
+            'allergies' => $prescription->patient->allergies()->latest('id')->get(['id', 'allergen', 'note']),
             'appointment' => $prescription->appointment,
             'draft' => $prescription,
             'complaint_masters' => ComplaintMaster::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name_en', 'name_bn', 'category']),

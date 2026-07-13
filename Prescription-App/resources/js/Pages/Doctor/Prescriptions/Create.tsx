@@ -8,6 +8,7 @@ import MedicineSection from '@/Components/Prescription/MedicineSection';
 import RxPreviewColumn from '@/Components/Prescription/RxPreviewColumn';
 import PreviousRxDrawer from '@/Components/Prescription/PreviousRxDrawer';
 import BottomBar from '@/Components/Prescription/BottomBar';
+import AllergyBanner from '@/Components/Prescription/AllergyBanner';
 import FlashMessage from '@/Components/FlashMessage';
 import {
     AdviceSuggestion,
@@ -15,6 +16,7 @@ import {
     DoctorTemplate,
     Medicine,
     Patient,
+    PatientAllergy,
     Appointment,
     Prescription,
 } from '@/types';
@@ -33,6 +35,7 @@ import { csrfHeaders } from '@/utils/csrf';
 
 interface Props {
     patient: Patient;
+    allergies: PatientAllergy[];
     appointment: Appointment | null;
     draft: (Prescription & {
         complaints?: Array<{ complaint_name: string; duration_text?: string; note?: string }>;
@@ -284,6 +287,13 @@ export default function Create(props: Props) {
                         patient={props.patient}
                         date={state.date}
                         onOpenPreviousRx={() => setShowPrevious(true)}
+                    />
+
+                    {/* Drug-safety: allergies + prescribe-time conflict flags */}
+                    <AllergyBanner
+                        patientId={props.patient.id}
+                        allergies={props.allergies}
+                        medicines={state.medicines}
                     />
 
                     <div style={{ padding: '12px 16px 20px', flex: 1 }}>

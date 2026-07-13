@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,7 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, AuditLogger $audit): RedirectResponse
     {
         $request->authenticate();
 
@@ -35,6 +36,8 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
         $user->update(['last_login_at' => now()]);
+
+        $audit->record('auth.login', $user, ['role' => $user->role]);
 
         $defaultRoute = match ($user->role) {
             'super_admin' => 'admin.dashboard',
@@ -50,8 +53,12 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, AuditLogger $audit): RedirectResponse
     {
+        if ($user = $request->user()) {
+            $audit->record('auth.logout', $user, ['role' => $user->role]);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

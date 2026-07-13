@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Observers\PatientObserver;
 use App\Traits\BelongsToHospital;
 use App\Traits\GeneratesUniqueUid;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[ObservedBy([PatientObserver::class])]
 class Patient extends Model
 {
     use BelongsToHospital, GeneratesUniqueUid, SoftDeletes;
@@ -79,6 +82,11 @@ class Patient extends Model
     public function prescriptions(): HasMany
     {
         return $this->hasMany(Prescription::class);
+    }
+
+    public function allergies(): HasMany
+    {
+        return $this->hasMany(PatientAllergy::class);
     }
 
     public function getAgeDisplayAttribute(): string
