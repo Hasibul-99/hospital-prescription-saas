@@ -21,6 +21,10 @@ class SendFollowUpRemindersCommand extends Command
         Prescription::query()
             ->whereDate('follow_up_date', $target)
             ->whereHas('patient', fn ($q) => $q->whereNotNull('email'))
+            // Skip doctors who explicitly opted out; doctors with no profile row
+            // or the default (true) still get reminders. Mirrors the job's gate
+            // so we don't queue jobs that would immediately return.
+            ->whereDoesntHave('doctor.doctorProfile', fn ($q) => $q->where('notify_followup_reminders', false))
             ->select(['id'])
             ->chunkById(200, function ($rows) use (&$count) {
                 foreach ($rows as $rx) {

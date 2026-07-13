@@ -37,12 +37,26 @@ class SendFollowUpReminderJob implements ShouldQueue
         }
 
         $doctorPrefs = DoctorProfile::where('user_id', $rx->doctor_id)->first();
-        if ($doctorPrefs && (! $doctorPrefs->notify_followup_reminders || ! $doctorPrefs->notify_email)) {
+
+        // Follow-up reminders are on by default; only an explicit opt-out
+        // (notify_followup_reminders = false) suppresses them. notify_email is a
+        // separate, additive channel — see below — not a second gate. The old
+        // code AND-ed both, so the notify_email default of false silently killed
+        // reminders for every doctor who had a profile row.
+        if ($doctorPrefs && ! $doctorPrefs->notify_followup_reminders) {
             return;
         }
 
+        $mail = new FollowUpReminderMail($rx);
+
+        // If the doctor opted into email notifications, copy them on the
+        // reminder that goes to their patient.
+        if ($doctorPrefs && $doctorPrefs->notify_email && $rx->doctor?->email) {
+            $mail->cc($rx->doctor->email);
+        }
+
         try {
-            Mail::to($email)->send(new FollowUpReminderMail($rx));
+            Mail::to($email)->send($mail);
         } catch (\Throwable $e) {
             Log::warning('Follow-up reminder email failed', [
                 'prescription_id' => $rx->id,

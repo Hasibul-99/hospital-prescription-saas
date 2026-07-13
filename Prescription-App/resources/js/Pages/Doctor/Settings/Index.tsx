@@ -321,10 +321,20 @@ export default function DoctorSettings({ profile, user }: Props) {
                                         <Form.Item label="Margin Right (mm)" name="print_margin_right">
                                             <InputNumber min={0} max={50} style={{ width: '100%' }} />
                                         </Form.Item>
-                                        <Form.Item label="Follow-up Reminders" name="notify_followup_reminders" valuePropName="checked">
+                                        <Form.Item
+                                            label="Follow-up Reminders"
+                                            name="notify_followup_reminders"
+                                            valuePropName="checked"
+                                            tooltip="Email your patients a reminder the day before their follow-up date. On by default."
+                                        >
                                             <Switch />
                                         </Form.Item>
-                                        <Form.Item label="Email Notifications" name="notify_email" valuePropName="checked">
+                                        <Form.Item
+                                            label="Email Notifications"
+                                            name="notify_email"
+                                            valuePropName="checked"
+                                            tooltip="Also copy you (CC) on the follow-up reminders sent to your patients."
+                                        >
                                             <Switch />
                                         </Form.Item>
                                     </div>
