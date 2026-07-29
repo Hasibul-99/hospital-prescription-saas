@@ -11,12 +11,22 @@
     $footerMode = $profile?->print_footer_mode ?? 'signature';
 
     if (!function_exists('App\Print\timingLabel')) {
+        /** Convert any Bangla numerals (০-৯) in a value to English (0-9). */
+        function _rxToEn($v): string {
+            if ($v === null) return '';
+            return strtr((string) $v, [
+                '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+                '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+            ]);
+        }
         function _rxTimingLabel($t) {
             return match($t) {
-                'before_meal' => 'খাবারের আগে',
-                'after_meal' => 'খাবারের পরে',
+                'before_meal' => 'Before meal',
+                'after_meal' => 'After meal',
                 'empty_stomach' => 'Empty stomach',
-                'with_food' => 'খাবারের সাথে',
+                'with_food' => 'With meal',
+                'bedtime' => 'Bedtime',
+                'as_needed' => 'As needed',
                 default => '',
             };
         }
@@ -43,14 +53,14 @@
                 $row['dose_bedtime'] ?? null,
             ];
             if (collect($parts)->every(fn ($v) => $v === null || $v === '')) return '';
-            return collect($parts)->map(fn ($v) => ($v === null || $v === '') ? '0' : (string) $v)->implode('+');
+            return collect($parts)->map(fn ($v) => ($v === null || $v === '') ? '0' : _rxToEn($v))->implode('+');
         }
         function _rxDuration($value, $unit) {
             if (!$unit) return '';
-            if ($unit === 'continue') return 'চলবে';
+            if ($unit === 'continue') return 'continue';
             if ($unit === 'N_A') return 'N/A';
             if (!$value) return '';
-            return "{$value} {$unit}";
+            return _rxToEn($value) . ' ' . $unit;
         }
     }
 @endphp
@@ -165,7 +175,7 @@
                             <div class="dose">
                                 @php
                                     $dose = $m->dose_display ?: _rxDose($m->toArray());
-                                    $tim = $m->custom_instruction ?: _rxTimingLabel($m->timing);
+                                    $tim = $m->custom_instruction ? _rxToEn($m->custom_instruction) : _rxTimingLabel($m->timing);
                                     $dur = _rxDuration($m->duration_value, $m->duration_unit);
                                 @endphp
                                 {{ $dose ?: '—' }}
@@ -175,11 +185,11 @@
                             @foreach(($m->additional_doses ?? []) as $ad)
                                 @php
                                     $adDose = $ad['dose_display'] ?? _rxDose($ad);
-                                    $adTim = $ad['custom_instruction'] ?? null;
+                                    $adTim = isset($ad['custom_instruction']) ? _rxToEn($ad['custom_instruction']) : null;
                                     $adDur = _rxDuration($ad['duration_value'] ?? null, $ad['duration_unit'] ?? null);
                                 @endphp
                                 <div class="addl">
-                                    <span class="muted">এবং,</span>
+                                    <span class="muted">and,</span>
                                     {{ $adDose ?: '—' }}
                                     @if($adTim)<span class="muted">|</span> {{ $adTim }}@endif
                                     @if($adDur)<span class="muted">|</span> {{ $adDur }}@endif

@@ -12,10 +12,19 @@ class Hospital extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Free-tier hard cap on total prescriptions per hospital.
+     * "30 free prescriptions total (no monthly reset)" per marketing copy —
+     * a per-hospital counter, incremented on every new Rx create by
+     * PrescriptionService, gated by EnsurePrescriptionQuota middleware.
+     */
+    public const FREE_TIER_RX_LIMIT = 30;
+
     protected $fillable = [
         'name', 'slug', 'logo', 'address', 'phone', 'email', 'website',
         'subscription_plan', 'subscription_status',
         'subscription_starts_at', 'subscription_ends_at', 'trial_ends_at',
+        'prescription_quota_used', 'prescription_quota_reset_at',
         'max_doctors', 'max_patients_per_month',
         'settings', 'is_active', 'created_by',
     ];
@@ -28,6 +37,8 @@ class Hospital extends Model
             'subscription_starts_at' => 'datetime',
             'subscription_ends_at' => 'datetime',
             'trial_ends_at' => 'datetime',
+            'prescription_quota_reset_at' => 'datetime',
+            'prescription_quota_used' => 'integer',
         ];
     }
 
@@ -79,5 +90,26 @@ class Hospital extends Model
     public function isSubscriptionActive(): bool
     {
         return in_array($this->subscription_status, ['active', 'trial']);
+    }
+
+    /**
+     * True if this hospital can create another prescription under its plan.
+     * Only the free plan is metered; paid plans always return true.
+     */
+    public function hasFreeQuotaRemaining(): bool
+    {
+        if ($this->subscription_plan !== 'free') {
+            return true;
+        }
+
+        return $this->prescription_quota_used < self::FREE_TIER_RX_LIMIT;
+    }
+
+    /**
+     * Increment the usage counter. Atomic — safe under concurrent Rx creates.
+     */
+    public function incrementRxUsage(): void
+    {
+        $this->increment('prescription_quota_used');
     }
 }

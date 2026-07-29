@@ -13,7 +13,7 @@ class Chamber extends Model
 
     protected $fillable = [
         'doctor_id', 'hospital_id', 'name', 'room_number',
-        'floor', 'building', 'schedule', 'is_active',
+        'floor', 'building', 'schedule', 'daily_slot_cap', 'is_active',
     ];
 
     protected function casts(): array
@@ -21,6 +21,7 @@ class Chamber extends Model
         return [
             'schedule' => 'array',
             'is_active' => 'boolean',
+            'daily_slot_cap' => 'integer',
         ];
     }
 

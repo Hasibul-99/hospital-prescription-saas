@@ -13,6 +13,7 @@ Welcome. This folder is the working knowledge base for the Prescription-App proj
 | [05-frontend.md](05-frontend.md) | Inertia + React structure, page organisation, component library |
 | [06-dev-setup.md](06-dev-setup.md) | Getting the project running locally, missing packages to install |
 | [07-build-roadmap.md](07-build-roadmap.md) | Status of each of the 10 prompts, what's done, what's next |
+| [08-feature-inventory.md](08-feature-inventory.md) | Prescriply 45-feature map: built / partial / easy add / needs external service / big build |
 
 ## External references
 

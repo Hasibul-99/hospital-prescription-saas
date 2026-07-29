@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'hospital.active' => \App\Http\Middleware\EnsureHospitalActive::class,
+            'prescription.quota' => \App\Http\Middleware\EnsurePrescriptionQuota::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

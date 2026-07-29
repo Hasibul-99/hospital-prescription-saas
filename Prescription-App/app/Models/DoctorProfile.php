@@ -20,6 +20,7 @@ class DoctorProfile extends Model
         'print_header_mode', 'print_footer_mode', 'print_font_size',
         'print_margin_top', 'print_margin_bottom', 'print_margin_left', 'print_margin_right',
         'notify_followup_reminders', 'notify_email',
+        'is_public_profile', 'public_slug',
     ];
 
     protected function casts(): array
@@ -36,7 +37,13 @@ class DoctorProfile extends Model
             'print_margin_right' => 'integer',
             'notify_followup_reminders' => 'boolean',
             'notify_email' => 'boolean',
+            'is_public_profile' => 'boolean',
         ];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'public_slug';
     }
 
     public function user(): BelongsTo

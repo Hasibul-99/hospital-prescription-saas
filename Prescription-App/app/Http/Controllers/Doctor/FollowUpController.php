@@ -38,6 +38,9 @@ class FollowUpController extends Controller
                     'patient' => $rx->patient,
                     'status' => $status,
                     'has_booking' => (bool) $rx->appointment,
+                    'contact_attempts' => $rx->contact_attempts,
+                    'last_contact_at' => $rx->last_contact_at?->toIso8601String(),
+                    'recall_status' => $rx->recall_status,
                 ];
             });
 
@@ -45,5 +48,36 @@ class FollowUpController extends Controller
             'follow_ups' => $followUps,
             'filters' => ['date_from' => $from, 'date_to' => $to],
         ]);
+    }
+
+    /**
+     * Mark multiple prescriptions with a recall status. Manual workflow —
+     * doctor calls / texts patient out-of-band, then records the outcome.
+     * SMS/WhatsApp delivery is deferred until the SMS gateway lands.
+     */
+    public function bulkMark(Request $request)
+    {
+        $data = $request->validate([
+            'ids'    => ['required', 'array', 'min:1'],
+            'ids.*'  => ['integer'],
+            'status' => ['required', 'in:contacted,unreachable,completed'],
+        ]);
+
+        $user = $request->user();
+
+        $rxs = Prescription::query()
+            ->where('doctor_id', $user->id)
+            ->whereIn('id', $data['ids'])
+            ->get();
+
+        foreach ($rxs as $rx) {
+            $rx->increment('contact_attempts');
+            $rx->update([
+                'last_contact_at' => now(),
+                'recall_status'   => $data['status'],
+            ]);
+        }
+
+        return back()->with('success', "Marked {$rxs->count()} follow-up(s) as {$data['status']}.");
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Public\BookingController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -36,6 +37,21 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
+
+// Public online booking. No auth. Rate-limited via named limiters where write.
+Route::prefix('book')->name('public.book.')->group(function () {
+    Route::get('/', [BookingController::class, 'index'])->name('index');
+    Route::get('/verify', [BookingController::class, 'verifyShow'])->name('verify.show');
+    Route::post('/verify', [BookingController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('verify');
+    Route::get('/confirmed', [BookingController::class, 'confirmed'])->name('confirmed');
+    Route::get('/{doctor}/slots', [BookingController::class, 'slots'])->name('slots');
+    Route::get('/{doctor}', [BookingController::class, 'showDoctor'])->name('doctor');
+    Route::post('/', [BookingController::class, 'store'])
+        ->middleware('throttle:otp-email-send')
+        ->name('store');
+});
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin.php';

@@ -1,5 +1,6 @@
 import { DoctorProfile, Hospital, Patient, Prescription, PrescriptionMedicine } from '@/types';
 import { timingLabel } from '@/utils/timingLabel';
+import { toEnglishNumerals } from '@/utils/numerals';
 
 interface Props {
     prescription: Prescription & {
@@ -146,9 +147,9 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                                     </div>
                                     {(m.additional_doses ?? []).map((ad, i) => (
                                         <div key={i} className="pl-4 text-gray-700">
-                                            <span className="text-gray-500">এবং,</span>{' '}
+                                            <span className="text-gray-500">and,</span>{' '}
                                             {buildAdditionalDose(ad) || '—'}
-                                            {ad.custom_instruction && <><span className="mx-2 text-gray-400">|</span>{ad.custom_instruction}</>}
+                                            {ad.custom_instruction && <><span className="mx-2 text-gray-400">|</span>{toEnglishNumerals(ad.custom_instruction)}</>}
                                             {formatDuration(ad.duration_value, ad.duration_unit) && (
                                                 <><span className="mx-2 text-gray-400">|</span>{formatDuration(ad.duration_value, ad.duration_unit)}</>
                                             )}
@@ -173,7 +174,7 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                         <div className="mt-3 border-l-4 border-[#0f4c81] bg-gray-100 px-2 py-1">
                             <strong>Follow up:</strong>{' '}
                             {prescription.follow_up_duration_value && prescription.follow_up_duration_unit
-                                ? `${prescription.follow_up_duration_value} ${prescription.follow_up_duration_unit} later (${formatDate(prescription.follow_up_date)})`
+                                ? `${toEnglishNumerals(prescription.follow_up_duration_value)} ${prescription.follow_up_duration_unit} later (${formatDate(prescription.follow_up_date)})`
                                 : formatDate(prescription.follow_up_date)}
                         </div>
                     )}
@@ -217,21 +218,21 @@ function medicineLabel(m: PrescriptionMedicine): string {
 }
 
 function buildDose(m: PrescriptionMedicine): string {
-    if (m.dose_display) return m.dose_display;
+    if (m.dose_display) return toEnglishNumerals(m.dose_display);
     const parts = [m.dose_morning, m.dose_noon, m.dose_afternoon, m.dose_night, m.dose_bedtime];
     if (parts.every((v) => v == null)) return '';
-    return parts.map((v) => (v == null ? '0' : String(v))).join('+');
+    return parts.map((v) => (v == null ? '0' : toEnglishNumerals(v))).join('+');
 }
 
 function buildAdditionalDose(ad: NonNullable<PrescriptionMedicine['additional_doses']>[number]): string {
-    if (ad.dose_display) return ad.dose_display;
+    if (ad.dose_display) return toEnglishNumerals(ad.dose_display);
     const parts = [ad.dose_morning, ad.dose_noon, ad.dose_afternoon, ad.dose_night, ad.dose_bedtime];
     if (parts.every((v) => v == null)) return '';
-    return parts.map((v) => (v == null ? '0' : String(v))).join('+');
+    return parts.map((v) => (v == null ? '0' : toEnglishNumerals(v))).join('+');
 }
 
 function timingText(m: PrescriptionMedicine): string {
-    if (m.custom_instruction?.trim()) return m.custom_instruction.trim();
+    if (m.custom_instruction?.trim()) return toEnglishNumerals(m.custom_instruction.trim());
     return timingLabel(m.timing);
 }
 
@@ -241,10 +242,10 @@ function durationText(m: PrescriptionMedicine): string {
 
 function formatDuration(value?: number | null, unit?: string | null): string {
     if (!unit) return '';
-    if (unit === 'continue') return 'চলবে';
+    if (unit === 'continue') return 'continue';
     if (unit === 'N_A') return 'N/A';
     if (!value) return '';
-    return `${value} ${unit}`;
+    return `${toEnglishNumerals(value)} ${unit}`;
 }
 
 
@@ -268,7 +269,7 @@ function formatDate(d: string): string {
     try {
         const dt = new Date(d);
         if (isNaN(dt.getTime())) return d;
-        return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        return toEnglishNumerals(dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
     } catch {
         return d;
     }
@@ -277,7 +278,7 @@ function formatDate(d: string): string {
 function formatAge(patient?: Patient): string {
     if (!patient) return '';
     const parts: string[] = [];
-    if (patient.age_years) parts.push(`${patient.age_years} Y`);
-    if (patient.age_months) parts.push(`${patient.age_months} M`);
-    return parts.length ? parts.join(' ') : (patient.age_display ?? '');
+    if (patient.age_years) parts.push(`${toEnglishNumerals(patient.age_years)} Y`);
+    if (patient.age_months) parts.push(`${toEnglishNumerals(patient.age_months)} M`);
+    return parts.length ? parts.join(' ') : toEnglishNumerals(patient.age_display ?? '');
 }

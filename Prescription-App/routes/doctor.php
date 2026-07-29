@@ -44,11 +44,14 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
 
         Route::get('/follow-ups', [FollowUpController::class, 'index'])->name('follow-ups.index');
+        Route::post('/follow-ups/bulk-mark', [FollowUpController::class, 'bulkMark'])->name('follow-ups.bulk-mark');
         Route::get('/statements', [StatementController::class, 'index'])->name('statements.index');
 
         // Prescription Builder
         Route::get('/prescriptions/create', [PrescriptionController::class, 'create'])->name('prescriptions.create');
-        Route::post('/prescriptions', [PrescriptionController::class, 'store'])->name('prescriptions.store');
+        Route::post('/prescriptions', [PrescriptionController::class, 'store'])
+            ->middleware('prescription.quota')
+            ->name('prescriptions.store');
         Route::get('/prescriptions/{prescription}/edit', [PrescriptionController::class, 'edit'])->name('prescriptions.edit');
         Route::match(['put', 'patch'], '/prescriptions/{prescription}', [PrescriptionController::class, 'update'])->name('prescriptions.update');
 

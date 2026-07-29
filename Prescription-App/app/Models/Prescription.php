@@ -23,6 +23,7 @@ class Prescription extends Model
         'prescription_uid', 'date', 'follow_up_date',
         'follow_up_duration_value', 'follow_up_duration_unit',
         'template_id', 'status', 'printed_at', 'printed_count',
+        'contact_attempts', 'last_contact_at', 'recall_status',
     ];
 
     protected function casts(): array
@@ -31,6 +32,8 @@ class Prescription extends Model
             'date' => 'date',
             'follow_up_date' => 'date',
             'printed_at' => 'datetime',
+            'last_contact_at' => 'datetime',
+            'contact_attempts' => 'integer',
         ];
     }
 

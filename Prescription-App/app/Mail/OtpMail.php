@@ -23,6 +23,7 @@ class OtpMail extends Mailable implements ShouldQueue
     {
         $subject = match ($this->purpose) {
             OtpService::PURPOSE_PASSWORD_RESET => 'Reset your password',
+            OtpService::PURPOSE_BOOKING        => 'Confirm your appointment',
             default                            => 'Verify your email',
         };
 
@@ -37,6 +38,7 @@ class OtpMail extends Mailable implements ShouldQueue
                 'code'           => $this->code,
                 'purpose'        => $this->purpose,
                 'isReset'        => $this->purpose === OtpService::PURPOSE_PASSWORD_RESET,
+                'isBooking'      => $this->purpose === OtpService::PURPOSE_BOOKING,
                 'expiryMinutes'  => OtpService::EXPIRY_MINUTES,
             ],
         );

@@ -5,6 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        <!-- PWA -->
+        <link rel="manifest" href="/build/manifest.webmanifest">
+        <meta name="theme-color" content="#0f766e">
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="192x192" href="/icons/logo-192.png">
+        <link rel="icon" type="image/png" sizes="512x512" href="/icons/logo-512.png">
+
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->

@@ -48,6 +48,10 @@ class PrescriptionService
                 $this->saveAsTemplate($doctor, $data);
             }
 
+            if ($isNew && $doctor->hospital) {
+                $doctor->hospital->incrementRxUsage();
+            }
+
             $this->audit?->record($isNew ? 'prescription.create' : 'prescription.update', $rx, [
                 'medicines' => count($data['medicines'] ?? []),
                 'complaints' => count($data['complaints'] ?? []),
