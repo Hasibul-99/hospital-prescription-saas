@@ -72,6 +72,24 @@ class PrescriptionPrintController extends Controller
         return $pdf->download($this->pdfService->filename($prescription));
     }
 
+    /** Structured SOAP note derived from the Rx. */
+    public function soapPdf(Request $request, Prescription $prescription)
+    {
+        $this->authorize('view', $prescription);
+        return $this->pdfService
+            ->renderSoap($prescription)
+            ->stream($this->pdfService->filename($prescription, 'soap'));
+    }
+
+    /** Patient-facing handout — large type, no clinical jargon. */
+    public function handoutPdf(Request $request, Prescription $prescription)
+    {
+        $this->authorize('view', $prescription);
+        return $this->pdfService
+            ->renderHandout($prescription)
+            ->stream($this->pdfService->filename($prescription, 'handout'));
+    }
+
     public function markPrinted(Request $request, Prescription $prescription)
     {
         $this->authorize('view', $prescription);

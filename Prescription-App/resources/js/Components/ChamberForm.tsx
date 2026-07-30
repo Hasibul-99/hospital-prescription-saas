@@ -18,7 +18,20 @@ export default function ChamberForm({ doctors, submitUrl, method, initial }: Pro
         return acc;
     }, {} as Record<string, { start: string; end: string; active: boolean }>);
 
-    const { data, setData, processing, errors } = useForm({
+    const { data, setData, processing, errors } = useForm<{
+        doctor_id: number | string;
+        name: string;
+        room_number: string;
+        floor: string;
+        building: string;
+        is_active: boolean;
+        schedule: typeof initialSchedule;
+        daily_slot_cap: number | '';
+        share_model: 'full' | 'split' | 'rent';
+        share_percent_doctor: number | '';
+        rent_amount_monthly: number | '';
+        share_notes: string;
+    }>({
         doctor_id: initial?.doctor_id ?? (doctors[0]?.id ?? ''),
         name: initial?.name ?? '',
         room_number: initial?.room_number ?? '',
@@ -26,6 +39,11 @@ export default function ChamberForm({ doctors, submitUrl, method, initial }: Pro
         building: initial?.building ?? '',
         is_active: initial?.is_active ?? true,
         schedule: initialSchedule,
+        daily_slot_cap: (initial as any)?.daily_slot_cap ?? '',
+        share_model: ((initial as any)?.share_model as 'full' | 'split' | 'rent') ?? 'full',
+        share_percent_doctor: (initial as any)?.share_percent_doctor ?? '',
+        rent_amount_monthly: (initial as any)?.rent_amount_monthly ?? '',
+        share_notes: (initial as any)?.share_notes ?? '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -89,6 +107,71 @@ export default function ChamberForm({ doctors, submitUrl, method, initial }: Pro
                             />
                         </div>
                     ))}
+                </div>
+            </div>
+
+            <div className="mt-5">
+                <div className="mb-2 text-sm font-medium text-gray-700">Settlement</div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="block text-xs text-gray-600">
+                        Share model
+                        <select
+                            value={data.share_model}
+                            onChange={(e) => setData('share_model', e.target.value as 'full' | 'split' | 'rent')}
+                            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        >
+                            <option value="full">FULL — doctor keeps 100%</option>
+                            <option value="split">SPLIT — % to doctor, rest to hospital</option>
+                            <option value="rent">RENT — doctor pays flat monthly rent</option>
+                        </select>
+                    </label>
+
+                    {data.share_model === 'split' && (
+                        <label className="block text-xs text-gray-600">
+                            Doctor share (%)
+                            <input
+                                type="number" step="0.01" min={0} max={100}
+                                value={data.share_percent_doctor}
+                                onChange={(e) => setData('share_percent_doctor', e.target.value === '' ? '' : Number(e.target.value))}
+                                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                                placeholder="e.g., 60"
+                            />
+                        </label>
+                    )}
+
+                    {data.share_model === 'rent' && (
+                        <label className="block text-xs text-gray-600">
+                            Monthly rent (৳)
+                            <input
+                                type="number" step="0.01" min={0}
+                                value={data.rent_amount_monthly}
+                                onChange={(e) => setData('rent_amount_monthly', e.target.value === '' ? '' : Number(e.target.value))}
+                                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                                placeholder="e.g., 15000"
+                            />
+                        </label>
+                    )}
+
+                    <label className="block text-xs text-gray-600">
+                        Daily slot cap
+                        <input
+                            type="number" min={1} max={500}
+                            value={data.daily_slot_cap}
+                            onChange={(e) => setData('daily_slot_cap', e.target.value === '' ? '' : Number(e.target.value))}
+                            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                            placeholder="e.g., 20"
+                        />
+                    </label>
+
+                    <label className="block text-xs text-gray-600 sm:col-span-3">
+                        Notes (optional — visible only to hospital admin)
+                        <input
+                            type="text"
+                            value={data.share_notes}
+                            onChange={(e) => setData('share_notes', e.target.value)}
+                            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        />
+                    </label>
                 </div>
             </div>
 

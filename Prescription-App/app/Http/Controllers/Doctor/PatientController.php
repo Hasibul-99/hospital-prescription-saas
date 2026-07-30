@@ -138,6 +138,8 @@ class PatientController extends Controller
         $patient->load([
             'appointments' => fn ($q) => $q->with('doctor:id,name')->latest('appointment_date'),
             'prescriptions' => fn ($q) => $q->with('doctor:id,name')->latest('date'),
+            'allergies',
+            'vitals' => fn ($q) => $q->with('recorder:id,name')->orderBy('recorded_at'),
         ]);
 
         return Inertia::render('Doctor/Patients/Show', [

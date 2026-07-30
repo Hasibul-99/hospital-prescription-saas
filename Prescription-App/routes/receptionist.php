@@ -14,6 +14,10 @@ Route::middleware(['auth', 'verified', 'role:receptionist', 'hospital.active'])
 
         Route::resource('patients', PatientController::class)->except(['destroy']);
 
+        // Vitals — front desk records at check-in.
+        Route::post('/patients/{patient}/vitals', [\App\Http\Controllers\PatientVitalController::class, 'store'])->name('patients.vitals.store');
+        Route::delete('/vitals/{vital}', [\App\Http\Controllers\PatientVitalController::class, 'destroy'])->name('vitals.destroy');
+
         Route::get('/queue', [SerialQueueController::class, 'index'])->name('queue.index');
         Route::patch('/queue/appointments/{appointment}/status', [SerialQueueController::class, 'updateStatus'])->name('queue.status');
 

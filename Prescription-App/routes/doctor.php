@@ -31,6 +31,10 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         Route::post('/patients/{patient}/allergies', [PatientAllergyController::class, 'store'])->name('patients.allergies.store');
         Route::delete('/allergies/{allergy}', [PatientAllergyController::class, 'destroy'])->name('allergies.destroy');
 
+        // Patient vitals
+        Route::post('/patients/{patient}/vitals', [\App\Http\Controllers\PatientVitalController::class, 'store'])->name('patients.vitals.store');
+        Route::delete('/vitals/{vital}', [\App\Http\Controllers\PatientVitalController::class, 'destroy'])->name('vitals.destroy');
+
         // Serial Queue (main working screen)
         Route::get('/queue', [SerialQueueController::class, 'index'])->name('queue.index');
         Route::post('/queue/next', [SerialQueueController::class, 'next'])->name('queue.next');
@@ -59,12 +63,18 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
         Route::get('/prescriptions/{prescription}/preview', [PrescriptionPrintController::class, 'preview'])->name('prescriptions.preview');
         Route::get('/prescriptions/{prescription}/pdf', [PrescriptionPrintController::class, 'pdf'])->name('prescriptions.pdf');
         Route::get('/prescriptions/{prescription}/download', [PrescriptionPrintController::class, 'download'])->name('prescriptions.download');
+        Route::get('/prescriptions/{prescription}/soap-pdf', [PrescriptionPrintController::class, 'soapPdf'])->name('prescriptions.soap-pdf');
+        Route::get('/prescriptions/{prescription}/handout-pdf', [PrescriptionPrintController::class, 'handoutPdf'])->name('prescriptions.handout-pdf');
         Route::post('/prescriptions/{prescription}/mark-printed', [PrescriptionPrintController::class, 'markPrinted'])->name('prescriptions.mark-printed');
         Route::post('/prescriptions/bulk-pdf', [PrescriptionPrintController::class, 'bulkPdf'])->name('prescriptions.bulk-pdf');
 
         // Medicine search, frequent list, missing
         Route::get('/medicines/search', [MedicineController::class, 'searchAction'])->name('medicines.search');
         Route::get('/icd10/search', [\App\Http\Controllers\Doctor\Icd10Controller::class, 'search'])->name('icd10.search');
+
+        // Medical documents on letterhead — fitness / sick_leave / referral.
+        Route::get('/documents/{type}/create', [\App\Http\Controllers\Doctor\MedicalDocumentController::class, 'create'])->name('documents.create');
+        Route::post('/documents/{type}/render', [\App\Http\Controllers\Doctor\MedicalDocumentController::class, 'render'])->name('documents.render');
         Route::get('/medicines/frequent', [MedicineController::class, 'frequent'])->name('medicines.frequent');
         Route::post('/medicines/frequent/{medicine}', [MedicineController::class, 'addFrequent'])->name('medicines.frequent.add');
         Route::delete('/medicines/frequent/{medicine}', [MedicineController::class, 'removeFrequent'])->name('medicines.frequent.remove');

@@ -67,6 +67,14 @@ export default function Preview({ prescription, doctor_profile, hospital, verify
         window.open(`/doctor/prescriptions/${prescription.id}/download`, '_blank');
     }
 
+    function openSoap() {
+        window.open(`/doctor/prescriptions/${prescription.id}/soap-pdf`, '_blank');
+    }
+
+    function openHandout() {
+        window.open(`/doctor/prescriptions/${prescription.id}/handout-pdf`, '_blank');
+    }
+
     function shareWhatsApp() {
         if (!verify_url) return;
         const patientName = prescription.patient?.name ?? 'the patient';
@@ -141,6 +149,22 @@ export default function Preview({ prescription, doctor_profile, hospital, verify
                             title="Server-side PDF (DomPDF)"
                         >
                             PDF (server)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={openSoap}
+                            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                            title="Structured SOAP note (PDF)"
+                        >
+                            SOAP note
+                        </button>
+                        <button
+                            type="button"
+                            onClick={openHandout}
+                            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                            title="Patient-facing handout (PDF)"
+                        >
+                            Handout
                         </button>
                         {verify_url && (
                             <>

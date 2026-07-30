@@ -89,6 +89,11 @@ class Patient extends Model
         return $this->hasMany(PatientAllergy::class);
     }
 
+    public function vitals(): HasMany
+    {
+        return $this->hasMany(PatientVital::class);
+    }
+
     public function getAgeDisplayAttribute(): string
     {
         $parts = [];

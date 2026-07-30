@@ -59,7 +59,12 @@ class ChamberController extends Controller
             'floor' => 'nullable|string|max:50',
             'building' => 'nullable|string|max:100',
             'schedule' => 'nullable|array',
+            'daily_slot_cap' => 'nullable|integer|min:1|max:500',
             'is_active' => 'boolean',
+            'share_model' => 'nullable|in:full,split,rent',
+            'share_percent_doctor' => 'nullable|numeric|min:0|max:100',
+            'rent_amount_monthly' => 'nullable|numeric|min:0',
+            'share_notes' => 'nullable|string|max:255',
         ]);
 
         Chamber::create($data);
@@ -94,7 +99,12 @@ class ChamberController extends Controller
             'floor' => 'nullable|string|max:50',
             'building' => 'nullable|string|max:100',
             'schedule' => 'nullable|array',
+            'daily_slot_cap' => 'nullable|integer|min:1|max:500',
             'is_active' => 'boolean',
+            'share_model' => 'nullable|in:full,split,rent',
+            'share_percent_doctor' => 'nullable|numeric|min:0|max:100',
+            'rent_amount_monthly' => 'nullable|numeric|min:0',
+            'share_notes' => 'nullable|string|max:255',
         ]);
 
         $chamber->update($data);

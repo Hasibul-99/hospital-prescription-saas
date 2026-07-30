@@ -1,12 +1,14 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
 import { Link } from '@inertiajs/react';
 import { Patient, Appointment, Prescription } from '@/types';
+import PatientVitalsPanel, { Vital } from '@/Components/PatientVitalsPanel';
 import { ReactNode, useState } from 'react';
 
 interface Props {
     patient: Patient & {
         appointments: Appointment[];
         prescriptions: Prescription[];
+        vitals?: Vital[];
     };
 }
 
@@ -123,6 +125,15 @@ export default function Show({ patient }: Props) {
                     </div>
                 </div>
             )}
+
+            {/* Vitals */}
+            <div className="mb-4">
+                <PatientVitalsPanel
+                    patientId={patient.id}
+                    vitals={patient.vitals ?? []}
+                    scope="doctor"
+                />
+            </div>
 
             {/* Tabs */}
             <div className="mb-4 flex gap-4 border-b">

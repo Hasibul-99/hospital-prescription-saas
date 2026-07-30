@@ -29,6 +29,12 @@ Snapshot date: 2026-07-29. Re-verify by scanning `app/Models`, `app/Http/Control
 | 6 | Specialty quick-fills (paediatric dose + LMP→EDD) | `SpecialtyTools.tsx` two collapsible calculators; tooth chart still open |
 | 7 | Extra clinical sections | `prescription_sections.section_type` enum extended with `negative_history`, `gynae_history`, `obstetric_history`, `breast_local`, `previous_reports`, `referred_by`, `notes`; wired into `Doctor/Prescriptions/Create.tsx` via `TextListSection` and into both print layouts |
 | 10 | Drug-safety alerts (duplicate-therapy) | `MedicineList` computes duplicate-generic map; `MedicineRow` shows amber advisory when same `generic_name` appears twice. Real interactions still pending an external dataset. |
+| 11 | SOAP notes + patient handout | `PrescriptionPdfService::renderSoap` + `renderHandout`; `soap.blade.php` (S/O/A/P sections from Rx data), `handout.blade.php` (large-type patient version); "SOAP note" + "Handout" buttons on Preview toolbar |
+| 13 | Letterhead Studio (basic) | Existing `Doctor/Settings/Index.tsx` — header/footer text + image upload, signature upload, print-mode toggles, margins, paper size, font size |
+| 21 | Vitals & trends | `patient_vitals` table (BP, pulse, temp, weight, height, SpO₂, notes); shared `PatientVitalController`; `PatientVitalsPanel` with entry form + Recharts trend + history table; wired into Doctor + Receptionist patient show pages |
+| 24 | FULL / SPLIT / RENT settlement | Chamber schema (`share_model`, `share_percent_doctor`, `rent_amount_monthly`, `share_notes`); `Chamber::splitRevenue()` handles all three; `GenerateDailyStatementsCommand` writes per-chamber CSVs with Doctor Share + Hospital Share columns; ChamberForm exposes the model + fields |
+| 31 | Public doctor directory | `/book` is the directory; SEO aliases `/doctors` and `/doctors/{slug}` redirect there |
+| 35 | Medical documents (fitness / sick-leave / referral) | `MedicalDocumentController` + `documents.certificate` Blade + `Doctor/Documents/Create.tsx` form; POST → letterhead PDF in a new tab |
 | 16 | QR authenticity + Rx/Patient IDs | `prescriptions.share_token` + `simplesoftwareio/simple-qrcode` SVG rendered into print (Blade + React) footer, plus a `/rx/verify/{token}` public page |
 | 17 | Share (PDF, image, WhatsApp deep-link, web link) | Preview toolbar: WhatsApp `wa.me/?text=…`, Copy-link, existing PNG + PDF exporters |
 | 18 | Allergy line + follow-up on print | `patient.allergies` eager-loaded; red allergy line above Rx block; follow-up already rendered |
@@ -52,7 +58,7 @@ Snapshot date: 2026-07-29. Re-verify by scanning `app/Models`, `app/Http/Control
 | 44 | English-only clarity / 0–9 numerals on print | `resources/js/utils/numerals.ts` + `_rxToEn()` Blade helper wired through print path |
 | 45 | 30-free-Rx enforcement | `Hospital::FREE_TIER_RX_LIMIT`, `hospitals.prescription_quota_used`, `EnsurePrescriptionQuota` middleware, `PrescriptionService::save()` increments |
 
-**Score: 38/45 built.** (was 34/45; features 4, 6 partial, 10 partial shipped on 2026-07-30 as Clinical-intelligence batch. #6 tooth chart still open; #10 real interactions need external dataset.)
+**Score: 44/45 built.** (was 41/45; features 13, 21, 24 shipped on 2026-07-30 as Final-easy-add batch. Only #6 tooth chart remains open.)
 
 Just-shipped detail (2026-07-29):
 
@@ -76,12 +82,6 @@ All previous partials shipped. Next set to tackle: things now split cleanly betw
 | # | Feature | Approach |
 |---|---|---|
 | 6 | Tooth chart (dental) | Interactive FDI-notation SVG (32 teeth) with per-tooth findings — deferred; scope isn't small |
-| 11 | SOAP notes + patient handout | New Blade templates + DomPDF export routes |
-| 13 | Letterhead Studio (basic per-chamber header/footer) | Extend `DoctorProfile` fields; simple form editor. Full WYSIWYG = 🔴 |
-| 21 | Vitals & trends | New `patient_vitals` table + Recharts trend view |
-| 24 | FULL/SPLIT/RENT settlement | Extend `Chamber` (add `share_model`, `share_percent`, `rent_amount`); extend `DailyStatement` calc |
-| 31 | Public profile & directory | Public routes + `/doctors/{slug}` page; admin approval flag |
-| 35 | Medical documents (fitness/sick-leave/referral certs) | Blade templates + PDF export, letterhead-aware |
 
 ---
 

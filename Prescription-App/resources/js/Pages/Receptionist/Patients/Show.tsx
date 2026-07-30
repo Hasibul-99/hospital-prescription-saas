@@ -1,11 +1,13 @@
 import ReceptionistLayout from '@/Layouts/ReceptionistLayout';
 import { Link } from '@inertiajs/react';
 import { Patient, Appointment } from '@/types';
+import PatientVitalsPanel, { Vital } from '@/Components/PatientVitalsPanel';
 import { ReactNode } from 'react';
 
 interface Props {
     patient: Patient & {
         appointments: Appointment[];
+        vitals?: Vital[];
     };
 }
 
@@ -55,6 +57,14 @@ export default function Show({ patient }: Props) {
                         <p className="mt-1 text-sm text-gray-800">{patient.address}</p>
                     </div>
                 )}
+            </div>
+
+            <div className="mb-4">
+                <PatientVitalsPanel
+                    patientId={patient.id}
+                    vitals={patient.vitals ?? []}
+                    scope="receptionist"
+                />
             </div>
 
             {/* Appointments only — no prescriptions for receptionist */}

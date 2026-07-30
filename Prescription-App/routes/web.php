@@ -44,6 +44,11 @@ Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update
 Route::get('/rx/verify/{shareToken}', [PrescriptionVerifyController::class, 'show'])
     ->name('public.rx.verify');
 
+// SEO-friendly aliases for the public doctor directory (same content as /book).
+Route::redirect('/doctors', '/book');
+Route::get('/doctors/{doctor}', fn (string $doctor) => redirect("/book/{$doctor}"))
+    ->name('public.doctors.show');
+
 // Public online booking. No auth. Rate-limited via named limiters where write.
 Route::prefix('book')->name('public.book.')->group(function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
