@@ -9,9 +9,11 @@ interface Props {
     medicine: MedicineInput;
     onEdit: () => void;
     onRemove: () => void;
+    /** True when another selected medicine has the same normalized generic_name. Advisory only. */
+    duplicateGeneric?: boolean;
 }
 
-export default function MedicineRow({ id, index, medicine, onEdit, onRemove }: Props) {
+export default function MedicineRow({ id, index, medicine, onEdit, onRemove, duplicateGeneric }: Props) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
     const style = {
@@ -64,6 +66,15 @@ export default function MedicineRow({ id, index, medicine, onEdit, onRemove }: P
                     {duration && <span className="mx-2 text-gray-400">|</span>}
                     {duration}
                 </div>
+                {duplicateGeneric && medicine.generic_name && (
+                    <div className="mt-1 flex items-start gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                        <span aria-hidden="true">⚠️</span>
+                        <span>
+                            Duplicate therapy: same generic <strong>{medicine.generic_name}</strong> already added.
+                            Review before saving.
+                        </span>
+                    </div>
+                )}
                 {(medicine.additional_doses ?? []).map((ad, i) => (
                     <div key={i} className="mt-0.5 pl-4 text-sm text-gray-600">
                         <span className="text-gray-500">এবং,</span>{' '}

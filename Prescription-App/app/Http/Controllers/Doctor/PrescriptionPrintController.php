@@ -20,7 +20,7 @@ class PrescriptionPrintController extends Controller
     {
         $this->authorize('view', $prescription);
 
-        $prescription->load(['patient', 'doctor', 'complaints', 'examinations', 'sections', 'medicines']);
+        $prescription->load(['patient', 'patient.allergies', 'doctor', 'complaints', 'examinations', 'sections', 'medicines']);
 
         $profile = DoctorProfile::query()
             ->where('user_id', $prescription->doctor_id)
@@ -29,10 +29,26 @@ class PrescriptionPrintController extends Controller
 
         $hospital = Hospital::find($prescription->hospital_id);
 
+        $verifyUrl = $prescription->share_token
+            ? route('public.rx.verify', $prescription->share_token)
+            : null;
+
+        $qrSvg = null;
+        if ($verifyUrl) {
+            try {
+                $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+                    ->size(120)->margin(0)->generate($verifyUrl);
+            } catch (\Throwable $e) {
+                $qrSvg = null;
+            }
+        }
+
         return Inertia::render('Doctor/Prescriptions/Preview', [
-            'prescription' => $prescription,
+            'prescription'   => $prescription,
             'doctor_profile' => $profile,
-            'hospital' => $hospital,
+            'hospital'       => $hospital,
+            'verify_url'     => $verifyUrl,
+            'qr_svg'         => $qrSvg,
         ]);
     }
 

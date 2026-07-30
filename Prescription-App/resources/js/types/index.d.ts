@@ -43,6 +43,8 @@ export interface DoctorProfile {
     user_id: number;
     hospital_id: number;
     bmdc_number?: string;
+    bmdc_verified?: boolean;
+    bmdc_verified_at?: string | null;
     degrees?: string;
     specialization?: string;
     designation?: string;
@@ -90,6 +92,7 @@ export interface Patient {
     is_active: boolean;
     created_at: string;
     age_display?: string;
+    allergies?: PatientAllergy[];
 }
 
 export interface PatientAllergy {
@@ -156,6 +159,7 @@ export interface Prescription {
     patient_id: number;
     appointment_id?: number;
     prescription_uid: string;
+    share_token?: string | null;
     date: string;
     follow_up_date?: string;
     follow_up_duration_value?: number;

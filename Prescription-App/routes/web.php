@@ -3,6 +3,7 @@
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\BookingController;
+use App\Http\Controllers\Public\PrescriptionVerifyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -37,6 +38,11 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
+
+// Public prescription verify — unauthenticated, minimised payload.
+// Reachable via the QR code printed on every prescription.
+Route::get('/rx/verify/{shareToken}', [PrescriptionVerifyController::class, 'show'])
+    ->name('public.rx.verify');
 
 // Public online booking. No auth. Rate-limited via named limiters where write.
 Route::prefix('book')->name('public.book.')->group(function () {

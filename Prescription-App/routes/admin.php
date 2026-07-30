@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified', 'role:super_admin'])
         Route::post('hospitals/{hospital}/toggle-status', [HospitalController::class, 'toggleStatus'])->name('hospitals.toggle-status');
 
         Route::resource('users', UserController::class);
+        Route::post('users/{user}/toggle-bmdc-verified', [UserController::class, 'toggleBmdcVerified'])->name('users.toggle-bmdc-verified');
 
         Route::get('medicines', [MedicineController::class, 'index'])->name('medicines.index');
         Route::get('medicines/create', [MedicineController::class, 'create'])->name('medicines.create');

@@ -4,6 +4,13 @@ import { PageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
+interface DoctorProfileLite {
+    id: number;
+    bmdc_number: string | null;
+    bmdc_verified: boolean;
+    bmdc_verified_at: string | null;
+}
+
 interface User {
     id: number;
     name: string;
@@ -12,6 +19,7 @@ interface User {
     is_active: boolean;
     created_at: string;
     hospital?: { id: number; name: string } | null;
+    doctor_profile?: DoctorProfileLite | null;
 }
 
 interface PaginatedUsers {
@@ -131,6 +139,7 @@ export default function Index({ users, hospitals, filters }: Props) {
                             <th className="px-4 py-3 font-medium text-gray-600">Role</th>
                             <th className="px-4 py-3 font-medium text-gray-600">Hospital</th>
                             <th className="px-4 py-3 font-medium text-gray-600">Status</th>
+                            <th className="px-4 py-3 font-medium text-gray-600">BMDC</th>
                             <th className="px-4 py-3 font-medium text-gray-600">Joined</th>
                             <th className="px-4 py-3 font-medium text-gray-600 text-right">Actions</th>
                         </tr>
@@ -138,7 +147,7 @@ export default function Index({ users, hospitals, filters }: Props) {
                     <tbody className="divide-y divide-gray-100">
                         {users.data.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="px-4 py-10 text-center text-gray-400">No users found.</td>
+                                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">No users found.</td>
                             </tr>
                         ) : users.data.map(user => (
                             <tr key={user.id} className="hover:bg-gray-50 transition-colors">
@@ -154,6 +163,28 @@ export default function Index({ users, hospitals, filters }: Props) {
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${user.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                         {user.is_active ? 'Active' : 'Inactive'}
                                     </span>
+                                </td>
+                                <td className="px-4 py-3 text-xs">
+                                    {user.role !== 'doctor' ? (
+                                        <span className="text-gray-300">—</span>
+                                    ) : !user.doctor_profile?.bmdc_number ? (
+                                        <span className="text-gray-400">No BMDC #</span>
+                                    ) : user.doctor_profile.bmdc_verified ? (
+                                        <button
+                                            onClick={() => router.post(route('admin.users.toggle-bmdc-verified', user.id), {}, { preserveScroll: true })}
+                                            title="Click to revoke"
+                                            className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700 hover:bg-emerald-100"
+                                        >
+                                            ✓ Verified
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => router.post(route('admin.users.toggle-bmdc-verified', user.id), {}, { preserveScroll: true })}
+                                            className="rounded-full border border-teal-300 bg-white px-2 py-0.5 text-teal-700 hover:bg-teal-50"
+                                        >
+                                            Verify
+                                        </button>
+                                    )}
                                 </td>
                                 <td className="px-4 py-3 text-gray-400 text-xs">
                                     {new Date(user.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             MedicineSeeder::class,
             ComplaintMasterSeeder::class,
             GlobalTemplateSeeder::class,
+            Icd10SeederStarter::class,
 
             // Demo tenant data
             DemoHospitalSeeder::class,

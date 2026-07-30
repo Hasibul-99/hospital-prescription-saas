@@ -31,6 +31,20 @@ export default function MedicineList({ medicines, onReorder, onEdit, onRemove }:
 
     const ids = medicines.map((_, i) => `med-${i}`);
 
+    // Duplicate-generic flag per row. Case-insensitive + trimmed. Blank generic
+    // never counts as a duplicate (avoids false positives on missing metadata).
+    const genericCounts = new Map<string, number>();
+    for (const m of medicines) {
+        const g = (m.generic_name ?? '').trim().toLowerCase();
+        if (!g) continue;
+        genericCounts.set(g, (genericCounts.get(g) ?? 0) + 1);
+    }
+    const isDuplicateGeneric = (m: MedicineInput): boolean => {
+        const g = (m.generic_name ?? '').trim().toLowerCase();
+        if (!g) return false;
+        return (genericCounts.get(g) ?? 0) > 1;
+    };
+
     function handleDragEnd(e: DragEndEvent) {
         const { active, over } = e;
         if (!over || active.id === over.id) return;
@@ -60,6 +74,7 @@ export default function MedicineList({ medicines, onReorder, onEdit, onRemove }:
                             medicine={m}
                             onEdit={() => onEdit(i)}
                             onRemove={() => onRemove(i)}
+                            duplicateGeneric={isDuplicateGeneric(m)}
                         />
                     ))}
                 </ul>

@@ -8,9 +8,11 @@ type PreviewProps = PageProps<{
     prescription: Prescription & { patient?: Patient; doctor?: { id: number; name: string } };
     doctor_profile?: DoctorProfile | null;
     hospital?: Hospital | null;
+    verify_url?: string | null;
+    qr_svg?: string | null;
 }>;
 
-export default function Preview({ prescription, doctor_profile, hospital }: PreviewProps) {
+export default function Preview({ prescription, doctor_profile, hospital, verify_url, qr_svg }: PreviewProps) {
     const printAreaRef = useRef<HTMLDivElement>(null);
     const [busy, setBusy] = useState<'png' | 'pdf' | null>(null);
 
@@ -63,6 +65,23 @@ export default function Preview({ prescription, doctor_profile, hospital }: Prev
 
     function savePdfServer() {
         window.open(`/doctor/prescriptions/${prescription.id}/download`, '_blank');
+    }
+
+    function shareWhatsApp() {
+        if (!verify_url) return;
+        const patientName = prescription.patient?.name ?? 'the patient';
+        const doctorName = prescription.doctor?.name ?? '';
+        const msg = `Prescription for ${patientName}${doctorName ? ` from ${doctorName}` : ''}: ${verify_url}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+    }
+
+    async function copyShareLink() {
+        if (!verify_url) return;
+        try {
+            await navigator.clipboard.writeText(verify_url);
+        } catch {
+            /* noop */
+        }
     }
 
     function markPrinted() {
@@ -123,6 +142,26 @@ export default function Preview({ prescription, doctor_profile, hospital }: Prev
                         >
                             PDF (server)
                         </button>
+                        {verify_url && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={shareWhatsApp}
+                                    className="rounded border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-800 hover:bg-emerald-100"
+                                    title="Share via WhatsApp"
+                                >
+                                    WhatsApp
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={copyShareLink}
+                                    className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                                    title="Copy public verify link"
+                                >
+                                    Copy link
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -132,6 +171,8 @@ export default function Preview({ prescription, doctor_profile, hospital }: Prev
                     prescription={prescription}
                     profile={doctor_profile}
                     hospital={hospital}
+                    verifyUrl={verify_url}
+                    qrSvg={qr_svg}
                 />
             </div>
         </AuthenticatedLayout>

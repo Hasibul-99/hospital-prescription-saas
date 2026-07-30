@@ -15,7 +15,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $users = User::query()
-            ->with('hospital:id,name')
+            ->with(['hospital:id,name', 'doctorProfile:id,user_id,bmdc_number,bmdc_verified,bmdc_verified_at'])
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%");
             }))
@@ -105,5 +105,34 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('success', 'User deleted.');
+    }
+
+    /**
+     * Super-admin manual BMDC verification for a doctor account.
+     * Toggles the DoctorProfile.bmdc_verified flag; records who + when.
+     * Prerequisite: the doctor has already filled in bmdc_number.
+     */
+    public function toggleBmdcVerified(Request $request, User $user)
+    {
+        if ($user->role !== 'doctor') {
+            return back()->with('error', 'Only doctor accounts can be BMDC-verified.');
+        }
+
+        $profile = $user->doctorProfile;
+        if (! $profile) {
+            return back()->with('error', 'Doctor has no profile yet.');
+        }
+        if (empty($profile->bmdc_number)) {
+            return back()->with('error', 'Doctor must fill in a BMDC number first.');
+        }
+
+        $verifying = ! $profile->bmdc_verified;
+        $profile->forceFill([
+            'bmdc_verified'    => $verifying,
+            'bmdc_verified_at' => $verifying ? now() : null,
+            'bmdc_verified_by' => $verifying ? $request->user()->id : null,
+        ])->save();
+
+        return back()->with('success', $verifying ? 'BMDC verified.' : 'BMDC verification removed.');
     }
 }

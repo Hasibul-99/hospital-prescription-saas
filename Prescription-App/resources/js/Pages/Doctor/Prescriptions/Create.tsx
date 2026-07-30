@@ -5,6 +5,8 @@ import ComplaintsSection from '@/Components/Prescription/ComplaintsSection';
 import ExaminationSection from '@/Components/Prescription/ExaminationSection';
 import TextListSection from '@/Components/Prescription/TextListSection';
 import MedicineSection from '@/Components/Prescription/MedicineSection';
+import Icd10Picker from '@/Components/Prescription/Icd10Picker';
+import SpecialtyTools from '@/Components/Prescription/SpecialtyTools';
 import RxPreviewColumn from '@/Components/Prescription/RxPreviewColumn';
 import PreviousRxDrawer from '@/Components/Prescription/PreviousRxDrawer';
 import BottomBar from '@/Components/Prescription/BottomBar';
@@ -363,6 +365,17 @@ export default function Create(props: Props) {
                             suggestions={props.diagnosis_suggestions}
                             placeholder="Diagnosis"
                         />
+                        <div className="ml-1 mb-2 -mt-1">
+                            <Icd10Picker
+                                onPick={(formatted) =>
+                                    dispatch({
+                                        type: 'ADD_SECTION',
+                                        section: { section_type: 'diagnosis', content: formatted },
+                                    })
+                                }
+                                placeholder="+ Add ICD-10 code (search code or title)"
+                            />
+                        </div>
 
                         <TextListSection
                             title="Advices"
@@ -384,6 +397,88 @@ export default function Create(props: Props) {
                             onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
                             placeholder="Next plan"
                         />
+
+                        <TextListSection
+                            title="Negative History"
+                            sectionType="negative_history"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="e.g., no diabetes, no hypertension"
+                        />
+
+                        <TextListSection
+                            title="Gynae History"
+                            sectionType="gynae_history"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="Menstrual, obstetric, contraceptive notes"
+                        />
+
+                        <TextListSection
+                            title="Obstetric History"
+                            sectionType="obstetric_history"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="LMP, EDD, G/P/A, complications"
+                        />
+
+                        <TextListSection
+                            title="Breast / Local Exam"
+                            sectionType="breast_local"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="Findings"
+                        />
+
+                        <TextListSection
+                            title="Previous Reports"
+                            sectionType="previous_reports"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="e.g., X-ray Chest (2026-01) — clear"
+                        />
+
+                        <TextListSection
+                            title="Referred By"
+                            sectionType="referred_by"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="Dr. name or facility"
+                        />
+
+                        <TextListSection
+                            title="Lab Referrals"
+                            sectionType="lab_referral"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="Preferred lab + patient discount"
+                        />
+
+                        <TextListSection
+                            title="Notes"
+                            sectionType="notes"
+                            allSections={state.sections}
+                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
+                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            placeholder="Any special notes"
+                        />
+
+                        <SpecialtyTools />
                     </div>
                 </div>
 

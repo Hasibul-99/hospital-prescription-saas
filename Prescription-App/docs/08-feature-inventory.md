@@ -25,6 +25,13 @@ Snapshot date: 2026-07-29. Re-verify by scanning `app/Models`, `app/Http/Control
 | 15 | WYSIWYG parity | `PrescriptionPrintLayout` shared between preview + PDF |
 | 19 | Patient registry + full history | `Patient` model, `patient_uid`, search |
 | 20 | Demographics + allergies | `Patient`, `PatientAllergy`, `PatientAllergyController` |
+| 4 | ICD-10 typeahead | `icd10_codes` table + `Icd10SeederStarter` (42 common codes) + `GET /doctor/icd10/search` + `Icd10Picker` combobox slotted under the Diagnosis section |
+| 6 | Specialty quick-fills (paediatric dose + LMP→EDD) | `SpecialtyTools.tsx` two collapsible calculators; tooth chart still open |
+| 7 | Extra clinical sections | `prescription_sections.section_type` enum extended with `negative_history`, `gynae_history`, `obstetric_history`, `breast_local`, `previous_reports`, `referred_by`, `notes`; wired into `Doctor/Prescriptions/Create.tsx` via `TextListSection` and into both print layouts |
+| 10 | Drug-safety alerts (duplicate-therapy) | `MedicineList` computes duplicate-generic map; `MedicineRow` shows amber advisory when same `generic_name` appears twice. Real interactions still pending an external dataset. |
+| 16 | QR authenticity + Rx/Patient IDs | `prescriptions.share_token` + `simplesoftwareio/simple-qrcode` SVG rendered into print (Blade + React) footer, plus a `/rx/verify/{token}` public page |
+| 17 | Share (PDF, image, WhatsApp deep-link, web link) | Preview toolbar: WhatsApp `wa.me/?text=…`, Copy-link, existing PNG + PDF exporters |
+| 18 | Allergy line + follow-up on print | `patient.allergies` eager-loaded; red allergy line above Rx block; follow-up already rendered |
 | 22 | Recall & follow-up (manual workflow) | `prescriptions.recall_status` + `FollowUpController::bulkMark` + bulk-select UI. SMS reminder button disabled pending gateway. |
 | 25 | Multi-chamber sync | `Chamber` model per doctor |
 | 26 | Smart fee rules (visit types) | `Appointment` visit types, fee logic in `SerialQueueService` |
@@ -34,15 +41,18 @@ Snapshot date: 2026-07-29. Re-verify by scanning `app/Models`, `app/Http/Control
 | 30 | Appointments calendar | `Appointment`, `Appointments/Index` (doctor + receptionist) |
 | 32 | Online booking (public link) | `App\Http\Controllers\Public\BookingController`, `/book` routes, `PublicLayout`, four Inertia pages under `resources/js/Pages/Public/Booking/`. Email OTP confirmation; SMS deferred. |
 | 34 | Referrals (basic) — SMS **not** wired | Referral fields present |
+| 36 | Lab referrals note on Rx | `lab_referral` section type; text entered in Rx builder; printed as its own block on the right column |
+| 37 | BMDC verification badge | `doctor_profiles.bmdc_verified` + `bmdc_verified_at` + `bmdc_verified_by`; admin toggle in `/admin/users`; ✓ Verified pill on print header, print footer, and public verify page |
 | 38 | 2FA (email OTP half) | OTP for signup + password reset — see [03-auth-and-roles.md](03-auth-and-roles.md) |
 | 39 | Roles & least privilege server-side | `RoleMiddleware`, policies |
 | 40 | Per-doctor / per-tenant data isolation | `BelongsToHospital` global scope |
 | 42 | Installable PWA | `vite-plugin-pwa` in `vite.config.js`; manifest + service worker in `public/`; app.blade.php head links |
+| 41 | Privacy-minimised public view | `Public\PrescriptionVerifyController` renders only medicines + allergies + follow-up; complaints/exams/diagnosis withheld; patient name masked to first + last-initial |
 | 43 | Cloud always in sync | Inertia + server-side rendering |
 | 44 | English-only clarity / 0–9 numerals on print | `resources/js/utils/numerals.ts` + `_rxToEn()` Blade helper wired through print path |
 | 45 | 30-free-Rx enforcement | `Hospital::FREE_TIER_RX_LIMIT`, `hospitals.prescription_quota_used`, `EnsurePrescriptionQuota` middleware, `PrescriptionService::save()` increments |
 
-**Score: 26/45 built.** (was 20/45; features 2, 22, 32, 42, 44, 45 promoted from Partial → Built on 2026-07-29.)
+**Score: 38/45 built.** (was 34/45; features 4, 6 partial, 10 partial shipped on 2026-07-30 as Clinical-intelligence batch. #6 tooth chart still open; #10 real interactions need external dataset.)
 
 Just-shipped detail (2026-07-29):
 
@@ -65,22 +75,13 @@ All previous partials shipped. Next set to tackle: things now split cleanly betw
 
 | # | Feature | Approach |
 |---|---|---|
-| 4 | ICD-10 typeahead | Seed `icd10_codes` table from public dataset; add `<Combobox>` to Diagnosis section |
-| 6 | Weight-based paediatric dose calc, LMP→EDD, tooth chart | Pure client components; slot into Rx builder |
-| 7 | Extra clinical sections (negative hx, gynae, breast/local, referred-by, notes) | Reuse existing `PrescriptionSection` — add new `section_type` enum values |
-| 10 | Drug-safety alerts (duplicate-therapy, basic interactions) | Duplicate-generic detection is trivial from `Medicine.generic_name`; real interactions need a data source (see 🟠) |
+| 6 | Tooth chart (dental) | Interactive FDI-notation SVG (32 teeth) with per-tooth findings — deferred; scope isn't small |
 | 11 | SOAP notes + patient handout | New Blade templates + DomPDF export routes |
 | 13 | Letterhead Studio (basic per-chamber header/footer) | Extend `DoctorProfile` fields; simple form editor. Full WYSIWYG = 🔴 |
-| 16 | QR authenticity + Patient-ID/Rx-ID barcodes | `simplesoftwareio/simple-qrcode` package; render into print template |
-| 17 | Share (PDF, image, WhatsApp deep-link, web link) | PDF exists; add public verify URL, `wa.me/?text=...` link, `html2canvas` for PNG |
-| 18 | Allergy line + next-visit line on print | Data already stored; add lines to `PrescriptionPrintLayout` |
 | 21 | Vitals & trends | New `patient_vitals` table + Recharts trend view |
 | 24 | FULL/SPLIT/RENT settlement | Extend `Chamber` (add `share_model`, `share_percent`, `rent_amount`); extend `DailyStatement` calc |
 | 31 | Public profile & directory | Public routes + `/doctors/{slug}` page; admin approval flag |
 | 35 | Medical documents (fitness/sick-leave/referral certs) | Blade templates + PDF export, letterhead-aware |
-| 36 | Lab referrals note on Rx | Free-text field on prescription + print line |
-| 37 | BMDC verification badge + public authenticity link | Admin flag on `DoctorProfile.bmdc_verified`; public verify page |
-| 41 | Privacy-minimised public views | Public-share controller with reduced payload |
 
 ---
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Prescription extends Model
 {
@@ -20,7 +21,7 @@ class Prescription extends Model
 
     protected $fillable = [
         'hospital_id', 'doctor_id', 'patient_id', 'appointment_id',
-        'prescription_uid', 'date', 'follow_up_date',
+        'prescription_uid', 'share_token', 'date', 'follow_up_date',
         'follow_up_duration_value', 'follow_up_duration_unit',
         'template_id', 'status', 'printed_at', 'printed_count',
         'contact_attempts', 'last_contact_at', 'recall_status',
@@ -42,6 +43,9 @@ class Prescription extends Model
         static::creating(function (Prescription $rx) {
             if (empty($rx->prescription_uid) && $rx->hospital_id) {
                 $rx->prescription_uid = static::generateUid($rx->hospital_id, $rx->date);
+            }
+            if (empty($rx->share_token)) {
+                $rx->share_token = Str::random(32);
             }
         });
 

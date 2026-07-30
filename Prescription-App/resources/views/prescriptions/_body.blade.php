@@ -77,7 +77,14 @@
                         @if($profile?->degrees)<div class="meta">{{ $profile->degrees }}</div>@endif
                         @if($profile?->specialization)<div class="meta">{{ $profile->specialization }}</div>@endif
                         @if($profile?->designation)<div class="meta">{{ $profile->designation }}</div>@endif
-                        @if($profile?->bmdc_number)<div class="meta">BMDC: {{ $profile->bmdc_number }}</div>@endif
+                        @if($profile?->bmdc_number)
+                            <div class="meta">
+                                BMDC: {{ $profile->bmdc_number }}
+                                @if($profile->bmdc_verified)
+                                    <span style="margin-left:4px;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:9px;font-size:9px;">&check; Verified</span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                     <div class="col right">
                         @if($showLogo && $hospital?->logo)
@@ -100,8 +107,8 @@
             <strong>Name:</strong> {{ $patient?->name }}
             <span class="muted">|</span>
             <strong>Age:</strong>
-            @if($patient?->age_years) {{ $patient->age_years }} Y @endif
-            @if($patient?->age_months) {{ $patient->age_months }} M @endif
+            @if($patient?->age_years) {{ _rxToEn($patient->age_years) }} Y @endif
+            @if($patient?->age_months) {{ _rxToEn($patient->age_months) }} M @endif
             <span class="muted">|</span>
             <strong>Sex:</strong> {{ ucfirst($patient?->gender ?? '') }}
         </div>
@@ -111,6 +118,15 @@
             <strong>ID:</strong> {{ $patient?->patient_uid }}
         </div>
     </div>
+
+    @php
+        $allergies = $patient?->allergies?->pluck('allergen')->filter()->values() ?? collect();
+    @endphp
+    @if($allergies->isNotEmpty())
+        <div class="allergy-line" style="margin-top:6px;padding:4px 8px;background:#fee2e2;border-left:3px solid #dc2626;font-size:12px;color:#7f1d1d;">
+            <strong>Drug allergies:</strong> {{ $allergies->implode(', ') }}
+        </div>
+    @endif
 
     <div class="body">
         <div class="left">
@@ -140,27 +156,30 @@
             @endif
 
             @php
-                $diagnosis = $rx->sections->where('section_type', 'diagnosis');
-                $investigations = $rx->sections->where('section_type', 'investigation');
+                $secGroups = [
+                    'diagnosis'         => ['Diagnosis',           $rx->sections->where('section_type', 'diagnosis')],
+                    'investigation'     => ['Investigations',      $rx->sections->where('section_type', 'investigation')],
+                    'past_history'      => ['Past History',        $rx->sections->where('section_type', 'past_history')],
+                    'drug_history'      => ['Drug History',        $rx->sections->where('section_type', 'drug_history')],
+                    'negative_history'  => ['Negative History',    $rx->sections->where('section_type', 'negative_history')],
+                    'gynae_history'     => ['Gynae History',       $rx->sections->where('section_type', 'gynae_history')],
+                    'obstetric_history' => ['Obstetric History',   $rx->sections->where('section_type', 'obstetric_history')],
+                    'breast_local'      => ['Breast / Local Exam', $rx->sections->where('section_type', 'breast_local')],
+                    'previous_reports'  => ['Previous Reports',    $rx->sections->where('section_type', 'previous_reports')],
+                    'referred_by'       => ['Referred By',         $rx->sections->where('section_type', 'referred_by')],
+                ];
             @endphp
 
-            @if($diagnosis->isNotEmpty())
-                <h3>Diagnosis</h3>
-                <ul>
-                    @foreach($diagnosis as $d)
-                        <li>{{ $d->content }}</li>
-                    @endforeach
-                </ul>
-            @endif
-
-            @if($investigations->isNotEmpty())
-                <h3>Investigations</h3>
-                <ul>
-                    @foreach($investigations as $i)
-                        <li>{{ $i->content }}</li>
-                    @endforeach
-                </ul>
-            @endif
+            @foreach($secGroups as [$title, $items])
+                @if($items->isNotEmpty())
+                    <h3>{{ $title }}</h3>
+                    <ul>
+                        @foreach($items as $s)
+                            <li>{{ _rxToEn($s->content) }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            @endforeach
         </div>
 
         <div class="right">
@@ -203,22 +222,29 @@
             @endif
 
             @php
-                $advices = $rx->sections->where('section_type', 'advice');
+                $rightGroups = [
+                    ['Advices',       $rx->sections->where('section_type', 'advice')],
+                    ['Next Plans',    $rx->sections->where('section_type', 'next_plan')],
+                    ['Lab Referrals', $rx->sections->where('section_type', 'lab_referral')],
+                    ['Notes',         $rx->sections->where('section_type', 'notes')],
+                ];
             @endphp
-            @if($advices->isNotEmpty())
-                <h3>Advices</h3>
-                <ul>
-                    @foreach($advices as $a)
-                        <li>{{ $a->content }}</li>
-                    @endforeach
-                </ul>
-            @endif
+            @foreach($rightGroups as [$title, $items])
+                @if($items->isNotEmpty())
+                    <h3>{{ $title }}</h3>
+                    <ul>
+                        @foreach($items as $s)
+                            <li>{{ _rxToEn($s->content) }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            @endforeach
 
             @if($rx->follow_up_date)
                 <div class="followup">
                     <strong>Follow up:</strong>
                     @if($rx->follow_up_duration_value && $rx->follow_up_duration_unit)
-                        {{ $rx->follow_up_duration_value }} {{ $rx->follow_up_duration_unit }} later
+                        {{ _rxToEn($rx->follow_up_duration_value) }} {{ $rx->follow_up_duration_unit }} later
                         ({{ \Carbon\Carbon::parse($rx->follow_up_date)->format('d-M-Y') }})
                     @else
                         {{ \Carbon\Carbon::parse($rx->follow_up_date)->format('d-M-Y') }}
@@ -227,6 +253,29 @@
             @endif
         </div>
     </div>
+
+    @if($rx->share_token)
+        @php
+            try {
+                $verifyUrl = route('public.rx.verify', $rx->share_token);
+                $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+                    ->size(110)->margin(0)->generate($verifyUrl);
+            } catch (\Throwable $e) {
+                $qrSvg = null;
+                $verifyUrl = null;
+            }
+        @endphp
+        @if($qrSvg)
+            <div class="verify" style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:10px;color:#475569;">
+                <div style="width:80px;height:80px;">{!! $qrSvg !!}</div>
+                <div style="line-height:1.4;">
+                    <div><strong>Scan to verify</strong> — confirms this prescription is genuine.</div>
+                    <div>Rx ID: <span style="font-family:monospace;">{{ $rx->prescription_uid }}</span></div>
+                    <div>Patient ID: <span style="font-family:monospace;">{{ $patient?->patient_uid }}</span></div>
+                </div>
+            </div>
+        @endif
+    @endif
 
     @if($showFooter)
         <div class="footer">
@@ -238,7 +287,14 @@
                         <img src="{{ public_path('storage/'.$profile->signature_image) }}" alt="Signature">
                     @endif
                     <div class="name">{{ $doctor?->name }}</div>
-                    @if($profile?->bmdc_number)<div class="meta">BMDC: {{ $profile->bmdc_number }}</div>@endif
+                    @if($profile?->bmdc_number)
+                            <div class="meta">
+                                BMDC: {{ $profile->bmdc_number }}
+                                @if($profile->bmdc_verified)
+                                    <span style="margin-left:4px;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:9px;font-size:9px;">&check; Verified</span>
+                                @endif
+                            </div>
+                        @endif
                 </div>
             @endif
             @if($profile?->prescription_footer_text)

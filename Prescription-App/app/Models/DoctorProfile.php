@@ -21,6 +21,7 @@ class DoctorProfile extends Model
         'print_margin_top', 'print_margin_bottom', 'print_margin_left', 'print_margin_right',
         'notify_followup_reminders', 'notify_email',
         'is_public_profile', 'public_slug',
+        'bmdc_verified', 'bmdc_verified_at', 'bmdc_verified_by',
     ];
 
     protected function casts(): array
@@ -38,6 +39,8 @@ class DoctorProfile extends Model
             'notify_followup_reminders' => 'boolean',
             'notify_email' => 'boolean',
             'is_public_profile' => 'boolean',
+            'bmdc_verified' => 'boolean',
+            'bmdc_verified_at' => 'datetime',
         ];
     }
 

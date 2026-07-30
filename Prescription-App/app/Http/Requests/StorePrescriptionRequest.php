@@ -32,7 +32,7 @@ class StorePrescriptionRequest extends FormRequest
             'examinations.*.note' => 'nullable|string|max:1000',
 
             'sections' => 'nullable|array',
-            'sections.*.section_type' => 'required_with:sections|in:past_history,drug_history,investigation,diagnosis,advice,next_plan,hospitalization,operation_note',
+            'sections.*.section_type' => 'required_with:sections|in:past_history,drug_history,investigation,diagnosis,advice,next_plan,hospitalization,operation_note,negative_history,gynae_history,obstetric_history,breast_local,previous_reports,referred_by,notes,lab_referral',
             'sections.*.content' => 'required_with:sections|string|max:5000',
 
             'medicines' => 'nullable|array',

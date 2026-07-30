@@ -9,9 +9,12 @@ interface Props {
     };
     profile?: DoctorProfile | null;
     hospital?: Hospital | null;
+    verifyUrl?: string | null;
+    /** Pre-rendered SVG for DomPDF; on the web preview a <svg>-based QR is drawn client-side. */
+    qrSvg?: string | null;
 }
 
-export default function PrescriptionPrintLayout({ prescription, profile, hospital }: Props) {
+export default function PrescriptionPrintLayout({ prescription, profile, hospital, verifyUrl, qrSvg }: Props) {
     const p = (profile ?? {}) as Partial<DoctorProfile>;
     const showHeader = p.print_show_header ?? true;
     const showFooter = p.print_show_footer ?? true;
@@ -28,6 +31,17 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
     const diagnosis = sections.filter((s) => s.section_type === 'diagnosis');
     const investigations = sections.filter((s) => s.section_type === 'investigation');
     const advices = sections.filter((s) => s.section_type === 'advice');
+    const pastHistory = sections.filter((s) => s.section_type === 'past_history');
+    const drugHistory = sections.filter((s) => s.section_type === 'drug_history');
+    const nextPlan = sections.filter((s) => s.section_type === 'next_plan');
+    const negativeHistory = sections.filter((s) => s.section_type === 'negative_history');
+    const gynaeHistory = sections.filter((s) => s.section_type === 'gynae_history');
+    const obstetricHistory = sections.filter((s) => s.section_type === 'obstetric_history');
+    const breastLocal = sections.filter((s) => s.section_type === 'breast_local');
+    const previousReports = sections.filter((s) => s.section_type === 'previous_reports');
+    const referredBy = sections.filter((s) => s.section_type === 'referred_by');
+    const notes = sections.filter((s) => s.section_type === 'notes');
+    const labReferrals = sections.filter((s) => s.section_type === 'lab_referral');
     const medicines = prescription.medicines ?? [];
 
     const storagePath = (rel?: string | null) => (rel ? `/storage/${rel}` : '');
@@ -55,7 +69,14 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                                 {p.degrees && <div className="text-xs text-gray-700">{p.degrees}</div>}
                                 {p.specialization && <div className="text-xs text-gray-700">{p.specialization}</div>}
                                 {p.designation && <div className="text-xs text-gray-700">{p.designation}</div>}
-                                {p.bmdc_number && <div className="text-xs text-gray-700">BMDC: {p.bmdc_number}</div>}
+                                {p.bmdc_number && (
+                                    <div className="text-xs text-gray-700">
+                                        BMDC: {p.bmdc_number}
+                                        {p.bmdc_verified && (
+                                            <span title="BMDC verified by admin" className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800">✓ Verified</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="text-right">
                                 {showLogo && hospital?.logo && (
@@ -85,6 +106,13 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                     <strong>ID:</strong> {patient?.patient_uid}
                 </div>
             </div>
+
+            {patient?.allergies && patient.allergies.length > 0 && (
+                <div className="mb-2 border-l-4 border-red-500 bg-red-50 px-2 py-1 text-xs text-red-800">
+                    <strong>Drug allergies:</strong>{' '}
+                    {patient.allergies.map((a) => a.allergen).join(', ')}
+                </div>
+            )}
 
             <div className="grid gap-3" style={{ gridTemplateColumns: '35% 65%' }}>
                 <div className="border-r border-gray-200 pr-2">
@@ -131,6 +159,47 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                             </ul>
                         </Section>
                     )}
+
+                    {pastHistory.length > 0 && (
+                        <Section title="Past History">
+                            <ul className="list-disc pl-4">{pastHistory.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {drugHistory.length > 0 && (
+                        <Section title="Drug History">
+                            <ul className="list-disc pl-4">{drugHistory.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {negativeHistory.length > 0 && (
+                        <Section title="Negative History">
+                            <ul className="list-disc pl-4">{negativeHistory.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {gynaeHistory.length > 0 && (
+                        <Section title="Gynae History">
+                            <ul className="list-disc pl-4">{gynaeHistory.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {obstetricHistory.length > 0 && (
+                        <Section title="Obstetric History">
+                            <ul className="list-disc pl-4">{obstetricHistory.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {breastLocal.length > 0 && (
+                        <Section title="Breast / Local Exam">
+                            <ul className="list-disc pl-4">{breastLocal.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {previousReports.length > 0 && (
+                        <Section title="Previous Reports">
+                            <ul className="list-disc pl-4">{previousReports.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+                    {referredBy.length > 0 && (
+                        <Section title="Referred By">
+                            <ul className="list-disc pl-4">{referredBy.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
                 </div>
 
                 <div className="pl-2">
@@ -170,6 +239,24 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                         </Section>
                     )}
 
+                    {nextPlan.length > 0 && (
+                        <Section title="Next Plans">
+                            <ul className="list-disc pl-4">{nextPlan.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+
+                    {labReferrals.length > 0 && (
+                        <Section title="Lab Referrals">
+                            <ul className="list-disc pl-4">{labReferrals.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+
+                    {notes.length > 0 && (
+                        <Section title="Notes">
+                            <ul className="list-disc pl-4">{notes.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+
                     {prescription.follow_up_date && (
                         <div className="mt-3 border-l-4 border-[#0f4c81] bg-gray-100 px-2 py-1">
                             <strong>Follow up:</strong>{' '}
@@ -181,6 +268,22 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                 </div>
             </div>
 
+            {(verifyUrl || qrSvg) && (
+                <div className="mt-4 flex items-center gap-3 border-t border-dashed border-gray-300 pt-2 text-[10px] text-gray-600">
+                    {qrSvg ? (
+                        <div style={{ width: 80, height: 80 }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                    ) : (
+                        <div className="grid h-20 w-20 place-items-center border border-dashed border-gray-300 text-gray-400">QR</div>
+                    )}
+                    <div className="leading-tight">
+                        <div><strong>Scan to verify</strong> — confirms this prescription is genuine.</div>
+                        <div>Rx ID: <span className="font-mono">{prescription.prescription_uid}</span></div>
+                        <div>Patient ID: <span className="font-mono">{patient?.patient_uid}</span></div>
+                        {verifyUrl && <div className="mt-0.5 break-all text-gray-400">{verifyUrl}</div>}
+                    </div>
+                </div>
+            )}
+
             {showFooter && (
                 <footer className="mt-6 border-t border-gray-300 pt-2">
                     {footerMode === 'image' && p.prescription_footer_image ? (
@@ -191,7 +294,14 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                                 <img src={storagePath(p.signature_image)} alt="Signature" className="ml-auto object-contain" style={{ maxHeight: '60px' }} />
                             )}
                             <div className="font-semibold">{doctor?.name}</div>
-                            {p.bmdc_number && <div className="text-xs text-gray-600">BMDC: {p.bmdc_number}</div>}
+                            {p.bmdc_number && (
+                                <div className="text-xs text-gray-600">
+                                    BMDC: {p.bmdc_number}
+                                    {p.bmdc_verified && (
+                                        <span title="BMDC verified by admin" className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800">✓ Verified</span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ) : null}
                     {p.prescription_footer_text && <div className="mt-1 text-xs text-gray-700">{p.prescription_footer_text}</div>}

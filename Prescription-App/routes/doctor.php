@@ -64,6 +64,7 @@ Route::middleware(['auth', 'verified', 'role:doctor', 'hospital.active'])
 
         // Medicine search, frequent list, missing
         Route::get('/medicines/search', [MedicineController::class, 'searchAction'])->name('medicines.search');
+        Route::get('/icd10/search', [\App\Http\Controllers\Doctor\Icd10Controller::class, 'search'])->name('icd10.search');
         Route::get('/medicines/frequent', [MedicineController::class, 'frequent'])->name('medicines.frequent');
         Route::post('/medicines/frequent/{medicine}', [MedicineController::class, 'addFrequent'])->name('medicines.frequent.add');
         Route::delete('/medicines/frequent/{medicine}', [MedicineController::class, 'removeFrequent'])->name('medicines.frequent.remove');

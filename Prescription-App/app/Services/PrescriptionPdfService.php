@@ -12,7 +12,7 @@ class PrescriptionPdfService
 {
     public function render(Prescription $rx): DomPdf
     {
-        $rx->loadMissing(['patient', 'doctor', 'complaints', 'examinations', 'sections', 'medicines', 'hospital']);
+        $rx->loadMissing(['patient', 'patient.allergies', 'doctor', 'complaints', 'examinations', 'sections', 'medicines', 'hospital']);
 
         $profile = DoctorProfile::query()
             ->where('user_id', $rx->doctor_id)

@@ -21,7 +21,15 @@ export interface SectionInput {
         | 'advice'
         | 'next_plan'
         | 'hospitalization'
-        | 'operation_note';
+        | 'operation_note'
+        | 'negative_history'
+        | 'gynae_history'
+        | 'obstetric_history'
+        | 'breast_local'
+        | 'previous_reports'
+        | 'referred_by'
+        | 'notes'
+        | 'lab_referral';
     content: string;
 }
 
