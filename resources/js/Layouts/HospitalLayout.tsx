@@ -1,7 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { PropsWithChildren, useState } from 'react';
 import { PageProps, Patient } from '@/types';
-import PatientSearch from '@/Components/PatientSearch';
+import PatientSearch from '@/Components/Patient/PatientSearch';
 import LanguageSwitcher from '@/Components/Common/LanguageSwitcher';
 
 const navItems = [

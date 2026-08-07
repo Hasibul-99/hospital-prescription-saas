@@ -1,5 +1,5 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import ComplaintsSection from '@/Components/Prescription/ComplaintsSection';
 import ExaminationSection from '@/Components/Prescription/ExaminationSection';
 import MedicineSection from '@/Components/Prescription/MedicineSection';

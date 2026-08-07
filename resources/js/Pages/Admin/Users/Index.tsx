@@ -1,5 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import Pagination from '@/Components/Pagination';
+import Pagination from '@/Components/UI/Pagination';
 import { PageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';

@@ -1,6 +1,6 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import AppointmentModal from '@/Components/AppointmentModal';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import AppointmentModal from '@/Components/Scheduling/AppointmentModal';
 import { Link, router } from '@inertiajs/react';
 import { Appointment, Chamber, HospitalHoliday, QueueStats } from '@/types';
 import { ReactNode, useEffect, useState } from 'react';

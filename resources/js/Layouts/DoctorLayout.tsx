@@ -1,8 +1,8 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { PropsWithChildren, useState } from 'react';
 import { PageProps } from '@/types';
-import PatientSearch from '@/Components/PatientSearch';
-import NotificationBell from '@/Components/Notifications/NotificationBell';
+import PatientSearch from '@/Components/Patient/PatientSearch';
+import NotificationBell from '@/Components/Common/NotificationBell';
 import LanguageSwitcher from '@/Components/Common/LanguageSwitcher';
 import { Patient } from '@/types';
 

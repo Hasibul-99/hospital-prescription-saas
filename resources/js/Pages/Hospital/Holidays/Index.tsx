@@ -1,5 +1,5 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { HospitalHoliday } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';

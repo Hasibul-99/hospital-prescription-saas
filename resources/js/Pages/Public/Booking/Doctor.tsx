@@ -1,7 +1,7 @@
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Head, router } from '@inertiajs/react';
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
-import InputError from '@/Components/InputError';
+import InputError from '@/Components/UI/InputError';
 import { CurrencyConfig } from '@/types';
 import { formatMoney } from '@/utils/currency';
 

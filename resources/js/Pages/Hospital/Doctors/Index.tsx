@@ -1,9 +1,9 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import Pagination from '@/Components/Pagination';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import Pagination from '@/Components/UI/Pagination';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import DoctorQuota, { DoctorQuotaData } from '@/Components/DoctorQuota';
+import DoctorQuota, { DoctorQuotaData } from '@/Components/Staff/DoctorQuota';
 import { Alert, Button, Input, Popconfirm, Space, Table, Tag, Typography } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { ReactNode, useState } from 'react';

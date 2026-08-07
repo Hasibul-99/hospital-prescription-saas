@@ -1,7 +1,7 @@
 import ReceptionistLayout from '@/Layouts/ReceptionistLayout';
 import { Link } from '@inertiajs/react';
 import { Patient, Appointment } from '@/types';
-import PatientVitalsPanel, { Vital } from '@/Components/PatientVitalsPanel';
+import PatientVitalsPanel, { Vital } from '@/Components/Patient/PatientVitalsPanel';
 import { ReactNode } from 'react';
 
 interface Props {

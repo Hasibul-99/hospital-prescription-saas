@@ -1,5 +1,5 @@
-import Modal from '@/Components/Modal';
-import PatientSearch from '@/Components/PatientSearch';
+import Modal from '@/Components/UI/Modal';
+import PatientSearch from '@/Components/Patient/PatientSearch';
 import { Chamber, Patient, User } from '@/types';
 import { router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';

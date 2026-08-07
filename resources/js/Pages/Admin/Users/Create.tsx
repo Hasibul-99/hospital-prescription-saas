@@ -1,5 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import DoctorProfileFields from '@/Components/DoctorProfileFields';
+import DoctorProfileFields from '@/Components/Staff/DoctorProfileFields';
 import { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';

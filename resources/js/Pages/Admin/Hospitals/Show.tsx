@@ -1,5 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import DoctorQuota, { DoctorQuotaData } from '@/Components/DoctorQuota';
+import DoctorQuota, { DoctorQuotaData } from '@/Components/Staff/DoctorQuota';
 import { CurrencyConfig, Hospital, PageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 

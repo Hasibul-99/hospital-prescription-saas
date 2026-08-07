@@ -1,6 +1,6 @@
 import ReceptionistLayout from '@/Layouts/ReceptionistLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import AppointmentModal from '@/Components/AppointmentModal';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import AppointmentModal from '@/Components/Scheduling/AppointmentModal';
 import { Link, router } from '@inertiajs/react';
 import { useMoney } from '@/utils/currency';
 import { Appointment, Chamber, HospitalHoliday, QueueStats, User } from '@/types';

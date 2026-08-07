@@ -1,5 +1,5 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { Button, Card, Col, DatePicker, Row, Segmented, Statistic, Typography } from 'antd';

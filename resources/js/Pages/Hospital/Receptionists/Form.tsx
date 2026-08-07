@@ -1,6 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import PasswordResetModal from '@/Components/PasswordResetModal';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import PasswordResetModal from '@/Components/Staff/PasswordResetModal';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { App as AntApp, Button, Card, Col, Form, Input, Row, Space, Switch, Typography } from 'antd';

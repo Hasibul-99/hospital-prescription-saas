@@ -1,5 +1,5 @@
 import ReceptionistLayout from '@/Layouts/ReceptionistLayout';
-import PatientForm from '@/Components/PatientForm';
+import PatientForm from '@/Components/Patient/PatientForm';
 import { ReactNode } from 'react';
 
 export default function Create() {

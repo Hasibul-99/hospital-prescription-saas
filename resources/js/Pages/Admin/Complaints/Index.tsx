@@ -1,8 +1,8 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import Pagination from '@/Components/Pagination';
+import Pagination from '@/Components/UI/Pagination';
 import { Button, Input, Popconfirm, Select, Space, Table, Tag, Typography, Upload, App as AntApp } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';

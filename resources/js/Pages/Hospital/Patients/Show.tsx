@@ -1,5 +1,5 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head, Link } from '@inertiajs/react';
 import { Patient, Appointment, Prescription } from '@/types';
 import { Avatar, Button, Card, Descriptions, Empty, Statistic, Table, Tabs, Tag, Timeline, Typography } from 'antd';

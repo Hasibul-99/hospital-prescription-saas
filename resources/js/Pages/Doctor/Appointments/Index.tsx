@@ -1,7 +1,7 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import Pagination from '@/Components/Pagination';
-import AppointmentModal from '@/Components/AppointmentModal';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import Pagination from '@/Components/UI/Pagination';
+import AppointmentModal from '@/Components/Scheduling/AppointmentModal';
 import { Appointment, Chamber, PaginatedData } from '@/types';
 import { router } from '@inertiajs/react';
 import { useMoney } from '@/utils/currency';

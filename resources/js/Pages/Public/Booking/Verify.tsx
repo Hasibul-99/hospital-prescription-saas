@@ -1,6 +1,6 @@
 import PublicLayout from '@/Layouts/PublicLayout';
-import OtpInput from '@/Components/OtpInput';
-import InputError from '@/Components/InputError';
+import OtpInput from '@/Components/UI/OtpInput';
+import InputError from '@/Components/UI/InputError';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, ReactNode } from 'react';
 

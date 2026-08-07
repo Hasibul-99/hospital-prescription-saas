@@ -1,7 +1,7 @@
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Head, Link } from '@inertiajs/react';
 import { ReactNode } from 'react';
-import Pagination from '@/Components/Pagination';
+import Pagination from '@/Components/UI/Pagination';
 import { CurrencyConfig, PaginatedData } from '@/types';
 import { formatMoney } from '@/utils/currency';
 

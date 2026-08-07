@@ -1,6 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import HolidayForm from '@/Components/HolidayForm';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import HolidayForm from '@/Components/Scheduling/HolidayForm';
 import { HospitalHoliday } from '@/types';
 import { Head } from '@inertiajs/react';
 import { Typography } from 'antd';

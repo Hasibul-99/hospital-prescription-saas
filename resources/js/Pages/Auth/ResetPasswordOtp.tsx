@@ -1,6 +1,6 @@
 import GuestLayout from '@/Layouts/GuestLayout';
-import OtpInput from '@/Components/OtpInput';
-import InputError from '@/Components/InputError';
+import OtpInput from '@/Components/UI/OtpInput';
+import InputError from '@/Components/UI/InputError';
 import { Head, router, useForm } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useState } from 'react';
 

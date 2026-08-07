@@ -1,7 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import PasswordResetModal from '@/Components/PasswordResetModal';
-import DoctorProfileFields from '@/Components/DoctorProfileFields';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import PasswordResetModal from '@/Components/Staff/PasswordResetModal';
+import DoctorProfileFields from '@/Components/Staff/DoctorProfileFields';
 import { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';

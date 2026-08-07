@@ -1,5 +1,5 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Appointment } from '@/types';
 import { router } from '@inertiajs/react';
 import { useMoney } from '@/utils/currency';

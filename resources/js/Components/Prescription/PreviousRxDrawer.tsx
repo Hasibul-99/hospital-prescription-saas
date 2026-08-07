@@ -1,5 +1,5 @@
 import { Prescription } from '@/types';
-import Modal from '@/Components/Modal';
+import Modal from '@/Components/UI/Modal';
 
 interface Props {
     show: boolean;

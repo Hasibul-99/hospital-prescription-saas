@@ -1,6 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import PatientForm from '@/Components/PatientForm';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import PatientForm from '@/Components/Patient/PatientForm';
 import { Patient } from '@/types';
 import { Head } from '@inertiajs/react';
 import { Typography } from 'antd';

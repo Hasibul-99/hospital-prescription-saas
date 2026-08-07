@@ -1,6 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import Pagination from '@/Components/Pagination';
-import FlashMessage from '@/Components/FlashMessage';
+import Pagination from '@/Components/UI/Pagination';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head, Link, router } from '@inertiajs/react';
 import { Patient } from '@/types';
 import {

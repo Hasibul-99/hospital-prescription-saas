@@ -11,7 +11,7 @@ import RxPreviewColumn from '@/Components/Prescription/RxPreviewColumn';
 import PreviousRxDrawer from '@/Components/Prescription/PreviousRxDrawer';
 import BottomBar from '@/Components/Prescription/BottomBar';
 import AllergyBanner from '@/Components/Prescription/AllergyBanner';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import {
     AdviceSuggestion,
     ComplaintMaster,

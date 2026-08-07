@@ -1,6 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import Pagination from '@/Components/Pagination';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import Pagination from '@/Components/UI/Pagination';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
 import {

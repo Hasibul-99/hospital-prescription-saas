@@ -1,7 +1,7 @@
 import ReceptionistLayout from '@/Layouts/ReceptionistLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import Pagination from '@/Components/Pagination';
-import AppointmentModal from '@/Components/AppointmentModal';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import Pagination from '@/Components/UI/Pagination';
+import AppointmentModal from '@/Components/Scheduling/AppointmentModal';
 import { Appointment, PaginatedData, User } from '@/types';
 import { router } from '@inertiajs/react';
 import { useMoney } from '@/utils/currency';

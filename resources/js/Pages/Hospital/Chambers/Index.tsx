@@ -1,5 +1,5 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Chamber, ChamberShareModel, PageProps, User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button, Card, Empty, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';

@@ -1,5 +1,5 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head } from '@inertiajs/react';
 import { Medicine, PageProps } from '@/types';
 import {

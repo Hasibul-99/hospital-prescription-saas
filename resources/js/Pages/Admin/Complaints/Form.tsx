@@ -1,5 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { Button, Card, Form, Input, InputNumber, Popconfirm, Space, Switch, Typography, App as AntApp } from 'antd';

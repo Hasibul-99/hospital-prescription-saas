@@ -1,6 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import DoctorQuota, { DoctorQuotaData } from '@/Components/DoctorQuota';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import DoctorQuota, { DoctorQuotaData } from '@/Components/Staff/DoctorQuota';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { Button, Card, Col, Descriptions, Form, Input, Row, Select, Tag, Typography, App as AntApp } from 'antd';

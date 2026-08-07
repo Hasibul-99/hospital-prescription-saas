@@ -1,8 +1,8 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import FlashMessage from '@/Components/FlashMessage';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import Pagination from '@/Components/Pagination';
+import Pagination from '@/Components/UI/Pagination';
 import { Button, Card, Col, Empty, Input, Popconfirm, Row, Space, Tabs, Tag } from 'antd';
 import { CopyOutlined, DeleteOutlined, EditOutlined, FileAddOutlined, SearchOutlined } from '@ant-design/icons';
 import { useState } from 'react';

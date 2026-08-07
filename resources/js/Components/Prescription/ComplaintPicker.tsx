@@ -1,4 +1,4 @@
-import Modal from '@/Components/Modal';
+import Modal from '@/Components/UI/Modal';
 import DurationPicker from '@/Components/Prescription/DurationPicker';
 import { ComplaintMaster } from '@/types';
 import { useMemo, useState } from 'react';

@@ -1,4 +1,4 @@
-import Modal from '@/Components/Modal';
+import Modal from '@/Components/UI/Modal';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 

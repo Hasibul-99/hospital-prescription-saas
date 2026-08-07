@@ -1,6 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import FlashMessage from '@/Components/FlashMessage';
-import ChamberForm from '@/Components/ChamberForm';
+import FlashMessage from '@/Components/Common/FlashMessage';
+import ChamberForm from '@/Components/Scheduling/ChamberForm';
 import { Chamber, PageProps, User } from '@/types';
 import { Head } from '@inertiajs/react';
 import { Typography } from 'antd';

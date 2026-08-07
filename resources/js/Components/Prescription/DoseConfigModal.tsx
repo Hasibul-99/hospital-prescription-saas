@@ -1,4 +1,4 @@
-import Modal from '@/Components/Modal';
+import Modal from '@/Components/UI/Modal';
 import { MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { TIMING_OPTIONS } from '@/utils/timingLabel';
 import { useEffect, useState } from 'react';

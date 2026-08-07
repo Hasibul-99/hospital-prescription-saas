@@ -55,7 +55,10 @@ Prescription-App/
 │   ├── js/
 │   │   ├── Pages/             # Inertia pages — organise as Admin/*, Hospital/*, Doctor/*, Receptionist/*
 │   │   ├── Layouts/           # AuthenticatedLayout (still Breeze default — replace with role-aware layout)
-│   │   ├── Components/        # shared UI (currently Breeze defaults)
+│   │   ├── Components/        # shared UI, grouped by domain — read Components/README.md
+│   │   │   ├── UI/            # design-system primitives, zero domain knowledge
+│   │   │   ├── Common/        # app-shell widgets used by every role
+│   │   │   └── Patient/ Scheduling/ Staff/ Prescription/ AuditLog/
 │   │   └── types/             # TypeScript types shared with Inertia props
 │   └── views/app.blade.php    # root Inertia shell
 ├── routes/

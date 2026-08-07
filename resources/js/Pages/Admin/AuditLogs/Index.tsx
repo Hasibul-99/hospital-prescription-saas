@@ -1,5 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import Pagination from '@/Components/Pagination';
+import Pagination from '@/Components/UI/Pagination';
 import { Head, router } from '@inertiajs/react';
 import { Button, Card, DatePicker, Empty, Input, Select, Table, Tooltip, Typography } from 'antd';
 import { DownloadOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
@@ -19,7 +19,7 @@ import {
     groupActionOptions,
     humanAction,
     titleCase,
-} from '@/Components/AuditLogUi';
+} from '@/Components/AuditLog/AuditLogUi';
 
 type LogRow = AuditLogRow & {
     hospital: { id: number; name: string } | null;
