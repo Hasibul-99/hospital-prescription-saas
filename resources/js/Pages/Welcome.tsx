@@ -1,7 +1,10 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { CurrencyConfig, PageProps, PlanFeature } from '@/types';
 import { useState } from 'react';
 import { formatMoney } from '@/utils/currency';
+import { fetchWithCsrf } from '@/utils/csrf';
+import { setLanguage } from '@/i18n';
+import { copy as landingCopy, LandingCopy } from './Welcome.copy';
 
 /** The trimmed plan shape LandingController sends — prices already cast to numbers. */
 type LandingPlan = {
@@ -284,23 +287,79 @@ function FeatureCard({ icon, title, desc, tone }: { icon: React.ReactNode; title
     );
 }
 
+// ─── Language toggle ──────────────────────────────────────────────
+// Styled to match the landing page rather than reusing the antd
+// <LanguageSwitcher/>, which belongs to the signed-in app chrome.
+//
+// The locale lives in the server session, and the pricing cards are rendered
+// from server-side plan data, so the page is reloaded after switching instead
+// of only flipping the client-side i18n language.
+function LanguageToggle({ locale }: { locale: 'en' | 'bn' }) {
+    const [switching, setSwitching] = useState(false);
+
+    async function choose(next: 'en' | 'bn') {
+        if (next === locale || switching) return;
+        setSwitching(true);
+        try {
+            await fetchWithCsrf('/locale', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ locale: next }),
+            });
+            setLanguage(next);
+            router.reload();
+        } finally {
+            setSwitching(false);
+        }
+    }
+
+    return (
+        <div
+            role="group"
+            aria-label="Language"
+            style={{
+                display: 'inline-flex', padding: 2, borderRadius: 999,
+                border: '1px solid #e3e7ee', background: 'white',
+                opacity: switching ? 0.6 : 1,
+            }}
+        >
+            {([['en', 'EN'], ['bn', 'বাংলা']] as const).map(([code, label]) => (
+                <button
+                    key={code}
+                    type="button"
+                    onClick={() => choose(code)}
+                    aria-pressed={locale === code}
+                    style={{
+                        padding: '5px 12px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                        fontSize: 12.5, fontWeight: 600, lineHeight: 1.4,
+                        background: locale === code ? '#0f766e' : 'transparent',
+                        color: locale === code ? 'white' : '#475569',
+                    }}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 // ─── Pricing card ─────────────────────────────────────────────────
 // Driven by a `plans` row — nothing here is hardcoded. `cycle` picks which of
 // the plan's two prices to show; a plan with no yearly price falls back to its
 // monthly one so the toggle never blanks a card.
-function PricingCard({ plan, currency, cycle, locale }: {
-    plan: LandingPlan; currency: CurrencyConfig; cycle: BillingCycle; locale: 'en' | 'bn';
+function PricingCard({ plan, currency, cycle, locale, c }: {
+    plan: LandingPlan; currency: CurrencyConfig; cycle: BillingCycle; locale: 'en' | 'bn'; c: LandingCopy;
 }) {
     const featured = plan.is_featured;
     const bn = locale === 'bn';
 
     const showYearly = cycle === 'yearly' && plan.price_yearly !== null;
     const price = showYearly ? (plan.price_yearly as number) : plan.price_monthly;
-    const suffix = showYearly ? '/yr' : '/mo';
+    const suffix = showYearly ? c.pricing.perYear : c.pricing.perMonth;
 
     const name = (bn && plan.name_bn) || plan.name;
     const desc = (bn && plan.tagline_bn) || plan.tagline || '';
-    const cta = (bn && plan.cta_label_bn) || plan.cta_label || 'Get started';
+    const cta = (bn && plan.cta_label_bn) || plan.cta_label || c.pricing.defaultCta;
     const features = plan.features ?? [];
 
     return (
@@ -314,7 +373,7 @@ function PricingCard({ plan, currency, cycle, locale }: {
         }}>
             {featured && (
                 <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#10b981', color: 'white', padding: '3px 14px', borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    Most popular
+                    {c.pricing.popular}
                 </div>
             )}
             <div style={{ fontSize: 13, fontWeight: 700, color: featured ? 'rgba(255,255,255,.7)' : '#0f766e', textTransform: 'uppercase', letterSpacing: '.06em' }}>{name}</div>
@@ -325,7 +384,7 @@ function PricingCard({ plan, currency, cycle, locale }: {
 
             {showYearly && plan.yearly_discount_percent !== null && (
                 <div style={{ ...S.pill(featured ? 'rgba(255,255,255,.16)' : '#f0fdf4', featured ? 'white' : '#15803d'), marginBottom: 8 }}>
-                    Save {plan.yearly_discount_percent}%
+                    {c.pricing.save(plan.yearly_discount_percent)}
                 </div>
             )}
 
@@ -375,6 +434,7 @@ type WelcomeProps = PageProps<{
 }>;
 
 export default function Welcome({ auth, plans, currency, locale }: WelcomeProps) {
+    const c = landingCopy[locale] ?? landingCopy.en;
     const [formName, setFormName] = useState('');
     const [formEmail, setFormEmail] = useState('');
     const [formClinic, setFormClinic] = useState('');
@@ -387,7 +447,7 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
 
     return (
         <>
-            <Head title="Pulse Rx — Prescribing software for modern clinics" />
+            <Head title={c.headTitle} />
 
             <style>{`
                 @keyframes float1 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -411,25 +471,26 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                             <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #0f766e, #134e4a)', display: 'grid', placeItems: 'center', boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.14)' }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 4h6.5a3.5 3.5 0 0 1 0 7H5M5 4v16M5 11h4l7 9" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </div>
-                            Pulse Rx <span style={{ color: '#94a3b8', fontWeight: 500, fontSize: 12, marginLeft: 4 }}>for clinics</span>
+                            Pulse Rx <span style={{ color: '#94a3b8', fontWeight: 500, fontSize: 12, marginLeft: 4 }}>{c.brandSuffix}</span>
                         </div>
 
                         <div style={{ display: 'flex', gap: 2, marginLeft: 16 }}>
-                            {[['Features', '#features'], ['Workflow', '#workflow'], ['Pricing', '#pricing']].map(([l, h]) => (
+                            {[[c.nav.features, '#features'], [c.nav.workflow, '#workflow'], [c.nav.pricing, '#pricing']].map(([l, h]) => (
                                 <a key={l} href={h} className="nav-link" style={{ padding: '7px 12px', fontSize: 13.5, color: '#475569', fontWeight: 500, borderRadius: 7, transition: 'color .12s, background .12s' }}>{l}</a>
                             ))}
                         </div>
 
                         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <LanguageToggle locale={locale} />
                             {auth.user ? (
                                 <Link href={route('dashboard')} style={{ ...S.btnPrimary, padding: '9px 18px', fontSize: 13.5, borderRadius: 9 }}>
-                                    Go to app {Icons.arrow(14)}
+                                    {c.nav.goToApp} {Icons.arrow(14)}
                                 </Link>
                             ) : (
                                 <>
-                                    <Link href="/login" style={{ ...S.btnGhost, fontSize: 13.5 }}>Sign in</Link>
+                                    <Link href="/login" style={{ ...S.btnGhost, fontSize: 13.5 }}>{c.nav.signIn}</Link>
                                     <Link href="/login" style={{ ...S.btnPrimary, padding: '9px 18px', fontSize: 13.5, borderRadius: 9 }}>
-                                        Start free trial
+                                        {c.nav.startTrial}
                                     </Link>
                                 </>
                             )}
@@ -453,36 +514,36 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                             {/* Left copy */}
                             <div>
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 5px 5px 5px', background: 'white', border: '1px solid #e3e7ee', borderRadius: 999, fontSize: 12.5, color: '#475569', fontWeight: 500, boxShadow: '0 1px 2px rgba(15,23,42,.04), 0 8px 24px -10px rgba(15,23,42,.12)', marginBottom: 22 }}>
-                                    <span style={{ background: '#0f766e', color: 'white', fontWeight: 600, fontSize: 11, padding: '3px 9px', borderRadius: 999 }}>New</span>
+                                    <span style={{ background: '#0f766e', color: 'white', fontWeight: 600, fontSize: 11, padding: '3px 9px', borderRadius: 999 }}>{c.hero.badgeNew}</span>
                                     <span style={{ paddingRight: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                        EPCS-certified · sign controlled Rx digitally {Icons.arrow(14)}
+                                        {c.hero.badgeText} {Icons.arrow(14)}
                                     </span>
                                 </div>
 
                                 <h1 style={{ fontSize: 62, lineHeight: 1.02, letterSpacing: '-.035em', fontWeight: 700, margin: '0 0 18px', color: '#0b1220' }}>
-                                    Prescriptions in{' '}
+                                    {c.hero.titleBefore}{' '}
                                     <span style={{ color: '#0f766e', position: 'relative', display: 'inline-block' }}>
-                                        52 seconds
+                                        {c.hero.titleHighlight}
                                         <span style={{ position: 'absolute', left: 0, right: 0, bottom: 6, height: 10, background: '#ccfbf1', zIndex: -1, borderRadius: 4, display: 'block' }} />
                                     </span>
-                                    , not 5 minutes.
+                                    {c.hero.titleAfter}
                                 </h1>
 
                                 <p style={{ fontSize: 18, color: '#475569', maxWidth: 520, lineHeight: 1.55, margin: 0 }}>
-                                    Pulse Rx is the prescription-management platform built for clinic speed — drug search, decision support, patient history, and e-Rx in one tab.
+                                    {c.hero.sub}
                                 </p>
 
                                 <div style={{ display: 'flex', gap: 12, marginTop: 32, alignItems: 'center', flexWrap: 'wrap' }}>
                                     <a href="/login" style={S.btnPrimary}>
-                                        Start free trial — no card required
+                                        {c.hero.ctaPrimary}
                                     </a>
                                     <a href="/doctor/dashboard" style={S.btnSecondary}>
-                                        {Icons.arrow(15)} Live demo
+                                        {Icons.arrow(15)} {c.hero.ctaSecondary}
                                     </a>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: 22, marginTop: 22, fontSize: 12.5, color: '#94a3b8' }}>
-                                    {['SOC2 Type II certified', 'HIPAA compliant', 'No setup fee'].map(m => (
+                                    {c.hero.badges.map(m => (
                                         <span key={m} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                             <span style={{ color: '#10b981' }}>{Icons.checkSm(13)}</span> {m}
                                         </span>
@@ -503,7 +564,7 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                 <div style={{ background: '#f7f8fa', borderTop: '1px solid #eef0f4', borderBottom: '1px solid #eef0f4', padding: '20px 0' }}>
                     <div style={{ ...S.container, display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', flex: '0 0 auto' }}>
-                            Trusted by clinics at
+                            {c.trustBar}
                         </span>
                         <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'center' }}>
                             {['MediCore Health', 'Apollo Clinics', 'BrightPath Medical', 'Summit Hospital', 'Greenview Clinic'].map(name => (
@@ -517,23 +578,27 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                 <section id="features" style={{ padding: '96px 0' }}>
                     <div style={S.container}>
                         <SectionHead
-                            eyebrow="Features"
-                            title={<>Everything a modern clinic needs,<br />nothing it doesn't.</>}
-                            sub="Purpose-built for doctors and clinic staff — not general-purpose EHR bloat."
+                            eyebrow={c.features.eyebrow}
+                            title={<>{c.features.titleLine1}<br />{c.features.titleLine2}</>}
+                            sub={c.features.sub}
                         />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                            <FeatureCard tone="teal" icon={<Icons.zap />} title="52-second prescription"
-                                desc="Drug autocomplete, dose presets, and one-click sign. Fastest Rx workflow in the industry — backed by 8.2M prescriptions processed." />
-                            <FeatureCard tone="violet" icon={<Icons.brain />} title="Real-time decision support"
-                                desc="Allergy cross-check, drug–drug interaction alerts, and formulary tier — surfaced automatically, not buried in a sidebar." />
-                            <FeatureCard tone="amber" icon={<Icons.pill />} title="Global drug library"
-                                desc="12,000+ medicines with brand/generic aliases, route, form, and standard dosing. Doctor-specific favourites and custom defaults." />
-                            <FeatureCard tone="green" icon={<Icons.send />} title="Electronic prescribing"
-                                desc="EPCS-certified signing, DEA-bound keys, and direct pharmacy transmission. Paper is optional, not the default." />
-                            <FeatureCard tone="rose" icon={<Icons.refresh />} title="One-tap refills"
-                                desc="Refill requests surfaced in the queue. Review, approve, and transmit in seconds without opening a full Rx form." />
-                            <FeatureCard tone="blue" icon={<Icons.plug />} title="EHR & lab integrations"
-                                desc="HL7 FHIR connectors for major EHRs. Lab results auto-populate patient records so every Rx is informed." />
+                            {([
+                                ['teal', <Icons.zap key="zap" />],
+                                ['violet', <Icons.brain key="brain" />],
+                                ['amber', <Icons.pill key="pill" />],
+                                ['green', <Icons.send key="send" />],
+                                ['rose', <Icons.refresh key="refresh" />],
+                                ['blue', <Icons.plug key="plug" />],
+                            ] as const).map(([tone, icon], i) => (
+                                <FeatureCard
+                                    key={tone}
+                                    tone={tone}
+                                    icon={icon}
+                                    title={c.features.cards[i].title}
+                                    desc={c.features.cards[i].desc}
+                                />
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -599,20 +664,15 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                         {/* Copy */}
                         <div>
                             <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: 999, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 700, marginBottom: 18, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                                Prescription builder
+                                {c.showcaseRx.eyebrow}
                             </div>
                             <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-.03em', color: '#0b1220', margin: '0 0 16px', lineHeight: 1.1 }}>
-                                Safety checks happen automatically — not as an afterthought.
+                                {c.showcaseRx.title}
                             </h2>
                             <p style={{ fontSize: 16.5, color: '#475569', lineHeight: 1.6, margin: '0 0 28px' }}>
-                                Every prescription is cross-checked in real time: allergies, drug interactions, formulary tier, and renal dosing. Alerts surface inline, not in a pop-up you'll click through.
+                                {c.showcaseRx.body}
                             </p>
-                            {[
-                                'Drug autocomplete with 12,000+ medicines',
-                                'Per-doctor default doses remembered',
-                                'Print-ready ℞ slip with e-signature block',
-                                "Direct transmission to patient's pharmacy",
-                            ].map(f => (
+                            {c.showcaseRx.bullets.map(f => (
                                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontSize: 14.5, color: '#0f172a' }}>
                                     <span style={{ color: '#0f766e', flex: '0 0 auto' }}>{Icons.checkSm(15)}</span> {f}
                                 </div>
@@ -627,15 +687,15 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                         {/* Copy */}
                         <div>
                             <div style={{ display: 'inline-block', padding: '4px 14px', borderRadius: 999, background: '#f5f3ff', color: '#6d28d9', fontSize: 12, fontWeight: 700, marginBottom: 18, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                                Patient records
+                                {c.showcasePatient.eyebrow}
                             </div>
                             <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-.03em', color: '#0b1220', margin: '0 0 16px', lineHeight: 1.1 }}>
-                                Full patient context — one screen, zero clicks.
+                                {c.showcasePatient.title}
                             </h2>
                             <p style={{ fontSize: 16.5, color: '#475569', lineHeight: 1.6, margin: '0 0 28px' }}>
-                                Allergies, active medications, vitals, conditions, and prescription history all in a single patient record that pre-fills every new Rx automatically.
+                                {c.showcasePatient.body}
                             </p>
-                            {['Allergy warnings always visible', 'Active med grid with refill shortcuts', 'Condition list + ICD-10 codes', 'Timeline of all prescriptions'].map(f => (
+                            {c.showcasePatient.bullets.map(f => (
                                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontSize: 14.5, color: '#0f172a' }}>
                                     <span style={{ color: '#0f766e', flex: '0 0 auto' }}>{Icons.checkSm(15)}</span> {f}
                                 </div>
@@ -707,27 +767,26 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                 <section id="workflow" style={{ background: '#f7f8fa', padding: '96px 0', borderTop: '1px solid #eef0f4' }}>
                     <div style={S.container}>
                         <SectionHead
-                            eyebrow="How it works"
-                            title="From patient to pharmacy in four steps."
-                            sub="A workflow your entire clinic can learn in under 10 minutes."
+                            eyebrow={c.workflow.eyebrow}
+                            title={c.workflow.title}
+                            sub={c.workflow.sub}
                         />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, position: 'relative' }}>
                             {/* Dashed connector */}
                             <div style={{ position: 'absolute', top: 28, left: '12.5%', right: '12.5%', height: 2, backgroundImage: 'repeating-linear-gradient(to right, #0f766e 0 8px, transparent 8px 16px)', zIndex: 0, opacity: .5 }} />
-                            {[
-                                { n: 1, t: 'Search patient', d: 'Pull up the patient by name or UID — record pre-fills allergies and active meds.', c: '#0f766e' },
-                                { n: 2, t: 'Search drug', d: 'Type 3 letters to autocomplete. Default dose pre-fills; adjust if needed.', c: '#7c3aed' },
-                                { n: 3, t: 'Review & sign', d: 'Clinical checks run automatically. One click to sign electronically.', c: '#10b981' },
-                                { n: 4, t: 'Pharmacy receives', d: 'Prescription transmits instantly. Patient gets SMS confirmation.', c: '#d97706' },
-                            ].map(({ n, t, d, c }) => (
+                            {['#0f766e', '#7c3aed', '#10b981', '#d97706'].map((color, i) => {
+                                const { t, d } = c.workflow.steps[i];
+                                const n = i + 1;
+                                return (
                                 <div key={n} style={{ padding: '0 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-                                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: c, color: 'white', display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 700, margin: '0 auto 20px', boxShadow: `0 8px 24px -8px ${c}88` }}>
+                                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: color, color: 'white', display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 700, margin: '0 auto 20px', boxShadow: `0 8px 24px -8px ${color}88` }}>
                                         {n}
                                     </div>
                                     <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: '#0f172a' }}>{t}</div>
                                     <div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.55 }}>{d}</div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </section>
@@ -735,16 +794,11 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                 {/* ── STATS BANNER ─────────────────────────────────────── */}
                 <section style={{ background: 'linear-gradient(135deg, #0f766e 0%, #115e59 50%, #134e4a 100%)', padding: '72px 0' }}>
                     <div style={{ ...S.container, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32, textAlign: 'center' }}>
-                        {[
-                            { v: '52s', l: 'Median Rx time', s: 'vs 4.2 min industry avg' },
-                            { v: '99.99%', l: 'Uptime SLA', s: 'zero planned downtime' },
-                            { v: '8.2M', l: 'Prescriptions signed', s: 'and counting' },
-                            { v: '31%', l: 'Faster refills', s: 'vs manual workflow' },
-                        ].map(({ v, l, s }) => (
+                        {['52s', '99.99%', '8.2M', '31%'].map((v, i) => (
                             <div key={v}>
                                 <div style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-.04em', color: 'white', fontFamily: '"JetBrains Mono", ui-monospace, monospace' }}>{v}</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,.9)', marginTop: 6 }}>{l}</div>
-                                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.55)', marginTop: 4 }}>{s}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,.9)', marginTop: 6 }}>{c.stats[i].l}</div>
+                                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.55)', marginTop: 4 }}>{c.stats[i].s}</div>
                             </div>
                         ))}
                     </div>
@@ -762,13 +816,13 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                                     {[1,2,3,4,5].map(i => <span key={i}>{Icons.star()}</span>)}
                                 </div>
                                 <p style={{ fontSize: 22, lineHeight: 1.5, color: '#0f172a', fontWeight: 500, letterSpacing: '-.01em', margin: '0 0 32px' }}>
-                                    "We switched from our old EHR's prescription module to Pulse Rx two months ago. My team writes prescriptions in under a minute now, and the interaction alerts have already caught two serious conflicts."
+                                    {c.testimonial.quote}
                                 </p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                                     <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, #0f766e, #10b981)', color: 'white', display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 700 }}>SR</div>
                                     <div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Dr. Shalini Reddy</div>
-                                        <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>Head of Internal Medicine · Apollo Clinics Mumbai</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{c.testimonial.name}</div>
+                                        <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>{c.testimonial.role}</div>
                                     </div>
                                     <div style={{ marginLeft: 'auto', padding: '6px 16px', borderRadius: 999, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 700 }}>
                                         Apollo Clinics
@@ -783,25 +837,25 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                 <section id="pricing" style={{ background: '#f7f8fa', padding: '96px 0', borderTop: '1px solid #eef0f4' }}>
                     <div style={S.container}>
                         <SectionHead
-                            eyebrow="Pricing"
-                            title="Simple pricing, no surprises."
-                            sub="Start free. Scale when you grow. No per-prescription fees."
+                            eyebrow={c.pricing.eyebrow}
+                            title={c.pricing.title}
+                            sub={c.pricing.sub}
                         />
                         {hasYearly && (
                             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
                                 <div style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: 'white', border: '1px solid #eef0f4' }}>
-                                    {(['monthly', 'yearly'] as BillingCycle[]).map((c) => (
+                                    {(['monthly', 'yearly'] as BillingCycle[]).map((option) => (
                                         <button
-                                            key={c}
-                                            onClick={() => setCycle(c)}
+                                            key={option}
+                                            onClick={() => setCycle(option)}
                                             style={{
                                                 padding: '8px 22px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                                                fontSize: 13.5, fontWeight: 600, textTransform: 'capitalize',
-                                                background: cycle === c ? '#0f766e' : 'transparent',
-                                                color: cycle === c ? 'white' : '#475569',
+                                                fontSize: 13.5, fontWeight: 600,
+                                                background: cycle === option ? '#0f766e' : 'transparent',
+                                                color: cycle === option ? 'white' : '#475569',
                                             }}
                                         >
-                                            {c}
+                                            {option === 'monthly' ? c.pricing.monthly : c.pricing.yearly}
                                         </button>
                                     ))}
                                 </div>
@@ -810,7 +864,7 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
 
                         {plans.length === 0 ? (
                             <p style={{ textAlign: 'center', fontSize: 14, color: '#94a3b8' }}>
-                                Pricing is being updated — please check back shortly.
+                                {c.pricing.empty}
                             </p>
                         ) : (
                             <div style={{
@@ -821,14 +875,14 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                                 gap: 20, alignItems: 'center', maxWidth: 1120, margin: '0 auto',
                             }}>
                                 {plans.map((plan) => (
-                                    <PricingCard key={plan.id} plan={plan} currency={currency} cycle={cycle} locale={locale} />
+                                    <PricingCard key={plan.id} plan={plan} currency={currency} cycle={cycle} locale={locale} c={c} />
                                 ))}
                             </div>
                         )}
 
                         {maxTrialDays > 0 && (
                             <p style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8', marginTop: 28 }}>
-                                Paid plans include a {maxTrialDays}-day free trial. No credit card required.
+                                {c.pricing.trialNote(maxTrialDays)}
                             </p>
                         )}
                     </div>
@@ -840,14 +894,14 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                         {/* Copy */}
                         <div>
                             <h2 style={{ fontSize: 42, fontWeight: 700, letterSpacing: '-.03em', color: 'white', margin: '0 0 16px', lineHeight: 1.1 }}>
-                                Ready to cut your<br />
-                                <span style={{ color: '#10b981' }}>Rx time by 80%?</span>
+                                {c.cta.titleLine1}<br />
+                                <span style={{ color: '#10b981' }}>{c.cta.titleLine2}</span>
                             </h2>
                             <p style={{ fontSize: 16.5, color: 'rgba(255,255,255,.6)', lineHeight: 1.6, margin: '0 0 32px' }}>
-                                Join 2,400+ clinicians already using Pulse Rx. Book a 20-minute demo and we'll configure a workspace for your clinic on the call.
+                                {c.cta.body}
                             </p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {['14-day free trial, no card', 'HIPAA-compliant from day one', 'Onboarding call included', 'Cancel any time'].map(f => (
+                                {c.cta.bullets.map(f => (
                                     <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14.5, color: 'rgba(255,255,255,.75)' }}>
                                         <span style={{ color: '#10b981', flex: '0 0 auto' }}>{Icons.checkSm(15)}</span> {f}
                                     </div>
@@ -862,18 +916,18 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                                     <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#10b981', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6"/></svg>
                                     </div>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 8 }}>We'll be in touch!</div>
-                                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,.55)' }}>Expect a calendar invite within 24 hours.</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 8 }}>{c.cta.successTitle}</div>
+                                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,.55)' }}>{c.cta.successSub}</div>
                                 </div>
                             ) : (
                                 <>
-                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 6 }}>Request a demo</div>
-                                    <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,.5)', marginBottom: 24 }}>We'll reach out within one business day.</div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 6 }}>{c.cta.formTitle}</div>
+                                    <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,.5)', marginBottom: 24 }}>{c.cta.formSub}</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                                         {[
-                                            { label: 'Full name', value: formName, set: setFormName, placeholder: 'Dr. Jane Smith' },
-                                            { label: 'Work email', value: formEmail, set: setFormEmail, placeholder: 'jane@yourclinic.com' },
-                                            { label: 'Clinic name', value: formClinic, set: setFormClinic, placeholder: 'General Hospital' },
+                                            { label: c.cta.fieldName, value: formName, set: setFormName, placeholder: c.cta.placeholderName },
+                                            { label: c.cta.fieldEmail, value: formEmail, set: setFormEmail, placeholder: c.cta.placeholderEmail },
+                                            { label: c.cta.fieldClinic, value: formClinic, set: setFormClinic, placeholder: c.cta.placeholderClinic },
                                         ].map(({ label, value, set, placeholder }) => (
                                             <div key={label}>
                                                 <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)', display: 'block', marginBottom: 6 }}>{label}</label>
@@ -889,10 +943,10 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                                             onClick={() => formName && formEmail && setSubmitted(true)}
                                             style={{ ...S.btnPrimary, width: '100%', justifyContent: 'center', marginTop: 4, padding: '13px', fontSize: 14.5, borderRadius: 10 }}
                                         >
-                                            Book my demo {Icons.arrow(15)}
+                                            {c.cta.submit} {Icons.arrow(15)}
                                         </button>
                                         <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,.3)', textAlign: 'center', margin: 0 }}>
-                                            No spam. Unsubscribe any time.
+                                            {c.cta.noSpam}
                                         </p>
                                     </div>
                                 </>
@@ -914,7 +968,7 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                                     <span style={{ fontWeight: 700, fontSize: 15, color: 'white' }}>Pulse Rx</span>
                                 </div>
                                 <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.4)', lineHeight: 1.65, maxWidth: 280, margin: '0 0 20px' }}>
-                                    Prescribing software for modern clinics. Fast, safe, and built around how doctors actually work.
+                                    {c.footer.tagline}
                                 </p>
                                 {/* Compliance badges */}
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -935,11 +989,7 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                             </div>
 
                             {/* Link columns */}
-                            {[
-                                { h: 'Product', links: ['Features', 'Pricing', 'Changelog', 'Roadmap', 'Status'] },
-                                { h: 'Resources', links: ['Documentation', 'API Reference', 'Help Center', 'Blog', 'Webinars'] },
-                                { h: 'Company', links: ['About', 'Careers', 'Privacy', 'Terms', 'Security'] },
-                            ].map(({ h, links }) => (
+                            {c.footer.columns.map(({ h, links }) => (
                                 <div key={h}>
                                     <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.6)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 16 }}>{h}</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -952,8 +1002,8 @@ export default function Welcome({ auth, plans, currency, locale }: WelcomeProps)
                         </div>
 
                         <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: 'rgba(255,255,255,.3)' }}>
-                            <span>© 2026 Pulse Rx Inc. All rights reserved.</span>
-                            <span>Built for clinicians, by clinicians.</span>
+                            <span>{c.footer.copyright}</span>
+                            <span>{c.footer.builtBy}</span>
                         </div>
                     </div>
                 </footer>

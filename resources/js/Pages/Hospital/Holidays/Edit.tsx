@@ -1,7 +1,9 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
+import FlashMessage from '@/Components/FlashMessage';
 import HolidayForm from '@/Components/HolidayForm';
 import { HospitalHoliday } from '@/types';
-import { ReactNode } from 'react';
+import { Head } from '@inertiajs/react';
+import { Typography } from 'antd';
 
 interface Props {
     holiday: HospitalHoliday;
@@ -9,11 +11,19 @@ interface Props {
 
 export default function Edit({ holiday }: Props) {
     return (
-        <>
-            <h2 className="mb-4 text-xl font-bold text-gray-800">Edit Holiday</h2>
-            <HolidayForm submitUrl={`/hospital/holidays/${holiday.id}`} method="put" initial={holiday} />
-        </>
+        <HospitalLayout>
+            <Head title={`Edit ${holiday.title}`} />
+            <FlashMessage />
+
+            <Typography.Title level={4} className="!mb-4">
+                Edit Holiday
+            </Typography.Title>
+
+            <HolidayForm
+                submitUrl={`/hospital/holidays/${holiday.id}`}
+                method="put"
+                initial={holiday}
+            />
+        </HospitalLayout>
     );
 }
-
-Edit.layout = (page: ReactNode) => <HospitalLayout>{page}</HospitalLayout>;
