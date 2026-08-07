@@ -24,21 +24,17 @@ export default function HospitalLayout({ children }: PropsWithChildren) {
 
     return (
         <AppShell
-            title={`${auth.user.hospital?.name ?? 'Hospital'} — Admin`}
+            title={auth.user.hospital?.name ?? 'Hospital'}
+            subtitle="Hospital Admin"
             navItems={navItems}
             settingsHref="/hospital/settings"
-            headerExtra={
-                <>
-                    <PatientSearch
-                        onSelect={(p: Patient) => router.visit(`/hospital/patients/${p.id}`)}
-                        placeholder="Search patients..."
-                        className="ml-6 hidden w-64 md:block"
-                    />
-                    <div className="ml-auto pr-3">
-                        <LanguageSwitcher />
-                    </div>
-                </>
+            search={
+                <PatientSearch
+                    onSelect={(p: Patient) => router.visit(`/hospital/patients/${p.id}`)}
+                    placeholder="Search patients…"
+                />
             }
+            actions={<LanguageSwitcher />}
         >
             {children}
         </AppShell>

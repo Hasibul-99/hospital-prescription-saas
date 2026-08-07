@@ -1,5 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState } from 'react';
+import { Tooltip } from 'antd';
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import UserMenu from './UserMenu';
 
 export type NavItem = {
@@ -8,6 +10,23 @@ export type NavItem = {
     /** Emoji or node rendered before the label. */
     icon: ReactNode;
 };
+
+/** The Rx mark, matching the one on the landing page and auth screens. */
+function BrandMark() {
+    return (
+        <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-gradient-to-br from-teal-600 to-teal-900 shadow-sm">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                    d="M5 4h6.5a3.5 3.5 0 0 1 0 7H5M5 4v16M5 11h4l7 9"
+                    stroke="white"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </svg>
+        </span>
+    );
+}
 
 /**
  * The sticky-header + collapsible-sidebar shell shared by the super admin,
@@ -23,15 +42,21 @@ export type NavItem = {
  */
 export default function AppShell({
     title,
+    /** Small line under the title — the area or role, e.g. "Reception". */
+    subtitle,
     navItems,
-    /** Rendered in the header between the title and the account menu. */
-    headerExtra,
+    /** Centre slot, e.g. a patient search box. Hidden below `md`. */
+    search,
+    /** Right slot rendered before the account menu — language, notifications. */
+    actions,
     settingsHref,
     children,
 }: PropsWithChildren<{
     title: ReactNode;
+    subtitle?: ReactNode;
     navItems: NavItem[];
-    headerExtra?: ReactNode;
+    search?: ReactNode;
+    actions?: ReactNode;
     settingsHref?: string;
 }>) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -46,23 +71,37 @@ export default function AppShell({
         .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <header className="sticky top-0 z-30 flex h-14 items-center border-b bg-white px-4 shadow-sm">
-                <button
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                    aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-                    className="mr-4 rounded p-1 hover:bg-gray-100"
-                >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
+        <div className="min-h-screen bg-slate-50">
+            <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
+                <Tooltip title={sidebarOpen ? 'Collapse menu' : 'Expand menu'} placement="bottomLeft">
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                        aria-expanded={sidebarOpen}
+                        className="grid h-9 w-9 flex-none place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                    >
+                        {sidebarOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+                    </button>
+                </Tooltip>
 
-                <h1 className="truncate text-lg font-semibold text-gray-800">{title}</h1>
+                <BrandMark />
 
-                {headerExtra}
+                <div className="min-w-0 flex-none">
+                    <h1 className="truncate text-[15px] font-semibold leading-tight text-slate-900">{title}</h1>
+                    {subtitle && (
+                        <p className="truncate text-[11px] leading-tight text-slate-500">{subtitle}</p>
+                    )}
+                </div>
 
-                <div className="ml-auto flex items-center gap-3">
+                {/* Centre slot. flex-1 keeps it out of the way of both ends, so
+                    layouts no longer need their own ml-auto spacers. */}
+                <div className="hidden min-w-0 flex-1 justify-center px-4 md:flex">
+                    <div className="w-full max-w-sm">{search}</div>
+                </div>
+
+                <div className="ml-auto flex flex-none items-center gap-1 md:ml-0">
+                    {actions}
+                    <span className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
                     <UserMenu settingsHref={settingsHref} />
                 </div>
             </header>
@@ -71,23 +110,33 @@ export default function AppShell({
                 <aside
                     className={`${
                         sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'
-                    } sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto border-r bg-white transition-all duration-200`}
+                    } sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto border-r border-slate-200/80 bg-white transition-all duration-200`}
                 >
-                    <nav className="space-y-1 p-3">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
-                                    item.href === activeHref
-                                        ? 'bg-blue-50 font-medium text-blue-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                }`}
-                            >
-                                <span className="flex-none">{item.icon}</span>
-                                {item.label}
-                            </Link>
-                        ))}
+                    <nav className="space-y-0.5 p-3">
+                        {navItems.map((item) => {
+                            const isActive = item.href === activeHref;
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    aria-current={isActive ? 'page' : undefined}
+                                    className={`group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                                        isActive
+                                            ? 'bg-teal-50 font-medium text-teal-800'
+                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                    }`}
+                                >
+                                    {/* Active rail — a clearer signal than colour alone. */}
+                                    <span
+                                        className={`absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-teal-600 transition-opacity ${
+                                            isActive ? 'opacity-100' : 'opacity-0'
+                                        }`}
+                                    />
+                                    <span className="flex-none text-base leading-none">{item.icon}</span>
+                                    <span className="truncate">{item.label}</span>
+                                </Link>
+                            );
+                        })}
                     </nav>
                 </aside>
 

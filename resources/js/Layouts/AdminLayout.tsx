@@ -18,14 +18,11 @@ const navItems: NavItem[] = [
 export default function AdminLayout({ children }: PropsWithChildren) {
     return (
         <AppShell
-            title="Prescription Software — Super Admin"
+            title="MedixPro"
+            subtitle="Super Admin"
             navItems={navItems}
             settingsHref="/admin/settings"
-            headerExtra={
-                <div className="ml-auto pr-3">
-                    <LanguageSwitcher />
-                </div>
-            }
+            actions={<LanguageSwitcher />}
         >
             {children}
         </AppShell>

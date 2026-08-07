@@ -17,20 +17,16 @@ export default function ReceptionistLayout({ children }: PropsWithChildren) {
 
     return (
         <AppShell
-            title={`${auth.user.hospital?.name ?? 'Hospital'} — Reception`}
+            title={auth.user.hospital?.name ?? 'Hospital'}
+            subtitle="Reception"
             navItems={navItems}
-            headerExtra={
-                <>
-                    <PatientSearch
-                        onSelect={(p: Patient) => router.visit(`/receptionist/patients/${p.id}`)}
-                        placeholder="Search patients..."
-                        className="ml-6 hidden w-64 md:block"
-                    />
-                    <div className="ml-auto pr-3">
-                        <LanguageSwitcher />
-                    </div>
-                </>
+            search={
+                <PatientSearch
+                    onSelect={(p: Patient) => router.visit(`/receptionist/patients/${p.id}`)}
+                    placeholder="Search patients…"
+                />
             }
+            actions={<LanguageSwitcher />}
         >
             {children}
         </AppShell>

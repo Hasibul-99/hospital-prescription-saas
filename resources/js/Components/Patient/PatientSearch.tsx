@@ -75,7 +75,7 @@ export default function PatientSearch({ onSelect, placeholder = 'Search patients
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-1.5 text-sm transition-colors placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
             {loading && (
                 <div className="absolute right-3 top-2.5 text-xs text-gray-400">Searching...</div>
