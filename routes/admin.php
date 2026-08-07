@@ -26,6 +26,11 @@ Route::middleware(['auth', 'verified', 'role:super_admin'])
         Route::post('hospitals/{hospital}/toggle-status', [HospitalController::class, 'toggleStatus'])->name('hospitals.toggle-status');
 
         Route::resource('users', UserController::class);
+        // Credentials are changed through their own endpoint, never as part of
+        // a profile save. Throttled — this is a privileged reset.
+        Route::put('users/{user}/password', [UserController::class, 'updatePassword'])
+            ->middleware('throttle:10,1')
+            ->name('users.password');
         Route::post('users/{user}/toggle-bmdc-verified', [UserController::class, 'toggleBmdcVerified'])->name('users.toggle-bmdc-verified');
 
         Route::get('medicines', [MedicineController::class, 'index'])->name('medicines.index');

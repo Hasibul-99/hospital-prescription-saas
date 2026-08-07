@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Hospital;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Support\DoctorLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class UserController extends Controller
@@ -83,12 +86,16 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Profile fields only. The password is deliberately NOT accepted here —
+     * see updatePassword(), which is a separate, audited endpoint so a routine
+     * profile save can never change credentials as a side effect.
+     */
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
             'email'       => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'password'    => 'nullable|string|min:8|confirmed',
             'role'        => 'required|in:super_admin,hospital_admin,doctor,receptionist',
             'hospital_id' => 'nullable|exists:hospitals,id',
             'is_active'   => 'boolean',
@@ -96,15 +103,40 @@ class UserController extends Controller
 
         $this->assertDoctorSlotAvailable($validated, $user);
 
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        } else {
-            $validated['password'] = Hash::make($validated['password']);
-        }
-
         $user->update($validated);
 
         return redirect()->route('admin.users.index')->with('success', 'User updated.');
+    }
+
+    /**
+     * Super-admin password reset for another account.
+     *
+     * No current-password check: the admin cannot know the user's password,
+     * which is the whole point of an administrative reset. The trade-off is
+     * that this is a privileged action, so it is audited, and the user's
+     * "remember me" token is rotated to invalidate persistent login cookies
+     * issued before the reset.
+     */
+    public function updatePassword(Request $request, User $user, AuditLogger $audit)
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $user->forceFill([
+            'password' => Hash::make($validated['password']),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        $audit->record('user.password_reset', $user, [
+            'reset_by' => $request->user()?->name,
+            'role' => $user->role,
+        ]);
+
+        return back()->with(
+            'success',
+            "Password updated for {$user->name}. Any \"remember me\" sessions have been invalidated — share the new password securely."
+        );
     }
 
     /**
