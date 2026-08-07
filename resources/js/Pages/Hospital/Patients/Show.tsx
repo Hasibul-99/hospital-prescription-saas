@@ -61,7 +61,7 @@ export default function Show({ patient }: Props) {
         {
             title: 'Doctor',
             dataIndex: ['doctor', 'name'],
-            render: (name?: string) => (name ? `Dr. ${name}` : '—'),
+            render: (name?: string) => (name ? `${name}` : '—'),
         },
         {
             title: 'Status',
