@@ -11,6 +11,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PatientController extends Controller
 {
+    /** Columns the patient list may be ordered by. */
+    private const SORTABLE = ['name', 'patient_uid', 'phone', 'age_years', 'created_at', 'blood_group'];
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Patient::class);
@@ -190,9 +193,11 @@ class PatientController extends Controller
             ->when($request->date_to, fn ($q, $d) => $q->where('created_at', '<=', $d))
             ->when($request->age_from, fn ($q, $a) => $q->where('age_years', '>=', $a))
             ->when($request->age_to, fn ($q, $a) => $q->where('age_years', '<=', $a))
-            ->when($request->sort_by, function ($q, $sort) use ($request) {
-                $direction = $request->sort_dir === 'asc' ? 'asc' : 'desc';
-                $q->orderBy($sort, $direction);
-            }, fn ($q) => $q->latest());
+            // Whitelisted — see Doctor\PatientController::SORTABLE.
+            ->when(
+                in_array($request->sort_by, self::SORTABLE, true),
+                fn ($q) => $q->orderBy($request->sort_by, $request->sort_dir === 'asc' ? 'asc' : 'desc'),
+                fn ($q) => $q->latest(),
+            );
     }
 }

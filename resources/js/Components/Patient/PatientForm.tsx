@@ -224,7 +224,7 @@ export default function PatientForm({ patient, submitUrl, method = 'post', cance
                 <Alert
                     type="warning"
                     showIcon
-                    message="This phone number is already registered"
+                    title="This phone number is already registered"
                     description={
                         <>
                             <span>

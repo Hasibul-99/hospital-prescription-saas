@@ -204,7 +204,7 @@ export default function AdminPlansIndex({ plans, filters, currency }: Props) {
                 type="info"
                 showIcon
                 className="mb-4"
-                message={`Prices are in the platform currency (${currency.code}). Public plans appear on the landing page pricing section, ordered by #.`}
+                title={`Prices are in the platform currency (${currency.code}). Public plans appear on the landing page pricing section, ordered by #.`}
                 action={
                     <Link href="/admin/settings">
                         <Button size="small">Change currency</Button>

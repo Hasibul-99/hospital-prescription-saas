@@ -1,8 +1,23 @@
-import Modal from '@/Components/UI/Modal';
 import PatientSearch from '@/Components/Patient/PatientSearch';
 import { Chamber, Patient, User } from '@/types';
 import { router } from '@inertiajs/react';
-import { FormEventHandler, useState } from 'react';
+import {
+    Alert,
+    Button,
+    Checkbox,
+    DatePicker,
+    Form,
+    Input,
+    InputNumber,
+    Modal,
+    Segmented,
+    Select,
+    Space,
+    Typography,
+} from 'antd';
+import { CalendarOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { useState } from 'react';
 import { useCurrency } from '@/utils/currency';
 
 interface Props {
@@ -16,6 +31,36 @@ interface Props {
     context: 'doctor' | 'receptionist';
 }
 
+type VisitType = 'new_visit' | 'follow_up' | 'emergency';
+
+const PAYMENT_METHODS = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'bkash', label: 'bKash' },
+    { value: 'nagad', label: 'Nagad' },
+    { value: 'rocket', label: 'Rocket' },
+    { value: 'card', label: 'Card' },
+];
+
+/** The chosen patient, shown instead of the search box once one is picked. */
+function SelectedPatient({ patient, onChange }: { patient: Patient; onChange: () => void }) {
+    return (
+        <div className="flex items-center gap-3 rounded-lg border border-teal-200 bg-teal-50/60 px-3 py-2">
+            <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-teal-600 text-sm font-semibold text-white">
+                {patient.name.charAt(0).toUpperCase()}
+            </span>
+            <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-gray-900">{patient.name}</div>
+                <Typography.Text type="secondary" className="text-xs">
+                    {patient.patient_uid} · {patient.phone}
+                </Typography.Text>
+            </div>
+            <Button size="small" type="text" icon={<UserSwitchOutlined />} onClick={onChange}>
+                Change
+            </Button>
+        </div>
+    );
+}
+
 export default function AppointmentModal({
     onClose,
     defaultDate,
@@ -27,210 +72,200 @@ export default function AppointmentModal({
     context,
 }: Props) {
     const currency = useCurrency();
+
     const [patient, setPatient] = useState<Patient | null>(null);
     const [date, setDate] = useState(defaultDate);
-    const [chamberId, setChamberId] = useState<number | ''>(defaultChamberId ?? '');
-    const [doctorId, setDoctorId] = useState<number | ''>(defaultDoctorId ?? (doctors?.[0]?.id ?? ''));
-    const [type, setType] = useState<'new_visit' | 'follow_up' | 'emergency'>('new_visit');
-    const [feeAmount, setFeeAmount] = useState<string>('');
+    const [chamberId, setChamberId] = useState<number | undefined>(defaultChamberId);
+    const [doctorId, setDoctorId] = useState<number | undefined>(defaultDoctorId ?? doctors?.[0]?.id);
+    const [type, setType] = useState<VisitType>('new_visit');
+    const [feeAmount, setFeeAmount] = useState<number | null>(null);
     const [feePaid, setFeePaid] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
+    const needsDoctor = context === 'receptionist' && !!doctors;
+
+    function submit() {
         if (!patient) {
-            setError('Please select a patient.');
+            setError('Select a patient first.');
             return;
         }
+        if (needsDoctor && !doctorId) {
+            setError('Select a doctor.');
+            return;
+        }
+
+        setError(null);
         setSubmitting(true);
 
         const payload: Record<string, unknown> = {
             patient_id: patient.id,
             appointment_date: date,
             type,
-            chamber_id: chamberId || null,
-            fee_amount: feeAmount === '' ? null : Number(feeAmount),
+            chamber_id: chamberId ?? null,
+            // Blank means "use the doctor's configured consultation fee".
+            fee_amount: feeAmount,
             fee_paid: feePaid,
             payment_method: feePaid ? paymentMethod : null,
             notes: notes || null,
         };
 
-        if (context === 'receptionist') {
-            payload.doctor_id = doctorId || null;
+        if (needsDoctor) {
+            payload.doctor_id = doctorId;
         }
 
-        router.post(submitUrl, payload as any, {
+        router.post(submitUrl, payload as never, {
             preserveScroll: true,
             onSuccess: () => onClose(),
-            onError: (errs) => setError(Object.values(errs)[0] as string ?? 'Failed to save.'),
+            onError: (errs) => setError((Object.values(errs)[0] as string) ?? 'Could not book the appointment.'),
             onFinish: () => setSubmitting(false),
         });
-    };
+    }
 
     return (
-        <Modal show={true} onClose={onClose} maxWidth="2xl">
-            <form onSubmit={submit} className="p-6">
-                <h3 className="text-lg font-semibold text-gray-800">New Appointment</h3>
+        <Modal
+            open
+            onCancel={onClose}
+            title="New appointment"
+            width={560}
+            destroyOnHidden
+            footer={
+                <Space>
+                    <Button onClick={onClose}>Cancel</Button>
+                    <Button
+                        type="primary"
+                        icon={<CalendarOutlined />}
+                        loading={submitting}
+                        disabled={!patient}
+                        onClick={submit}
+                    >
+                        Book appointment
+                    </Button>
+                </Space>
+            }
+        >
+            {error && (
+                <Alert
+                    type="error"
+                    showIcon
+                    className="mb-4"
+                    title={error}
+                    closable={{ onClose: () => setError(null) }}
+                />
+            )}
 
-                {error && (
-                    <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
-                )}
+            <Form layout="vertical" className="!mt-2">
+                <Form.Item label="Patient" required className="!mb-4">
+                    {patient ? (
+                        <SelectedPatient patient={patient} onChange={() => setPatient(null)} />
+                    ) : (
+                        <>
+                            <PatientSearch onSelect={setPatient} placeholder="Search by name, phone or UID…" />
+                            <Typography.Text type="secondary" className="mt-1 block text-xs">
+                                Not registered yet?{' '}
+                                <a href={`/${context}/patients/create`} className="text-teal-700 hover:underline">
+                                    Register a new patient
+                                </a>
+                            </Typography.Text>
+                        </>
+                    )}
+                </Form.Item>
 
-                <div className="mt-4 space-y-4">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600">Patient</label>
-                        {patient ? (
-                            <div className="mt-1 flex items-center justify-between rounded border bg-gray-50 px-3 py-2 text-sm">
-                                <div>
-                                    <div className="font-medium">{patient.name}</div>
-                                    <div className="text-xs text-gray-500">{patient.patient_uid} · {patient.phone}</div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setPatient(null)}
-                                    className="text-xs text-blue-600 hover:underline"
-                                >
-                                    Change
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <PatientSearch onSelect={setPatient} placeholder="Search by name, phone or UID..." className="mt-1" />
-                                <div className="mt-1 text-xs text-gray-500">
-                                    Or{' '}
-                                    <a href={`/${context}/patients/create`} className="text-blue-600 hover:underline">
-                                        register new patient
-                                    </a>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                <Form.Item label="Visit type" className="!mb-4">
+                    {/* Three mutually exclusive options read better as a segmented
+                        control than a dropdown that hides two of them. */}
+                    <Segmented
+                        block
+                        value={type}
+                        onChange={(v) => setType(v as VisitType)}
+                        options={[
+                            { value: 'new_visit', label: 'New visit' },
+                            { value: 'follow_up', label: 'Follow-up' },
+                            { value: 'emergency', label: 'Emergency' },
+                        ]}
+                    />
+                </Form.Item>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600">Date</label>
-                            <input
-                                type="date"
-                                value={date}
-                                min={new Date().toISOString().split('T')[0]}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600">Type</label>
-                            <select
-                                value={type}
-                                onChange={(e) => setType(e.target.value as any)}
-                                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                            >
-                                <option value="new_visit">New Visit</option>
-                                <option value="follow_up">Follow-up</option>
-                                <option value="emergency">Emergency</option>
-                            </select>
-                        </div>
-
-                        {context === 'receptionist' && doctors && (
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600">Doctor</label>
-                                <select
-                                    value={doctorId}
-                                    onChange={(e) => setDoctorId(e.target.value ? Number(e.target.value) : '')}
-                                    className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                                >
-                                    <option value="">Select doctor…</option>
-                                    {doctors.map((d) => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        {chambers.length > 0 && (
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600">Chamber</label>
-                                <select
-                                    value={chamberId}
-                                    onChange={(e) => setChamberId(e.target.value ? Number(e.target.value) : '')}
-                                    className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                                >
-                                    <option value="">None</option>
-                                    {chambers.map((c) => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600">Fee ({currency.symbol})</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={feeAmount}
-                                onChange={(e) => setFeeAmount(e.target.value)}
-                                placeholder="Auto from profile"
-                                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600">Payment</label>
-                            <div className="mt-1 flex items-center gap-2">
-                                <label className="flex items-center gap-1 text-sm">
-                                    <input type="checkbox" checked={feePaid} onChange={(e) => setFeePaid(e.target.checked)} />
-                                    Paid
-                                </label>
-                                {feePaid && (
-                                    <select
-                                        value={paymentMethod}
-                                        onChange={(e) => setPaymentMethod(e.target.value)}
-                                        className="rounded border border-gray-300 px-2 py-1 text-sm"
-                                    >
-                                        <option value="cash">Cash</option>
-                                        <option value="bkash">bKash</option>
-                                        <option value="nagad">Nagad</option>
-                                        <option value="rocket">Rocket</option>
-                                        <option value="card">Card</option>
-                                    </select>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600">Notes</label>
-                        <textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            rows={2}
-                            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                <div className="grid gap-x-4 sm:grid-cols-2">
+                    <Form.Item label="Date" required>
+                        <DatePicker
+                            className="w-full"
+                            allowClear={false}
+                            value={dayjs(date)}
+                            minDate={dayjs().startOf('day')}
+                            format="DD MMM YYYY"
+                            onChange={(d) => d && setDate(d.format('YYYY-MM-DD'))}
                         />
-                    </div>
+                    </Form.Item>
+
+                    {needsDoctor && (
+                        <Form.Item label="Doctor" required>
+                            <Select
+                                showSearch={{ optionFilterProp: 'label' }}
+                                placeholder="Select a doctor"
+                                value={doctorId}
+                                onChange={setDoctorId}
+                                options={doctors!.map((d) => ({ value: d.id, label: d.name }))}
+                            />
+                        </Form.Item>
+                    )}
+
+                    {chambers.length > 0 && (
+                        <Form.Item label="Chamber">
+                            <Select
+                                allowClear
+                                placeholder="None"
+                                value={chamberId}
+                                onChange={setChamberId}
+                                options={chambers.map((c) => ({ value: c.id, label: c.name }))}
+                            />
+                        </Form.Item>
+                    )}
+
+                    <Form.Item
+                        label={`Fee (${currency.symbol})`}
+                        tooltip="Leave blank to use the doctor's configured consultation fee."
+                    >
+                        <InputNumber
+                            className="w-full"
+                            min={0}
+                            step={50}
+                            value={feeAmount}
+                            onChange={setFeeAmount}
+                            placeholder="Auto"
+                        />
+                    </Form.Item>
                 </div>
 
-                <div className="mt-5 flex justify-end gap-2">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={submitting || !patient}
-                        className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-                    >
-                        {submitting ? 'Saving…' : 'Book Appointment'}
-                    </button>
-                </div>
-            </form>
+                <Form.Item label="Payment" className="!mb-4">
+                    <Space wrap>
+                        <Checkbox checked={feePaid} onChange={(e) => setFeePaid(e.target.checked)}>
+                            Paid now
+                        </Checkbox>
+                        {feePaid && (
+                            <Select
+                                value={paymentMethod}
+                                onChange={setPaymentMethod}
+                                style={{ width: 140 }}
+                                options={PAYMENT_METHODS}
+                            />
+                        )}
+                    </Space>
+                </Form.Item>
+
+                <Form.Item label="Notes" className="!mb-0">
+                    <Input.TextArea
+                        rows={2}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        maxLength={500}
+                        showCount
+                        placeholder="Optional"
+                    />
+                </Form.Item>
+            </Form>
         </Modal>
     );
 }

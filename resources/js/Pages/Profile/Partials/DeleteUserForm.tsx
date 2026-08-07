@@ -58,7 +58,7 @@ export default function DeleteUserForm() {
                         type="error"
                         showIcon
                         className="mb-4"
-                        message="This cannot be undone."
+                        title="This cannot be undone."
                         description="Enter your password to confirm you want to permanently delete your account."
                     />
 

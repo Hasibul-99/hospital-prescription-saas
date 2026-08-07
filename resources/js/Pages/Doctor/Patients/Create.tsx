@@ -1,19 +1,20 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
+import FlashMessage from '@/Components/Common/FlashMessage';
 import PatientForm from '@/Components/Patient/PatientForm';
-import { ReactNode } from 'react';
+import { Head } from '@inertiajs/react';
+import { Typography } from 'antd';
 
 export default function Create() {
     return (
-        <>
-            <h2 className="mb-6 text-xl font-bold text-gray-800">Register New Patient</h2>
-            <div className="rounded-lg bg-white p-6 shadow">
-                <PatientForm
-                    submitUrl="/doctor/patients"
-                    cancelUrl="/doctor/patients"
-                />
-            </div>
-        </>
+        <DoctorLayout>
+            <Head title="Register Patient" />
+            <FlashMessage />
+
+            <Typography.Title level={4} className="!mb-4">
+                Register New Patient
+            </Typography.Title>
+
+            <PatientForm submitUrl="/doctor/patients" cancelUrl="/doctor/patients" />
+        </DoctorLayout>
     );
 }
-
-Create.layout = (page: ReactNode) => <DoctorLayout>{page}</DoctorLayout>;

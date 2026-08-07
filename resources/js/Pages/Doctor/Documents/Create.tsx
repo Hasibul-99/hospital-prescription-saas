@@ -1,6 +1,11 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
-import { Head } from '@inertiajs/react';
-import { FormEvent, ReactNode, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { Button, Card, DatePicker, Form, Input, Select, Space, Spin, Typography } from 'antd';
+import { FilePdfOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import { useEffect, useRef, useState } from 'react';
+import { Patient } from '@/types';
 
 type DocType = 'fitness' | 'sick_leave' | 'referral';
 
@@ -31,16 +36,57 @@ const PLACEHOLDERS: Record<DocType, string> = {
     referral: 'e.g., Kindly evaluate and manage the above-named patient for further investigation of persistent chest pain.',
 };
 
-export default function Create({ type, patient }: Props) {
-    const [patientId, setPatientId] = useState<number | ''>(patient?.id ?? '');
-    const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [bodyText, setBodyText] = useState('');
-    const [durationText, setDurationText] = useState('');
-    const [referredTo, setReferredTo] = useState('');
+const DURATION_LABELS: Record<DocType, string> = {
+    fitness: 'Validity',
+    sick_leave: 'Leave duration',
+    referral: 'Duration (optional)',
+};
 
-    function submit(e: FormEvent) {
-        e.preventDefault();
-        // POST to a new tab so the PDF opens directly.
+interface FormValues {
+    patient_id: number | undefined;
+    date: dayjs.Dayjs;
+    body_text: string;
+    duration_text: string;
+    referred_to: string;
+}
+
+function patientLabel(p: Pick<Patient, 'name' | 'patient_uid' | 'phone'>): string {
+    return `${p.name} · ${p.patient_uid} · ${p.phone}`;
+}
+
+export default function Create({ type, patient }: Props) {
+    const [form] = Form.useForm<FormValues>();
+
+    const [options, setOptions] = useState<{ value: number; label: string }[]>(
+        patient ? [{ value: patient.id, label: patientLabel(patient) }] : [],
+    );
+    const [searching, setSearching] = useState(false);
+    const debounce = useRef<ReturnType<typeof setTimeout>>();
+
+    useEffect(() => () => debounce.current && clearTimeout(debounce.current), []);
+
+    function searchPatients(query: string) {
+        if (debounce.current) clearTimeout(debounce.current);
+        if (!query) return;
+
+        debounce.current = setTimeout(async () => {
+            setSearching(true);
+            try {
+                const { data } = await axios.get<Patient[]>('/api/patients/search', { params: { q: query } });
+                setOptions(data.map((p) => ({ value: p.id, label: patientLabel(p) })));
+            } catch {
+                setOptions([]);
+            } finally {
+                setSearching(false);
+            }
+        }, 300);
+    }
+
+    /**
+     * The renderer streams a PDF back rather than an Inertia response, so the
+     * submission goes through a throwaway form aimed at a new tab.
+     */
+    function generate(values: FormValues) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/doctor/documents/${type}/render`;
@@ -54,12 +100,13 @@ export default function Create({ type, patient }: Props) {
             input.value = value;
             form.appendChild(input);
         };
+
         put('_token', csrf);
-        put('patient_id', String(patientId));
-        put('date', date);
-        put('body_text', bodyText);
-        put('duration_text', durationText);
-        put('referred_to', referredTo);
+        put('patient_id', String(values.patient_id ?? ''));
+        put('date', values.date.format('YYYY-MM-DD'));
+        put('body_text', values.body_text ?? '');
+        put('duration_text', values.duration_text ?? '');
+        put('referred_to', values.referred_to ?? '');
 
         document.body.appendChild(form);
         form.submit();
@@ -67,97 +114,76 @@ export default function Create({ type, patient }: Props) {
     }
 
     return (
-        <>
+        <DoctorLayout>
             <Head title={TITLES[type]} />
 
-            <h1 className="mb-4 text-xl font-semibold text-gray-800">{TITLES[type]}</h1>
+            <Typography.Title level={4} className="!mb-4">
+                {TITLES[type]}
+            </Typography.Title>
 
-            <form onSubmit={submit} className="mx-auto max-w-2xl space-y-4 rounded-lg bg-white p-5 shadow-sm">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Patient ID</label>
-                    <input
-                        type="number"
-                        required
-                        value={patientId}
-                        onChange={(e) => setPatientId(e.target.value === '' ? '' : Number(e.target.value))}
-                        placeholder="Numeric patient ID"
-                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                    />
-                    {patient && (
-                        <div className="mt-1 text-xs text-gray-500">
-                            Pre-selected: <strong>{patient.name}</strong> ({patient.patient_uid}) · {patient.phone}
-                        </div>
-                    )}
-                </div>
+            <Card size="small" className="mx-auto max-w-3xl">
+                <Form<FormValues>
+                    form={form}
+                    layout="vertical"
+                    initialValues={{
+                        patient_id: patient?.id,
+                        date: dayjs(),
+                        body_text: '',
+                        duration_text: '',
+                        referred_to: '',
+                    }}
+                    onFinish={generate}
+                >
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Form.Item
+                            label="Patient"
+                            name="patient_id"
+                            rules={[{ required: true, message: 'Select a patient' }]}
+                        >
+                            <Select
+                                showSearch
+                                allowClear
+                                placeholder="Search by name, phone, or UID…"
+                                filterOption={false}
+                                onSearch={searchPatients}
+                                notFoundContent={searching ? <Spin size="small" /> : null}
+                                options={options}
+                            />
+                        </Form.Item>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Date</label>
-                    <input
-                        type="date"
-                        required
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                    />
-                </div>
-
-                {type === 'referral' && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Referred to</label>
-                        <input
-                            type="text"
-                            value={referredTo}
-                            onChange={(e) => setReferredTo(e.target.value)}
-                            placeholder="e.g., Dr. Kamal Ahmed, Cardiology, Square Hospital"
-                            className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                        />
+                        <Form.Item label="Date" name="date" rules={[{ required: true, message: 'Date required' }]}>
+                            <DatePicker format="DD MMM YYYY" style={{ width: '100%' }} />
+                        </Form.Item>
                     </div>
-                )}
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        {type === 'referral' ? 'Reason for referral' : 'Certificate body'}
-                    </label>
-                    <textarea
-                        required
-                        rows={6}
-                        value={bodyText}
-                        onChange={(e) => setBodyText(e.target.value)}
-                        placeholder={PLACEHOLDERS[type]}
-                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm font-serif"
-                    />
-                </div>
+                    {type === 'referral' && (
+                        <Form.Item label="Referred to" name="referred_to">
+                            <Input maxLength={255} placeholder="e.g., Dr. Kamal Ahmed, Cardiology, Square Hospital" />
+                        </Form.Item>
+                    )}
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        {type === 'sick_leave' ? 'Leave duration' : type === 'fitness' ? 'Validity' : 'Duration (optional)'}
-                    </label>
-                    <input
-                        type="text"
-                        value={durationText}
-                        onChange={(e) => setDurationText(e.target.value)}
-                        placeholder="e.g., 3 days from 2026-07-30 to 2026-08-01"
-                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                    />
-                </div>
-
-                <div className="flex gap-2">
-                    <button
-                        type="submit"
-                        className="rounded bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                    <Form.Item
+                        label={type === 'referral' ? 'Reason for referral' : 'Certificate body'}
+                        name="body_text"
+                        rules={[{ required: true, message: 'This text appears on the document' }]}
                     >
-                        Generate PDF
-                    </button>
-                    <a
-                        href="/doctor/dashboard"
-                        className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
-                    >
-                        Cancel
-                    </a>
-                </div>
-            </form>
-        </>
+                        <Input.TextArea rows={6} maxLength={2000} showCount placeholder={PLACEHOLDERS[type]} />
+                    </Form.Item>
+
+                    <Form.Item label={DURATION_LABELS[type]} name="duration_text">
+                        <Input maxLength={100} placeholder="e.g., 3 days, 30 Jul 2026 to 1 Aug 2026" />
+                    </Form.Item>
+
+                    <div className="flex justify-end">
+                        <Space>
+                            <Button onClick={() => router.visit('/doctor/dashboard')}>Cancel</Button>
+                            <Button type="primary" icon={<FilePdfOutlined />} htmlType="submit">
+                                Generate PDF
+                            </Button>
+                        </Space>
+                    </div>
+                </Form>
+            </Card>
+        </DoctorLayout>
     );
 }
-
-Create.layout = (page: ReactNode) => <DoctorLayout>{page}</DoctorLayout>;

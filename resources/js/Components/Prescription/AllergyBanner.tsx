@@ -115,7 +115,7 @@ export default function AllergyBanner({ patientId, allergies, medicines }: Props
                     type="error"
                     showIcon
                     className="!mb-2"
-                    message="Allergy conflict"
+                    title="Allergy conflict"
                     description={
                         <ul style={{ margin: 0, paddingLeft: 18 }}>
                             {conflictList.map((c, i) => (

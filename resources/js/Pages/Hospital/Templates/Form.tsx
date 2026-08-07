@@ -140,7 +140,7 @@ export default function HospitalTemplateForm({
                     type="error"
                     showIcon
                     className="mb-4"
-                    message="Some rows could not be saved"
+                    title="Some rows could not be saved"
                     description={
                         <ul className="ml-4 list-disc text-sm">
                             {rowErrors.map((e) => (

@@ -193,8 +193,7 @@ export default function Index({ chambers, doctors, filters }: Props) {
                 <Space wrap>
                     <Select
                         allowClear
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder="Filter by doctor"
                         style={{ minWidth: 220 }}
                         value={filters.doctor_id ?? undefined}

@@ -112,7 +112,7 @@ export default function AdminSettings({ platform, currency, plan_count, maintena
                                 className="mb-3"
                                 type="warning"
                                 showIcon
-                                message="Maintenance mode is ON"
+                                title="Maintenance mode is ON"
                                 description="All non-super-admin requests are blocked. Bypass at /medixpro-bypass"
                             />
                         )}
@@ -146,7 +146,7 @@ export default function AdminSettings({ platform, currency, plan_count, maintena
                             className="mt-3"
                             type="info"
                             showIcon
-                            message="Changing this does not convert any price."
+                            title="Changing this does not convert any price."
                             description="Plan amounts stay exactly as entered — only the symbol they display with changes."
                         />
                     </Card>

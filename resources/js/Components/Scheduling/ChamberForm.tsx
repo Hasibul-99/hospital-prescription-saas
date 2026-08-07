@@ -121,8 +121,7 @@ export default function ChamberForm({ doctors, submitUrl, method, initial }: Pro
                     <Col xs={24} sm={12}>
                         <Form.Item name="doctor_id" label="Doctor" rules={[{ required: true, message: 'Pick a doctor' }]}>
                             <Select
-                                showSearch
-                                optionFilterProp="label"
+                                showSearch={{ optionFilterProp: 'label' }}
                                 placeholder="Select a doctor"
                                 options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                             />
@@ -184,7 +183,7 @@ export default function ChamberForm({ doctors, submitUrl, method, initial }: Pro
                         type="warning"
                         showIcon
                         className="mb-3"
-                        message={`Set both a start and end time for: ${incompleteDays.join(', ')}.`}
+                        title={`Set both a start and end time for: ${incompleteDays.join(', ')}.`}
                     />
                 )}
 

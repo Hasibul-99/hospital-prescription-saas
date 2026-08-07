@@ -104,7 +104,7 @@ export default function Index({ doctors, filters, quota }: Props) {
                     className="mb-4"
                     type="warning"
                     showIcon
-                    message="Doctor limit reached"
+                    title="Doctor limit reached"
                     description={`This hospital allows ${quota.limit} active ${quota.limit === 1 ? 'doctor' : 'doctors'}${
                         quota.plan ? ` on the ${quota.plan} plan` : ''
                     }. Deactivate an existing doctor, or ask your platform administrator to raise the limit.`}

@@ -145,8 +145,7 @@ export default function HospitalAuditLogs({ logs, filters, stats, actions, users
 
                     <Select
                         allowClear
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder="Action"
                         style={{ minWidth: 220 }}
                         value={filters.action ?? undefined}
@@ -156,8 +155,7 @@ export default function HospitalAuditLogs({ logs, filters, stats, actions, users
 
                     <Select
                         allowClear
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder="Staff member"
                         style={{ minWidth: 200 }}
                         value={filters.user_id ?? undefined}

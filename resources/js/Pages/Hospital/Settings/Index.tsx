@@ -107,8 +107,7 @@ export default function HospitalSettings({ hospital, quota, currencies }: Props)
                                     tooltip="Used for consultation fees, chamber fees and daily statements. Your subscription is billed separately."
                                 >
                                     <Select
-                                        showSearch
-                                        optionFilterProp="label"
+                                        showSearch={{ optionFilterProp: 'label' }}
                                         options={currencies.map((c) => ({
                                             value: c.code,
                                             label: `${c.code} — ${c.name} (${c.symbol})`,

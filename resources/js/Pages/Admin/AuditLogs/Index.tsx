@@ -178,8 +178,7 @@ export default function AdminAuditLogs({ logs, filters, stats, actions, users, h
 
                     <Select
                         allowClear
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder="Action"
                         style={{ minWidth: 220 }}
                         value={filters.action ?? undefined}
@@ -189,8 +188,7 @@ export default function AdminAuditLogs({ logs, filters, stats, actions, users, h
 
                     <Select
                         allowClear
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder="User"
                         style={{ minWidth: 180 }}
                         value={filters.user_id ?? undefined}
@@ -200,8 +198,7 @@ export default function AdminAuditLogs({ logs, filters, stats, actions, users, h
 
                     <Select
                         allowClear
-                        showSearch
-                        optionFilterProp="label"
+                        showSearch={{ optionFilterProp: 'label' }}
                         placeholder="Hospital"
                         style={{ minWidth: 180 }}
                         value={filters.hospital_id ?? undefined}

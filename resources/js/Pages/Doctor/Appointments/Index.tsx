@@ -3,156 +3,247 @@ import FlashMessage from '@/Components/Common/FlashMessage';
 import Pagination from '@/Components/UI/Pagination';
 import AppointmentModal from '@/Components/Scheduling/AppointmentModal';
 import { Appointment, Chamber, PaginatedData } from '@/types';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useMoney } from '@/utils/currency';
-import { ReactNode, useState } from 'react';
+import { Button, Card, DatePicker, Empty, Select, Space, Table, Tag, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { CheckCircleTwoTone, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { useState } from 'react';
+
+interface Filters {
+    date_from?: string;
+    date_to?: string;
+    status?: string;
+    type?: string;
+    chamber_id?: string;
+}
 
 interface Props {
     appointments: PaginatedData<Appointment>;
-    filters: {
-        date_from?: string;
-        date_to?: string;
-        status?: string;
-        type?: string;
-        chamber_id?: string;
-    };
+    filters: Filters;
     chambers: Chamber[];
+}
+
+const STATUS_COLOR: Record<string, string> = {
+    waiting: 'default',
+    in_progress: 'processing',
+    completed: 'green',
+    absent: 'orange',
+    cancelled: 'red',
+};
+
+const TYPE_COLOR: Record<string, string> = {
+    new_visit: 'blue',
+    follow_up: 'purple',
+    emergency: 'red',
+};
+
+function titleCase(value: string): string {
+    return value.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function Index({ appointments, filters, chambers }: Props) {
     const money = useMoney();
     const [showModal, setShowModal] = useState(false);
-    const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
-    const [dateTo, setDateTo] = useState(filters.date_to ?? '');
-    const [status, setStatus] = useState(filters.status ?? '');
-    const [type, setType] = useState(filters.type ?? '');
-    const [chamberId, setChamberId] = useState(filters.chamber_id ?? '');
 
-    function apply() {
-        router.get('/doctor/appointments', {
-            date_from: dateFrom || undefined,
-            date_to: dateTo || undefined,
-            status: status || undefined,
-            type: type || undefined,
-            chamber_id: chamberId || undefined,
-        }, { preserveState: true, replace: true });
+    function apply(next: Partial<Filters> & { page?: number }) {
+        router.get(
+            '/doctor/appointments',
+            { ...filters, ...next, page: next.page ?? undefined },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
     }
 
-    return (
-        <>
-            <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-800">Appointments</h2>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                    + New Appointment
-                </button>
-            </div>
+    function reset() {
+        router.get('/doctor/appointments', {}, { preserveScroll: true });
+    }
 
+    const hasFilters = Object.values(filters).some(Boolean);
+
+    const columns: ColumnsType<Appointment> = [
+        {
+            title: 'Date',
+            dataIndex: 'appointment_date',
+            width: 130,
+            render: (date: string) => (
+                <span className="whitespace-nowrap text-gray-700">{dayjs(date).format('DD MMM YYYY')}</span>
+            ),
+        },
+        {
+            title: '#',
+            dataIndex: 'serial_number',
+            width: 70,
+            align: 'center',
+            render: (serial: number) => (
+                <span className="font-mono font-semibold tabular-nums">{serial}</span>
+            ),
+        },
+        {
+            title: 'Patient',
+            dataIndex: ['patient', 'name'],
+            render: (name: string, row) => (
+                <div className="min-w-0">
+                    <div className="truncate font-medium text-gray-800">{name}</div>
+                    <div className="truncate text-xs text-gray-500">
+                        <span className="font-mono">{row.patient?.patient_uid}</span> · {row.patient?.phone}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            title: 'Type',
+            dataIndex: 'type',
+            width: 130,
+            render: (type: string) => (
+                <Tag color={TYPE_COLOR[type] ?? 'default'} className="!mr-0">
+                    {titleCase(type)}
+                </Tag>
+            ),
+        },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            width: 130,
+            render: (status: string) => (
+                <Tag color={STATUS_COLOR[status] ?? 'default'} className="!mr-0">
+                    {titleCase(status)}
+                </Tag>
+            ),
+        },
+        {
+            title: 'Fee',
+            dataIndex: 'fee_amount',
+            width: 130,
+            align: 'right',
+            render: (amount: number, row) => (
+                <Space size={4}>
+                    <span className="tabular-nums">{money(amount, { decimals: 0 })}</span>
+                    {row.fee_paid ? (
+                        <CheckCircleTwoTone twoToneColor="#52c41a" title="Paid" />
+                    ) : (
+                        <span className="text-xs text-gray-400">unpaid</span>
+                    )}
+                </Space>
+            ),
+        },
+        {
+            title: 'Chamber',
+            dataIndex: ['chamber', 'name'],
+            width: 160,
+            render: (name?: string) => name ?? <span className="text-gray-300">—</span>,
+        },
+    ];
+
+    return (
+        <DoctorLayout>
+            <Head title="Appointments" />
             <FlashMessage />
 
-            <div className="mb-3 rounded bg-white p-3 shadow-sm">
-                <div className="flex flex-wrap items-end gap-2 text-sm">
-                    <div>
-                        <label className="block text-xs text-gray-500">From</label>
-                        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded border border-gray-300 px-2 py-1" />
-                    </div>
-                    <div>
-                        <label className="block text-xs text-gray-500">To</label>
-                        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded border border-gray-300 px-2 py-1" />
-                    </div>
-                    <div>
-                        <label className="block text-xs text-gray-500">Status</label>
-                        <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded border border-gray-300 px-2 py-1">
-                            <option value="">All</option>
-                            <option value="waiting">Waiting</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="absent">Absent</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-gray-500">Type</label>
-                        <select value={type} onChange={(e) => setType(e.target.value)} className="rounded border border-gray-300 px-2 py-1">
-                            <option value="">All</option>
-                            <option value="new_visit">New Visit</option>
-                            <option value="follow_up">Follow-up</option>
-                            <option value="emergency">Emergency</option>
-                        </select>
-                    </div>
-                    {chambers.length > 0 && (
-                        <div>
-                            <label className="block text-xs text-gray-500">Chamber</label>
-                            <select value={chamberId} onChange={(e) => setChamberId(e.target.value)} className="rounded border border-gray-300 px-2 py-1">
-                                <option value="">All</option>
-                                {chambers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
-                    )}
-                    <button onClick={apply} className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700">Apply</button>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <Typography.Title level={4} className="!mb-0">
+                        Appointments
+                    </Typography.Title>
+                    <Typography.Text type="secondary" className="text-xs">
+                        {appointments.meta.total.toLocaleString()} total
+                        {hasFilters && ' matching these filters'}
+                    </Typography.Text>
                 </div>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowModal(true)}>
+                    New Appointment
+                </Button>
             </div>
 
-            <div className="overflow-x-auto rounded-lg bg-white shadow">
-                <table className="w-full text-left text-sm">
-                    <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
-                        <tr>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3">#</th>
-                            <th className="px-4 py-3">Patient</th>
-                            <th className="px-4 py-3">Type</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Fee</th>
-                            <th className="px-4 py-3">Chamber</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {appointments.data.length === 0 ? (
-                            <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-500">No appointments.</td></tr>
-                        ) : appointments.data.map((a) => (
-                            <tr key={a.id} className="border-b last:border-0 hover:bg-gray-50">
-                                <td className="px-4 py-3 text-gray-700">{a.appointment_date}</td>
-                                <td className="px-4 py-3 font-mono font-bold">{a.serial_number}</td>
-                                <td className="px-4 py-3">
-                                    <div className="font-medium">{a.patient?.name}</div>
-                                    <div className="text-xs text-gray-500">{a.patient?.patient_uid} · {a.patient?.phone}</div>
-                                </td>
-                                <td className="px-4 py-3 text-gray-600 capitalize">{a.type.replace('_', ' ')}</td>
-                                <td className="px-4 py-3 capitalize">{a.status.replace('_', ' ')}</td>
-                                <td className="px-4 py-3">{money(a.fee_amount, { decimals: 0 })} {a.fee_paid ? '✓' : ''}</td>
-                                <td className="px-4 py-3 text-gray-500">{a.chamber?.name ?? '-'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div className="border-t px-4 py-3">
-                    <Pagination
-                        meta={appointments.meta}
-                        onChange={(page) => router.get('/doctor/appointments', {
-                            date_from: filters.date_from || undefined,
-                            date_to: filters.date_to || undefined,
-                            status: filters.status || undefined,
-                            type: filters.type || undefined,
-                            chamber_id: filters.chamber_id || undefined,
-                            page,
-                        }, { preserveState: true })}
+            <Card className="mb-4" size="small">
+                <div className="flex flex-wrap items-center gap-2">
+                    <DatePicker.RangePicker
+                        allowEmpty={[true, true]}
+                        placeholder={['From', 'To']}
+                        value={[
+                            filters.date_from ? dayjs(filters.date_from) : null,
+                            filters.date_to ? dayjs(filters.date_to) : null,
+                        ]}
+                        onChange={(_, [from, to]) => apply({ date_from: from || undefined, date_to: to || undefined })}
                     />
+
+                    <Select
+                        allowClear
+                        placeholder="Status"
+                        style={{ width: 150 }}
+                        value={filters.status || undefined}
+                        onChange={(v) => apply({ status: v })}
+                        options={[
+                            { label: 'Waiting', value: 'waiting' },
+                            { label: 'In Progress', value: 'in_progress' },
+                            { label: 'Completed', value: 'completed' },
+                            { label: 'Absent', value: 'absent' },
+                            { label: 'Cancelled', value: 'cancelled' },
+                        ]}
+                    />
+
+                    <Select
+                        allowClear
+                        placeholder="Type"
+                        style={{ width: 150 }}
+                        value={filters.type || undefined}
+                        onChange={(v) => apply({ type: v })}
+                        options={[
+                            { label: 'New Visit', value: 'new_visit' },
+                            { label: 'Follow-up', value: 'follow_up' },
+                            { label: 'Emergency', value: 'emergency' },
+                        ]}
+                    />
+
+                    {chambers.length > 0 && (
+                        <Select
+                            allowClear
+                            placeholder="Chamber"
+                            style={{ width: 180 }}
+                            value={filters.chamber_id || undefined}
+                            onChange={(v) => apply({ chamber_id: v })}
+                            options={chambers.map((c) => ({ label: c.name, value: String(c.id) }))}
+                        />
+                    )}
+
+                    {hasFilters && (
+                        <Button icon={<ReloadOutlined />} onClick={reset}>
+                            Reset
+                        </Button>
+                    )}
                 </div>
+            </Card>
+
+            <Table<Appointment>
+                rowKey="id"
+                size="small"
+                columns={columns}
+                dataSource={appointments.data}
+                pagination={false}
+                scroll={{ x: 1000 }}
+                locale={{
+                    emptyText: (
+                        <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={hasFilters ? 'No appointments match these filters.' : 'No appointments yet.'}
+                        />
+                    ),
+                }}
+            />
+
+            <div className="mt-4 flex justify-center">
+                <Pagination meta={appointments.meta} onChange={(page) => apply({ page })} />
             </div>
 
             {showModal && (
                 <AppointmentModal
                     onClose={() => setShowModal(false)}
-                    defaultDate={new Date().toISOString().split('T')[0]}
+                    defaultDate={dayjs().format('YYYY-MM-DD')}
                     chambers={chambers}
                     submitUrl="/doctor/appointments"
                     context="doctor"
                 />
             )}
-        </>
+        </DoctorLayout>
     );
 }
-
-Index.layout = (page: ReactNode) => <DoctorLayout>{page}</DoctorLayout>;

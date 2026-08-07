@@ -118,7 +118,7 @@ export default function UpdateProfileInformationForm({
                         type="warning"
                         showIcon
                         className="mb-4"
-                        message="Your email address is unverified."
+                        title="Your email address is unverified."
                         description={
                             <Link
                                 href={route('verification.send')}
@@ -137,7 +137,7 @@ export default function UpdateProfileInformationForm({
                         type="success"
                         showIcon
                         className="mb-4"
-                        message="A new verification link has been sent to your email address."
+                        title="A new verification link has been sent to your email address."
                     />
                 )}
 

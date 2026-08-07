@@ -1,9 +1,12 @@
 import DoctorLayout from '@/Layouts/DoctorLayout';
 import FlashMessage from '@/Components/Common/FlashMessage';
 import { Appointment } from '@/types';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useMoney } from '@/utils/currency';
-import { ReactNode, useState } from 'react';
+import { Button, Card, DatePicker, Empty, Statistic, Table, Tag, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { CheckCircleTwoTone, PrinterOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 interface Summary {
     total_patients: number;
@@ -21,104 +24,181 @@ interface Props {
     filters: { date_from: string; date_to: string };
 }
 
+const STATUS_COLOR: Record<string, string> = {
+    waiting: 'default',
+    in_progress: 'processing',
+    completed: 'green',
+    absent: 'orange',
+    cancelled: 'red',
+};
+
+function titleCase(value: string): string {
+    return value.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function Index({ rows, summary, filters }: Props) {
     const money = useMoney();
-    const [from, setFrom] = useState(filters.date_from);
-    const [to, setTo] = useState(filters.date_to);
 
-    function apply() {
-        router.get('/doctor/statements', { date_from: from, date_to: to }, { preserveState: true, replace: true });
+    function apply(from: string, to: string) {
+        router.get(
+            '/doctor/statements',
+            { date_from: from, date_to: to },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
     }
 
-    function printPage() {
-        window.print();
-    }
+    const columns: ColumnsType<Appointment> = [
+        {
+            title: 'Date',
+            dataIndex: 'appointment_date',
+            width: 130,
+            render: (date: string) => (
+                <span className="whitespace-nowrap">{dayjs(date).format('DD MMM YYYY')}</span>
+            ),
+        },
+        {
+            title: '#',
+            dataIndex: 'serial_number',
+            width: 60,
+            align: 'center',
+            render: (serial: number) => <span className="font-mono tabular-nums">{serial}</span>,
+        },
+        {
+            title: 'Patient',
+            dataIndex: ['patient', 'name'],
+            render: (name: string, row) => (
+                <div className="min-w-0">
+                    <div className="truncate">{name}</div>
+                    <div className="truncate font-mono text-xs text-gray-500">{row.patient?.patient_uid}</div>
+                </div>
+            ),
+        },
+        {
+            title: 'Type',
+            dataIndex: 'type',
+            width: 130,
+            render: (type: string) => titleCase(type),
+        },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            width: 120,
+            render: (status: string) => (
+                <Tag color={STATUS_COLOR[status] ?? 'default'} className="!mr-0">
+                    {titleCase(status)}
+                </Tag>
+            ),
+        },
+        {
+            title: 'Fee',
+            dataIndex: 'fee_amount',
+            width: 120,
+            align: 'right',
+            render: (amount: number) => <span className="tabular-nums">{money(amount)}</span>,
+        },
+        {
+            title: 'Paid',
+            dataIndex: 'fee_paid',
+            width: 70,
+            align: 'center',
+            render: (paid: boolean) =>
+                paid ? <CheckCircleTwoTone twoToneColor="#52c41a" /> : <span className="text-gray-300">—</span>,
+        },
+    ];
 
     return (
-        <>
-            <style>{`@media print { aside, header, .no-print { display: none !important; } main { padding: 0 !important; } }`}</style>
-
-            <div className="mb-4 flex items-center justify-between no-print">
-                <h2 className="text-xl font-bold text-gray-800">Daily Statement</h2>
-                <button onClick={printPage} className="rounded bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-900">🖨 Print</button>
-            </div>
-
+        <DoctorLayout>
+            <Head title="Daily Statement" />
+            {/* Printing this page should yield the statement alone: drop the
+                layout chrome and the filter bar. The tag unmounts with the
+                page, so the `aside, header` rules never outlive it. */}
+            <style>{`@media print {
+                aside, header, .rx-statement-noprint { display: none !important; }
+                main { padding: 0 !important; }
+            }`}</style>
             <FlashMessage />
 
-            <div className="mb-3 flex flex-wrap items-end gap-2 rounded bg-white p-3 text-sm shadow-sm no-print">
+            <div className="rx-statement-noprint mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <label className="block text-xs text-gray-500">From</label>
-                    <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded border border-gray-300 px-2 py-1" />
+                    <Typography.Title level={4} className="!mb-0">
+                        Daily Statement
+                    </Typography.Title>
+                    <Typography.Text type="secondary" className="text-xs">
+                        {dayjs(filters.date_from).format('DD MMM YYYY')} – {dayjs(filters.date_to).format('DD MMM YYYY')}
+                    </Typography.Text>
                 </div>
-                <div>
-                    <label className="block text-xs text-gray-500">To</label>
-                    <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded border border-gray-300 px-2 py-1" />
-                </div>
-                <button onClick={apply} className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700">Apply</button>
-            </div>
-
-            <div className="mb-4 rounded bg-white p-4 shadow-sm">
-                <h3 className="mb-3 font-semibold text-gray-700">Summary — {from} to {to}</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                    <Stat label="Total Patients" value={summary.total_patients} />
-                    <Stat label="New" value={summary.new_patients} />
-                    <Stat label="Follow-ups" value={summary.follow_ups} />
-                    <Stat label="Emergency" value={summary.emergency} />
-                    <Stat label="Total Earned" value={money(summary.total_earned)} />
-                    <Stat label="Paid" value={money(summary.total_paid)} tone="green" />
-                    <Stat label="Unpaid" value={money(summary.total_unpaid)} tone="red" />
+                <div className="flex flex-wrap items-center gap-2">
+                    <DatePicker.RangePicker
+                        allowClear={false}
+                        value={[dayjs(filters.date_from), dayjs(filters.date_to)]}
+                        onChange={(_, [from, to]) => from && to && apply(from, to)}
+                    />
+                    <Button type="primary" icon={<PrinterOutlined />} onClick={() => window.print()}>
+                        Print
+                    </Button>
                 </div>
             </div>
 
-            <div className="overflow-x-auto rounded-lg bg-white shadow">
-                <table className="w-full text-left text-sm">
-                    <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
-                        <tr>
-                            <th className="px-4 py-2">Date</th>
-                            <th className="px-4 py-2">#</th>
-                            <th className="px-4 py-2">Patient</th>
-                            <th className="px-4 py-2">Type</th>
-                            <th className="px-4 py-2">Status</th>
-                            <th className="px-4 py-2 text-right">Fee</th>
-                            <th className="px-4 py-2">Paid</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.length === 0 ? (
-                            <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-500">No records.</td></tr>
-                        ) : rows.map((a) => (
-                            <tr key={a.id} className="border-b last:border-0">
-                                <td className="px-4 py-2">{a.appointment_date}</td>
-                                <td className="px-4 py-2 font-mono">{a.serial_number}</td>
-                                <td className="px-4 py-2">
-                                    <div>{a.patient?.name}</div>
-                                    <div className="text-xs text-gray-500">{a.patient?.patient_uid}</div>
-                                </td>
-                                <td className="px-4 py-2 capitalize">{a.type.replace('_', ' ')}</td>
-                                <td className="px-4 py-2 capitalize">{a.status.replace('_', ' ')}</td>
-                                <td className="px-4 py-2 text-right">{money(a.fee_amount)}</td>
-                                <td className="px-4 py-2">{a.fee_paid ? '✓' : '—'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <Card size="small">
+                    <Statistic title="Total patients" value={summary.total_patients} />
+                </Card>
+                <Card size="small">
+                    <Statistic title="New" value={summary.new_patients} />
+                </Card>
+                <Card size="small">
+                    <Statistic title="Follow-ups" value={summary.follow_ups} />
+                </Card>
+                <Card size="small">
+                    <Statistic
+                        title="Emergency"
+                        value={summary.emergency}
+                        valueStyle={summary.emergency > 0 ? { color: '#cf1322' } : undefined}
+                    />
+                </Card>
+                <Card size="small">
+                    <Statistic title="Total earned" value={money(summary.total_earned)} />
+                </Card>
+                <Card size="small">
+                    <Statistic title="Paid" value={money(summary.total_paid)} valueStyle={{ color: '#389e0d' }} />
+                </Card>
+                <Card size="small">
+                    <Statistic
+                        title="Unpaid"
+                        value={money(summary.total_unpaid)}
+                        valueStyle={summary.total_unpaid > 0 ? { color: '#cf1322' } : undefined}
+                    />
+                </Card>
             </div>
-        </>
+
+            <Table<Appointment>
+                rowKey="id"
+                size="small"
+                columns={columns}
+                dataSource={rows}
+                pagination={false}
+                scroll={{ x: 900 }}
+                locale={{
+                    emptyText: (
+                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No records in this range." />
+                    ),
+                }}
+                summary={() =>
+                    rows.length > 0 ? (
+                        <Table.Summary fixed>
+                            <Table.Summary.Row>
+                                <Table.Summary.Cell index={0} colSpan={5}>
+                                    <span className="font-medium">Total</span>
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={5} align="right">
+                                    <span className="font-semibold tabular-nums">{money(summary.total_earned)}</span>
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={6} />
+                            </Table.Summary.Row>
+                        </Table.Summary>
+                    ) : null
+                }
+            />
+        </DoctorLayout>
     );
 }
-
-function Stat({ label, value, tone = 'default' }: { label: string; value: number | string; tone?: 'default' | 'green' | 'red' }) {
-    const t: Record<string, string> = {
-        default: 'text-gray-800',
-        green: 'text-green-700',
-        red: 'text-red-700',
-    };
-    return (
-        <div className="rounded border border-gray-100 bg-gray-50 px-3 py-2">
-            <div className="text-xs text-gray-500">{label}</div>
-            <div className={`mt-1 text-lg font-bold ${t[tone]}`}>{value}</div>
-        </div>
-    );
-}
-
-Index.layout = (page: ReactNode) => <DoctorLayout>{page}</DoctorLayout>;

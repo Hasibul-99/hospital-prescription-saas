@@ -23,7 +23,7 @@ export default function Create({ doctors }: Props) {
                 <Alert
                     type="info"
                     showIcon
-                    message="No active doctors"
+                    title="No active doctors"
                     description="Add an active doctor before creating a chamber — every chamber is assigned to one."
                     style={{ maxWidth: 860 }}
                 />
