@@ -1,118 +1,156 @@
-import InputError from '@/Components/UI/InputError';
-import InputLabel from '@/Components/UI/InputLabel';
-import PrimaryButton from '@/Components/UI/PrimaryButton';
-import TextInput from '@/Components/UI/TextInput';
-import { Transition } from '@headlessui/react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
+import { Alert, Button, Card, Col, Form, Input, Row, Select, Typography } from 'antd';
+import { SaveOutlined } from '@ant-design/icons';
 import { FormEventHandler } from 'react';
 
-export default function UpdateProfileInformation({
+type ProfileData = {
+    name: string;
+    email: string;
+    phone?: string | null;
+    preferred_language: 'en' | 'bn';
+};
+
+export default function UpdateProfileInformationForm({
+    profile,
+    languages,
     mustVerifyEmail,
     status,
-    className = '',
 }: {
+    profile: ProfileData;
+    languages: { value: string; label: string }[];
     mustVerifyEmail: boolean;
     status?: string;
-    className?: string;
 }) {
-    const user = usePage().props.auth.user;
-
-    const { data, setData, patch, errors, processing, recentlySuccessful } =
-        useForm({
-            name: user.name,
-            email: user.email,
-        });
+    const { data, setData, patch, errors, processing, isDirty } = useForm({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone ?? '',
+        preferred_language: profile.preferred_language ?? 'en',
+    });
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-
-        patch(route('profile.update'));
+        patch(route('profile.update'), { preserveScroll: true });
     };
 
     return (
-        <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
-                    Profile Information
-                </h2>
+        <Card
+            title="Account details"
+            extra={
+                <Typography.Text type="secondary" className="text-xs">
+                    Visible to your colleagues
+                </Typography.Text>
+            }
+        >
+            <form onSubmit={submit}>
+                <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                        <Form.Item
+                            label="Full name"
+                            required
+                            validateStatus={errors.name ? 'error' : undefined}
+                            help={errors.name}
+                            layout="vertical"
+                        >
+                            <Input
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                autoComplete="name"
+                                maxLength={255}
+                            />
+                        </Form.Item>
+                    </Col>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Update your account's profile information and email address.
-                </p>
-            </header>
+                    <Col xs={24} sm={12}>
+                        <Form.Item
+                            label="Email"
+                            required
+                            validateStatus={errors.email ? 'error' : undefined}
+                            help={errors.email}
+                            layout="vertical"
+                        >
+                            <Input
+                                type="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                autoComplete="username"
+                                maxLength={255}
+                            />
+                        </Form.Item>
+                    </Col>
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel htmlFor="name" value="Name" />
+                    <Col xs={24} sm={12}>
+                        <Form.Item
+                            label="Phone"
+                            validateStatus={errors.phone ? 'error' : undefined}
+                            help={errors.phone}
+                            layout="vertical"
+                        >
+                            <Input
+                                value={data.phone}
+                                onChange={(e) => setData('phone', e.target.value)}
+                                autoComplete="tel"
+                                placeholder="+880 1700 000000"
+                                maxLength={30}
+                            />
+                        </Form.Item>
+                    </Col>
 
-                    <TextInput
-                        id="name"
-                        className="mt-1 block w-full"
-                        value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                        isFocused
-                        autoComplete="name"
-                    />
+                    <Col xs={24} sm={12}>
+                        <Form.Item
+                            label="Language"
+                            tooltip="Applies to the interface as soon as you save."
+                            validateStatus={errors.preferred_language ? 'error' : undefined}
+                            help={errors.preferred_language}
+                            layout="vertical"
+                        >
+                            <Select
+                                value={data.preferred_language}
+                                onChange={(v) => setData('preferred_language', v)}
+                                options={languages}
+                            />
+                        </Form.Item>
+                    </Col>
+                </Row>
 
-                    <InputError className="mt-2" message={errors.name} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
-                    <TextInput
-                        id="email"
-                        type="email"
-                        className="mt-1 block w-full"
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
-                        autoComplete="username"
-                    />
-
-                    <InputError className="mt-2" message={errors.email} />
-                </div>
-
-                {mustVerifyEmail && user.email_verified_at === null && (
-                    <div>
-                        <p className="mt-2 text-sm text-gray-800">
-                            Your email address is unverified.
+                {mustVerifyEmail && (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        className="mb-4"
+                        message="Your email address is unverified."
+                        description={
                             <Link
                                 href={route('verification.send')}
                                 method="post"
                                 as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                className="text-sm underline"
                             >
-                                Click here to re-send the verification email.
+                                Resend the verification email
                             </Link>
-                        </p>
-
-                        {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
-                                A new verification link has been sent to your
-                                email address.
-                            </div>
-                        )}
-                    </div>
+                        }
+                    />
                 )}
 
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                {status === 'verification-link-sent' && (
+                    <Alert
+                        type="success"
+                        showIcon
+                        className="mb-4"
+                        message="A new verification link has been sent to your email address."
+                    />
+                )}
 
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                    >
-                        <p className="text-sm text-gray-600">
-                            Saved.
-                        </p>
-                    </Transition>
-                </div>
+                <Button
+                    type="primary"
+                    htmlType="submit"
+                    icon={<SaveOutlined />}
+                    loading={processing}
+                    disabled={!isDirty}
+                >
+                    Save changes
+                </Button>
             </form>
-        </section>
+        </Card>
     );
 }

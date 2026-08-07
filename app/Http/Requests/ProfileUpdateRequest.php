@@ -26,6 +26,11 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'phone' => ['nullable', 'string', 'max:30'],
+            // `sometimes`, not `required`: a caller that only patches the name
+            // should not have to resend every preference. Omitted keys are left
+            // untouched by fill().
+            'preferred_language' => ['sometimes', Rule::in(['en', 'bn'])],
         ];
     }
 }

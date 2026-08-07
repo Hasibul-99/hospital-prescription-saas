@@ -18,9 +18,28 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user()->loadMissing('hospital:id,name');
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
+            // Read-only context for the identity card — a user cannot change
+            // their own role or hospital from here.
+            'profile' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'preferred_language' => $user->preferred_language,
+                'role' => $user->role,
+                'hospital' => $user->hospital?->name,
+                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                'last_login_at' => $user->last_login_at?->toIso8601String(),
+                'created_at' => $user->created_at?->toIso8601String(),
+            ],
+            'languages' => [
+                ['value' => 'en', 'label' => 'English'],
+                ['value' => 'bn', 'label' => 'বাংলা'],
+            ],
         ]);
     }
 
@@ -37,7 +56,12 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit');
+        // SetLocale prefers the session value over the stored preference, so a
+        // stale session entry would make the new language look like it did not
+        // save. Keep the two in step.
+        $request->session()->put('locale', $request->user()->preferred_language ?? config('app.locale'));
+
+        return Redirect::route('profile.edit')->with('success', 'Profile updated.');
     }
 
     /**

@@ -1,4 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
+import { Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { PropsWithChildren, useState } from 'react';
 import { PageProps } from '@/types';
 import PatientSearch from '@/Components/Patient/PatientSearch';
@@ -152,6 +155,19 @@ function Topbar({ doctorName, specialty }: { doctorName: string; specialty?: str
     const pageInfo = PAGE_TITLES[path] ?? { t: 'Doctor Panel', s: '' };
     const initials = doctorName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
+    const accountItems: MenuProps['items'] = [
+        { key: 'profile', icon: <UserOutlined />, label: <Link href={route('profile.edit')}>Profile</Link> },
+        { key: 'settings', icon: <SettingOutlined />, label: <Link href="/doctor/settings">Settings</Link> },
+        { type: 'divider' },
+        {
+            key: 'logout',
+            icon: <LogoutOutlined />,
+            danger: true,
+            label: 'Log out',
+            onClick: () => router.post(route('logout')),
+        },
+    ];
+
     return (
         <header className="rx-topbar">
             <div className="rx-topbar-l">
@@ -164,31 +180,26 @@ function Topbar({ doctorName, specialty }: { doctorName: string; specialty?: str
                     <input placeholder="Search patients, Rx, drugs…" />
                     <span className="rx-search-kbd">⌘K</span>
                 </div>
-                <div className="rx-icon-btn" style={{ position: 'relative' }}>
-                    <Icons.bell size={18} />
-                    <span className="rx-badge-dot" />
-                </div>
+                {/* The real bell — this used to be a static icon with a
+                    permanently-lit dot that never reflected anything. */}
+                <NotificationBell />
+                <LanguageSwitcher />
                 <Link href="/doctor/prescriptions/create" className="rx-btn-primary" style={{ textDecoration: 'none' }}>
                     <Icons.plus size={15} />
                     <span>New Rx</span>
                 </Link>
-                <div className="rx-doc-chip">
-                    <div className="rx-doc-avatar">{initials}</div>
-                    <div>
-                        <div className="rx-doc-name">Dr. {doctorName}</div>
-                        <div className="rx-doc-role">{specialty ?? 'Doctor'}</div>
-                    </div>
-                    <Icons.chevronDown size={13} />
-                </div>
-                <Link
-                    href="/logout"
-                    method="post"
-                    as="button"
-                    className="rx-btn-ghost"
-                    style={{ marginLeft: 4 }}
-                >
-                    <Icons.logout size={15} />
-                </Link>
+                {/* The chip already had a chevron but opened nothing; it is now
+                    the account menu, so the standalone logout button is gone. */}
+                <Dropdown menu={{ items: accountItems }} trigger={['click']} placement="bottomRight" arrow>
+                    <button type="button" className="rx-doc-chip" aria-label="Account menu">
+                        <div className="rx-doc-avatar">{initials}</div>
+                        <div>
+                            <div className="rx-doc-name">Dr. {doctorName}</div>
+                            <div className="rx-doc-role">{specialty ?? 'Doctor'}</div>
+                        </div>
+                        <Icons.chevronDown size={13} />
+                    </button>
+                </Dropdown>
             </div>
         </header>
     );

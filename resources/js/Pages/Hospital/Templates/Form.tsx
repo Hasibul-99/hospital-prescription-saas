@@ -7,7 +7,7 @@ import TextListSection from '@/Components/Prescription/TextListSection';
 import { AdviceSuggestion, ComplaintMaster, DoctorTemplate, Medicine, PageProps } from '@/types';
 import { ComplaintInput, ExaminationInput, MedicineInput, SectionInput } from '@/hooks/usePrescriptionReducer';
 import { Head, router } from '@inertiajs/react';
-import { Button, Card, Form, Input, Space, Typography, App as AntApp } from 'antd';
+import { Alert, Button, Card, Form, Input, Space, Typography, App as AntApp } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 
@@ -32,6 +32,7 @@ export default function HospitalTemplateForm({
 }: Props) {
     const { message } = AntApp.useApp();
 
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [diseaseName, setDiseaseName] = useState<string>(template?.disease_name ?? '');
     const [complaints, setComplaints] = useState<ComplaintInput[]>(
         (template?.complaints as ComplaintInput[]) ?? [],
@@ -52,9 +53,11 @@ export default function HospitalTemplateForm({
 
     function save() {
         if (!diseaseName.trim()) {
-            message.warning('Disease name is required.');
+            setErrors({ disease_name: 'Disease name is required.' });
             return;
         }
+
+        setErrors({});
 
         const payload = {
             disease_name: diseaseName.trim(),
@@ -73,9 +76,12 @@ export default function HospitalTemplateForm({
             message.success('Global template saved.');
             router.visit('/hospital/templates');
         };
-        const onFail = () => {
+        // Surface what the server actually rejected — a duplicate name or an
+        // over-long field used to show only a generic "Save failed." toast.
+        const onFail = (serverErrors: Record<string, string>) => {
             setSaving(false);
-            message.error('Save failed.');
+            setErrors(serverErrors);
+            message.error(serverErrors.disease_name ?? 'Please fix the highlighted fields.');
         };
 
         if (template) {
@@ -84,6 +90,12 @@ export default function HospitalTemplateForm({
             router.post('/hospital/templates', payload as any, { onSuccess: onOk, onError: onFail });
         }
     }
+
+    // Nested rules report as `medicines.0.medicine_name`; those rows are drawn
+    // by the shared prescription sections, which have nowhere to hang an error.
+    const rowErrors = Object.entries(errors)
+        .filter(([key]) => key.includes('.'))
+        .map(([, value]) => value);
 
     return (
         <HospitalLayout>
@@ -104,16 +116,40 @@ export default function HospitalTemplateForm({
 
             <Card className="mb-4">
                 <Form layout="vertical">
-                    <Form.Item label="Disease / Condition Name" required>
+                    <Form.Item
+                        label="Disease / Condition Name"
+                        required
+                        validateStatus={errors.disease_name ? 'error' : undefined}
+                        help={errors.disease_name}
+                    >
                         <Input
                             value={diseaseName}
-                            onChange={(e) => setDiseaseName(e.target.value)}
+                            onChange={(e) => {
+                                setDiseaseName(e.target.value);
+                                if (errors.disease_name) setErrors(({ disease_name, ...rest }) => rest);
+                            }}
                             placeholder="e.g., Acute Gastroenteritis"
                             maxLength={150}
                         />
                     </Form.Item>
                 </Form>
             </Card>
+
+            {rowErrors.length > 0 && (
+                <Alert
+                    type="error"
+                    showIcon
+                    className="mb-4"
+                    message="Some rows could not be saved"
+                    description={
+                        <ul className="ml-4 list-disc text-sm">
+                            {rowErrors.map((e) => (
+                                <li key={e}>{e}</li>
+                            ))}
+                        </ul>
+                    }
+                />
+            )}
 
             <div className="space-y-3">
                 <ComplaintsSection

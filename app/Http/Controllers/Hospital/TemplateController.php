@@ -70,21 +70,13 @@ class TemplateController extends Controller
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name_en', 'name_bn', 'category']),
-            'duration_presets' => [
-                '1 day', '2 days', '3 days', '5 days', '7 days', '10 days', '15 days',
-                '1 month', '2 months', '3 months', '6 months', '1 year',
-                'Few days', 'Continuous',
-            ],
-            'advice_suggestions' => [
-                ['en' => 'Get tests done', 'bn' => 'পরীক্ষা করে দেখান'],
-                ['en' => 'Drink plenty of water', 'bn' => 'প্রচুর পানি খাবেন'],
-                ['en' => 'Take rest', 'bn' => 'বিশ্রাম নিবেন'],
-            ],
+            // A hospital-global template has no single doctor, so there is no
+            // personal "frequently used" list to offer here.
             'frequent_medicines' => [],
-            'instruction_presets' => [
-                'খাবারের পরে', 'খাবারের আগে', 'খাবারের সাথে',
-            ],
-            'duration_day_presets' => [1, 5, 7, 14, 30],
+            'duration_presets' => config('prescription.duration_presets'),
+            'advice_suggestions' => config('prescription.advice_suggestions'),
+            'instruction_presets' => config('prescription.instruction_presets'),
+            'duration_day_presets' => config('prescription.duration_day_presets'),
         ];
     }
 

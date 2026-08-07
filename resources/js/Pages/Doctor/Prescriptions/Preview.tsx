@@ -1,5 +1,5 @@
 import PrescriptionPrintLayout from '@/Components/Prescription/PrescriptionPrintLayout';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import DoctorLayout from '@/Layouts/DoctorLayout';
 import { DoctorProfile, Hospital, PageProps, Patient, Prescription } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
@@ -100,7 +100,7 @@ export default function Preview({ prescription, doctor_profile, hospital, verify
     }
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Prescription Preview</h2>}>
+        <DoctorLayout>
             <Head title={`Rx ${prescription.prescription_uid}`} />
 
             <div className="no-print sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
@@ -199,6 +199,6 @@ export default function Preview({ prescription, doctor_profile, hospital, verify
                     qrSvg={qr_svg}
                 />
             </div>
-        </AuthenticatedLayout>
+        </DoctorLayout>
     );
 }

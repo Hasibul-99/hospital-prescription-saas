@@ -5,6 +5,7 @@ export interface User {
     phone?: string;
     avatar?: string;
     role: 'super_admin' | 'hospital_admin' | 'doctor' | 'receptionist';
+    preferred_language?: 'en' | 'bn';
     hospital_id?: number;
     is_active: boolean;
     email_verified_at?: string;

@@ -98,20 +98,8 @@ class TemplateController extends Controller
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name_en', 'name_bn', 'category']),
-            'duration_presets' => [
-                '1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days', '10 days', '15 days', '20 days',
-                '1 month', '2 months', '3 months', '6 months', '1 year',
-                'Few days', 'Frequent', 'Continuous', 'At night',
-            ],
-            'advice_suggestions' => [
-                ['en' => 'Get tests done', 'bn' => 'পরীক্ষা করে দেখান'],
-                ['en' => 'Drink plenty of water', 'bn' => 'প্রচুর পানি খাবেন'],
-                ['en' => 'Take rest', 'bn' => 'বিশ্রাম নিবেন'],
-                ['en' => 'Avoid cold food', 'bn' => 'ঠাণ্ডা খাবার এড়িয়ে চলুন'],
-                ['en' => 'Avoid oily food', 'bn' => 'তৈলাক্ত খাবার এড়িয়ে চলুন'],
-                ['en' => 'Walk daily', 'bn' => 'প্রতিদিন হাঁটবেন'],
-                ['en' => 'Take medicine regularly', 'bn' => 'নিয়মিত ঔষধ সেবন করবেন'],
-            ],
+            'duration_presets' => config('prescription.duration_presets'),
+            'advice_suggestions' => config('prescription.advice_suggestions'),
             'frequent_medicines' => DoctorFrequentMedicine::query()
                 ->where('doctor_id', $user->id)
                 ->orderBy('sort_order')
@@ -121,11 +109,8 @@ class TemplateController extends Controller
                 ->filter()
                 ->values()
                 ->toArray(),
-            'instruction_presets' => [
-                'খাবারের পরে', 'খাবারের আগে', 'খাবারের সাথে',
-                'If Fever or Pain', 'যন্ত্রণা থাকলে',
-            ],
-            'duration_day_presets' => [1, 5, 7, 14, 30],
+            'instruction_presets' => config('prescription.instruction_presets'),
+            'duration_day_presets' => config('prescription.duration_day_presets'),
         ];
     }
 

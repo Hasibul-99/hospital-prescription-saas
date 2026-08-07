@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 
 class TemplateRequest extends FormRequest
 {
@@ -14,7 +16,12 @@ class TemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'disease_name' => 'required|string|max:150',
+            'disease_name' => [
+                'required', 'string', 'max:150',
+                $this->uniqueDiseaseName(),
+            ],
+            // Accepted but ignored: the controller decides whether a template is
+            // global from the route it was reached through, never from input.
             'is_global' => 'nullable|boolean',
 
             'complaints' => 'nullable|array',
@@ -45,10 +52,40 @@ class TemplateRequest extends FormRequest
             'medicines.*.additional_doses' => 'nullable|array',
 
             'advices' => 'nullable|array',
-            'advices.*.content' => 'required_without:advices.*|string|max:500',
+            'advices.*.content' => 'required|string|max:500',
 
             'investigations' => 'nullable|array',
-            'investigations.*.content' => 'required_without:investigations.*|string|max:500',
+            'investigations.*.content' => 'required|string|max:500',
+        ];
+    }
+
+    /**
+     * Two templates with the same disease name are indistinguishable in the
+     * doctor's picker, so names are unique within their own scope: per hospital
+     * for global templates, per doctor for personal ones.
+     */
+    protected function uniqueDiseaseName(): Unique
+    {
+        $user = $this->user();
+        $template = $this->route('template');
+        $isGlobal = $template ? (bool) $template->is_global : $this->routeIs('hospital.*');
+
+        $rule = Rule::unique('doctor_templates', 'disease_name')
+            ->where('hospital_id', $user->hospital_id)
+            ->where('is_global', $isGlobal)
+            ->whereNull('deleted_at');
+
+        if (! $isGlobal) {
+            $rule->where('doctor_id', $user->id);
+        }
+
+        return $template ? $rule->ignore($template->id) : $rule;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'disease_name.unique' => 'A template with this name already exists.',
         ];
     }
 }
