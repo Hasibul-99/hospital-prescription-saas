@@ -1,6 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import FlashMessage from '@/Components/FlashMessage';
 import Modal from '@/Components/Modal';
+import DoctorProfileFields from '@/Components/DoctorProfileFields';
 import { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
@@ -8,11 +9,13 @@ import { FormEventHandler, useState } from 'react';
 interface User {
     id: number; name: string; email: string; role: string;
     hospital_id?: number | null; is_active: boolean;
+    doctor_profile?: { specialization: string | null; degrees: string | null } | null;
 }
 
 interface Props extends PageProps {
     user: User;
     hospitals: { id: number; name: string }[];
+    specializations: string[];
 }
 
 const inputCls = 'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500';
@@ -119,16 +122,21 @@ function PasswordModal({ user, show, onClose }: { user: User; show: boolean; onC
     );
 }
 
-export default function Edit({ user, hospitals }: Props) {
+export default function Edit({ user, hospitals, specializations }: Props) {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     const { data, setData, put, processing, errors } = useForm({
-        name:        user.name,
-        email:       user.email,
-        role:        user.role,
-        hospital_id: user.hospital_id ?? ('' as string | number),
-        is_active:   user.is_active,
+        name:           user.name,
+        email:          user.email,
+        role:           user.role,
+        hospital_id:    user.hospital_id ?? ('' as string | number),
+        is_active:      user.is_active,
+        specialization: user.doctor_profile?.specialization ?? '',
+        degrees:        user.doctor_profile?.degrees ?? '',
     });
+
+    // A doctor profile only exists for doctors attached to a hospital.
+    const showDoctorFields = data.role === 'doctor';
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -187,6 +195,16 @@ export default function Edit({ user, hospitals }: Props) {
                                 {errors.hospital_id && <p className="mt-1 text-xs text-red-600">{errors.hospital_id}</p>}
                             </div>
                         </div>
+
+                        {showDoctorFields && (
+                            <DoctorProfileFields
+                                specialization={data.specialization}
+                                degrees={data.degrees}
+                                specializations={specializations}
+                                onChange={(field, value) => setData(field, value)}
+                                errors={{ specialization: errors.specialization, degrees: errors.degrees }}
+                            />
+                        )}
 
                         <div className="flex items-center gap-2">
                             <input type="checkbox" id="is_active" checked={data.is_active}

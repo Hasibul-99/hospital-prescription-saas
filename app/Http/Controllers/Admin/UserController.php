@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Support\DoctorLimit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,7 @@ class UserController extends Controller
 
         return Inertia::render('Admin/Users/Create', [
             'hospitals' => $hospitals,
+            'specializations' => config('doctor.specializations'),
         ]);
     }
 
@@ -56,15 +58,19 @@ class UserController extends Controller
             'role'        => 'required|in:super_admin,hospital_admin,doctor,receptionist',
             'hospital_id' => 'nullable|exists:hospitals,id',
             'is_active'   => 'boolean',
+            ...$this->doctorProfileRules(),
         ]);
 
         // A cap is a cap — the super admin is blocked too. Raise the hospital's
         // max_doctors_override (or its plan) to make room.
         $this->assertDoctorSlotAvailable($validated);
 
+        $profileData = $this->doctorProfileData($validated);
         $validated['password'] = Hash::make($validated['password']);
 
-        User::create($validated);
+        $user = User::create(Arr::except($validated, array_keys($this->doctorProfileRules())));
+
+        $this->syncDoctorProfile($user, $profileData);
 
         return redirect()->route('admin.users.index')->with('success', 'User created.');
     }
@@ -81,8 +87,9 @@ class UserController extends Controller
         $hospitals = Hospital::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Admin/Users/Edit', [
-            'user'      => $user,
+            'user'      => $user->load('doctorProfile:id,user_id,specialization,degrees'),
             'hospitals' => $hospitals,
+            'specializations' => config('doctor.specializations'),
         ]);
     }
 
@@ -99,13 +106,66 @@ class UserController extends Controller
             'role'        => 'required|in:super_admin,hospital_admin,doctor,receptionist',
             'hospital_id' => 'nullable|exists:hospitals,id',
             'is_active'   => 'boolean',
+            ...$this->doctorProfileRules(),
         ]);
 
         $this->assertDoctorSlotAvailable($validated, $user);
 
-        $user->update($validated);
+        $profileData = $this->doctorProfileData($validated);
+
+        $user->update(Arr::except($validated, array_keys($this->doctorProfileRules())));
+
+        $this->syncDoctorProfile($user, $profileData);
 
         return redirect()->route('admin.users.index')->with('success', 'User updated.');
+    }
+
+    /**
+     * Optional doctor-profile fields the super admin may set alongside the
+     * account. Both are free text — config/doctor.php only supplies dropdown
+     * suggestions, it is not a whitelist, so unlisted specialties still save.
+     */
+    private function doctorProfileRules(): array
+    {
+        return [
+            'specialization' => 'nullable|string|max:255',
+            'degrees' => 'nullable|string|max:500',
+        ];
+    }
+
+    private function doctorProfileData(array $validated): array
+    {
+        return [
+            'specialization' => $validated['specialization'] ?? null,
+            'degrees' => $validated['degrees'] ?? null,
+        ];
+    }
+
+    /**
+     * Create or update the doctor's profile row.
+     *
+     * Only doctors have one, and only when they belong to a hospital —
+     * doctor_profiles.hospital_id is NOT NULL. The row is left alone (not
+     * deleted) if the user stops being a doctor, so demoting and re-promoting
+     * an account does not silently discard their credentials.
+     */
+    private function syncDoctorProfile(User $user, array $data): void
+    {
+        if ($user->role !== 'doctor' || ! $user->hospital_id) {
+            return;
+        }
+
+        // Nothing to write and no existing row: don't create an empty profile.
+        $profile = $user->doctorProfile()->first();
+
+        if (! $profile && blank($data['specialization']) && blank($data['degrees'])) {
+            return;
+        }
+
+        $user->doctorProfile()->updateOrCreate(
+            ['user_id' => $user->id],
+            $data + ['hospital_id' => $user->hospital_id],
+        );
     }
 
     /**

@@ -44,6 +44,7 @@ class DoctorController extends Controller
         return Inertia::render('Hospital/Doctors/Form', [
             'doctor' => null,
             'quota' => DoctorLimit::usage($this->hospital($request)),
+            'specializations' => config('doctor.specializations'),
         ]);
     }
 
@@ -101,6 +102,7 @@ class DoctorController extends Controller
         return Inertia::render('Hospital/Doctors/Form', [
             'doctor' => $doctor,
             'quota' => DoctorLimit::usage($this->hospital($request)),
+            'specializations' => config('doctor.specializations'),
         ]);
     }
 

@@ -1,14 +1,18 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import DoctorProfileFields from '@/Components/DoctorProfileFields';
 import { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
-interface Props extends PageProps { hospitals: { id: number; name: string }[] }
+interface Props extends PageProps {
+    hospitals: { id: number; name: string }[];
+    specializations: string[];
+}
 
 const inputCls = 'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
 
-export default function Create({ hospitals }: Props) {
+export default function Create({ hospitals, specializations }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         email: '',
@@ -17,7 +21,12 @@ export default function Create({ hospitals }: Props) {
         role: 'doctor' as string,
         hospital_id: '' as string | number,
         is_active: true,
+        specialization: '',
+        degrees: '',
     });
+
+    // A doctor profile only exists for doctors attached to a hospital.
+    const showDoctorFields = data.role === 'doctor';
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -89,6 +98,16 @@ export default function Create({ hospitals }: Props) {
                             {errors.hospital_id && <p className="mt-1 text-xs text-red-600">{errors.hospital_id}</p>}
                         </div>
                     </div>
+
+                    {showDoctorFields && (
+                        <DoctorProfileFields
+                            specialization={data.specialization}
+                            degrees={data.degrees}
+                            specializations={specializations}
+                            onChange={(field, value) => setData(field, value)}
+                            errors={{ specialization: errors.specialization, degrees: errors.degrees }}
+                        />
+                    )}
 
                     <div className="flex items-center gap-2">
                         <input type="checkbox" id="is_active" checked={data.is_active}

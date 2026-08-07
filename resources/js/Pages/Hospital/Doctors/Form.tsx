@@ -2,7 +2,7 @@ import HospitalLayout from '@/Layouts/HospitalLayout';
 import FlashMessage from '@/Components/FlashMessage';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { App as AntApp, Button, Card, Col, Form, Input, InputNumber, Row, Space, Switch, Typography } from 'antd';
+import { App as AntApp, AutoComplete, Button, Card, Col, Form, Input, InputNumber, Row, Space, Switch, Typography } from 'antd';
 import { ReactNode } from 'react';
 import { useCurrency } from '@/utils/currency';
 
@@ -25,9 +25,9 @@ type Doctor = {
     doctor_profile: DoctorProfile | null;
 };
 
-type Props = PageProps<{ doctor: Doctor | null }>;
+type Props = PageProps<{ doctor: Doctor | null; specializations: string[] }>;
 
-export default function DoctorForm({ doctor }: Props) {
+export default function DoctorForm({ doctor, specializations }: Props) {
     const currency = useCurrency();
     const { message } = AntApp.useApp();
     const isEdit = doctor !== null;
@@ -132,7 +132,16 @@ export default function DoctorForm({ doctor }: Props) {
                         </Col>
                         <Col xs={24} sm={12}>
                             <Form.Item name="specialization" label="Specialization">
-                                <Input />
+                                {/* Suggestions keep spelling consistent across
+                                    hospitals; free text is still accepted. */}
+                                <AutoComplete
+                                    allowClear
+                                    filterOption={(input, option) =>
+                                        String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                                    }
+                                    options={specializations.map((s) => ({ value: s }))}
+                                    placeholder="Choose or type a specialization"
+                                />
                             </Form.Item>
                         </Col>
                         <Col xs={24} sm={12}>
