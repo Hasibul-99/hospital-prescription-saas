@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified', 'role:super_admin'])
         Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
 
         Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/audit-logs/export', [\App\Http\Controllers\Admin\AuditLogController::class, 'exportCsv'])->name('audit-logs.export');
 
         Route::get('/settings', [AdminSettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/settings/platform', [AdminSettingsController::class, 'updatePlatform'])->name('settings.platform');

@@ -20,4 +20,13 @@ class AuditLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Nullable — platform-level events (super-admin logins) have no tenant.
+     * Not hospital-scoped: the super admin reads across every hospital.
+     */
+    public function hospital(): BelongsTo
+    {
+        return $this->belongsTo(Hospital::class);
+    }
 }
