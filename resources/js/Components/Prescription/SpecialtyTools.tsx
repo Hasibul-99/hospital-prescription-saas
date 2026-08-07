@@ -1,134 +1,154 @@
 import { useMemo, useState } from 'react';
+import { Collapse, DatePicker, InputNumber, Segmented, Statistic } from 'antd';
+import { CalculatorOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 /**
- * Two collapsible client-side calculators embedded in the Rx builder:
+ * Two client-side calculators embedded in the Rx builder:
  *
- *  1. Paediatric weight-based dose — mg/kg × weight → per-dose mg, plus a
- *     per-day breakdown at common frequencies.
+ *  1. Paediatric weight-based dose — mg/kg × weight → per-dose mg.
  *  2. LMP → EDD — 40-week (280-day) Naegele estimate + current gestational age.
  *
- * Both are pure UI. No API calls, no schema. Doctor reads the result and
- * types it into the appropriate section themselves.
+ * Both are pure UI. No API calls, no schema. Doctor reads the result and types
+ * it into the appropriate section themselves.
  */
 export default function SpecialtyTools() {
     return (
-        <div className="mt-3 space-y-2">
-            <PaediatricDoseCalc />
-            <LmpEddCalc />
-        </div>
+        <Collapse
+            size="small"
+            className="mt-1"
+            items={[
+                {
+                    key: 'paed',
+                    label: (
+                        <span className="text-[13px]">
+                            <CalculatorOutlined className="mr-1.5" />
+                            Paediatric dose calculator
+                        </span>
+                    ),
+                    children: <PaediatricDoseCalc />,
+                },
+                {
+                    key: 'edd',
+                    label: (
+                        <span className="text-[13px]">
+                            <CalculatorOutlined className="mr-1.5" />
+                            LMP → EDD calculator
+                        </span>
+                    ),
+                    children: <LmpEddCalc />,
+                },
+            ]}
+        />
     );
 }
 
 function PaediatricDoseCalc() {
-    const [weight, setWeight] = useState('');
-    const [mgPerKg, setMgPerKg] = useState('');
-    const [freq, setFreq] = useState<'1' | '2' | '3' | '4'>('3');
+    const [weight, setWeight] = useState<number | null>(null);
+    const [mgPerKg, setMgPerKg] = useState<number | null>(null);
+    const [freq, setFreq] = useState(3);
 
-    const w = parseFloat(weight);
-    const mk = parseFloat(mgPerKg);
-    const dailyMg = Number.isFinite(w) && Number.isFinite(mk) ? w * mk : null;
-    const perDose = dailyMg !== null ? dailyMg / parseInt(freq, 10) : null;
+    const dailyMg = weight != null && mgPerKg != null ? weight * mgPerKg : null;
+    const perDose = dailyMg !== null ? dailyMg / freq : null;
 
     return (
-        <details className="rounded border border-gray-200 bg-white">
-            <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Paediatric dose calculator
-            </summary>
-            <div className="grid gap-2 border-t border-gray-100 p-3 sm:grid-cols-4">
-                <label className="text-xs text-gray-500">
-                    Weight (kg)
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                    />
-                </label>
-                <label className="text-xs text-gray-500">
-                    Dose (mg/kg/day)
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={mgPerKg}
-                        onChange={(e) => setMgPerKg(e.target.value)}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                    />
-                </label>
-                <label className="text-xs text-gray-500">
-                    Divided into
-                    <select
-                        value={freq}
-                        onChange={(e) => setFreq(e.target.value as '1' | '2' | '3' | '4')}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                    >
-                        <option value="1">Once daily</option>
-                        <option value="2">BD (twice)</option>
-                        <option value="3">TDS (three)</option>
-                        <option value="4">QID (four)</option>
-                    </select>
-                </label>
-                <div className="rounded bg-teal-50 p-2 text-xs">
-                    <div className="text-gray-500">Per day</div>
-                    <div className="text-lg font-semibold text-teal-800">{dailyMg !== null ? dailyMg.toFixed(1) + ' mg' : '—'}</div>
-                    <div className="text-gray-500">Per dose</div>
-                    <div className="text-sm font-medium text-teal-700">{perDose !== null ? perDose.toFixed(1) + ' mg' : '—'}</div>
+        <div className="grid gap-3 sm:grid-cols-4">
+            <label className="text-xs text-gray-500">
+                Weight (kg)
+                <InputNumber
+                    className="mt-1 w-full"
+                    size="small"
+                    min={0}
+                    step={0.1}
+                    value={weight}
+                    onChange={setWeight}
+                />
+            </label>
+
+            <label className="text-xs text-gray-500">
+                Dose (mg/kg/day)
+                <InputNumber
+                    className="mt-1 w-full"
+                    size="small"
+                    min={0}
+                    step={0.1}
+                    value={mgPerKg}
+                    onChange={setMgPerKg}
+                />
+            </label>
+
+            <label className="text-xs text-gray-500">
+                Divided into
+                <Segmented
+                    block
+                    className="mt-1"
+                    size="small"
+                    value={freq}
+                    onChange={(v) => setFreq(v as number)}
+                    options={[
+                        { label: 'OD', value: 1 },
+                        { label: 'BD', value: 2 },
+                        { label: 'TDS', value: 3 },
+                        { label: 'QID', value: 4 },
+                    ]}
+                />
+            </label>
+
+            <div className="rounded-lg bg-[#f0f8f3] p-2.5">
+                <Statistic
+                    title={<span className="text-[11px]">Per dose</span>}
+                    value={perDose !== null ? perDose.toFixed(1) : '—'}
+                    suffix={perDose !== null ? 'mg' : undefined}
+                    valueStyle={{ fontSize: 18, color: '#0d6e46' }}
+                />
+                <div className="mt-1 text-[11px] text-gray-500">
+                    {dailyMg !== null ? `${dailyMg.toFixed(1)} mg per day` : 'Enter weight and dose'}
                 </div>
             </div>
-        </details>
+        </div>
     );
 }
 
 function LmpEddCalc() {
-    const [lmp, setLmp] = useState('');
+    const [lmp, setLmp] = useState<dayjs.Dayjs | null>(null);
 
     const result = useMemo(() => {
         if (!lmp) return null;
-        const lmpDate = new Date(lmp);
-        if (isNaN(lmpDate.getTime())) return null;
-        const edd = new Date(lmpDate);
-        edd.setDate(edd.getDate() + 280);
-        const diffMs = Date.now() - lmpDate.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const gaWeeks = Math.floor(diffDays / 7);
-        const gaDays = diffDays - gaWeeks * 7;
-        return { edd, gaWeeks, gaDays, diffDays };
+
+        const edd = lmp.add(280, 'day');
+        const elapsed = dayjs().diff(lmp, 'day');
+        return { edd, elapsed, weeks: Math.floor(elapsed / 7), days: elapsed % 7 };
     }, [lmp]);
 
     return (
-        <details className="rounded border border-gray-200 bg-white">
-            <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                LMP → EDD calculator
-            </summary>
-            <div className="grid gap-2 border-t border-gray-100 p-3 sm:grid-cols-3">
-                <label className="text-xs text-gray-500">
-                    LMP (Last Menstrual Period)
-                    <input
-                        type="date"
-                        value={lmp}
-                        onChange={(e) => setLmp(e.target.value)}
-                        className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                    />
-                </label>
-                <div className="rounded bg-teal-50 p-2 text-xs">
-                    <div className="text-gray-500">EDD (Naegele)</div>
-                    <div className="text-lg font-semibold text-teal-800">
-                        {result ? result.edd.toISOString().slice(0, 10) : '—'}
-                    </div>
-                </div>
-                <div className="rounded bg-teal-50 p-2 text-xs">
-                    <div className="text-gray-500">Current GA</div>
-                    <div className="text-lg font-semibold text-teal-800">
-                        {result
-                            ? result.diffDays < 0
-                                ? 'LMP in future'
-                                : `${result.gaWeeks}w ${result.gaDays}d`
-                            : '—'}
-                    </div>
-                </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+            <label className="text-xs text-gray-500">
+                LMP (last menstrual period)
+                <DatePicker
+                    className="mt-1 w-full"
+                    size="small"
+                    format="DD MMM YYYY"
+                    value={lmp}
+                    maxDate={dayjs()}
+                    onChange={setLmp}
+                />
+            </label>
+
+            <div className="rounded-lg bg-[#f0f8f3] p-2.5">
+                <Statistic
+                    title={<span className="text-[11px]">EDD (Naegele)</span>}
+                    value={result ? result.edd.format('DD MMM YYYY') : '—'}
+                    valueStyle={{ fontSize: 16, color: '#0d6e46' }}
+                />
             </div>
-        </details>
+
+            <div className="rounded-lg bg-[#f0f8f3] p-2.5">
+                <Statistic
+                    title={<span className="text-[11px]">Current GA</span>}
+                    value={result ? `${result.weeks}w ${result.days}d` : '—'}
+                    valueStyle={{ fontSize: 16, color: '#0d6e46' }}
+                />
+            </div>
+        </div>
     );
 }

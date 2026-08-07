@@ -1,6 +1,8 @@
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 import { PageProps } from '@/types';
+import { Avatar, Button, Space, Tooltip, Typography } from 'antd';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 
 export default function PrescriptionLayout({ children }: PropsWithChildren) {
     const { auth } = usePage<PageProps>().props;
@@ -12,74 +14,55 @@ export default function PrescriptionLayout({ children }: PropsWithChildren) {
         .toUpperCase();
 
     return (
-        <div style={{ height: '100vh', overflow: 'hidden', display: 'grid', gridTemplateRows: '56px 1fr', background: '#f6f7f5' }}>
-            {/* ── Top bar ── */}
-            <header style={{
-                display: 'flex', alignItems: 'center', padding: '0 18px',
-                background: '#fff', borderBottom: '1px solid #e3e7e3', gap: 24,
-            }}>
-                {/* Brand */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 15, letterSpacing: '-0.01em' }}>
-                    <div style={{
-                        width: 28, height: 28, borderRadius: 7,
-                        background: 'linear-gradient(135deg,#0a8754,#0d6e46)',
-                        color: 'white', display: 'grid', placeItems: 'center',
-                        fontWeight: 700, fontSize: 16, fontFamily: 'serif', fontStyle: 'italic',
-                        boxShadow: '0 2px 6px rgba(10,135,84,.3)',
-                    }}>℞</div>
-                    <span style={{ color: '#0f1a14' }}>Pulse Rx</span>
-                    <span style={{ fontSize: 11, color: '#6a7a72', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', marginLeft: 2 }}>Composer</span>
+        <div className="grid h-screen grid-rows-[56px_1fr] overflow-hidden bg-[#f6f7f5]">
+            <header className="flex items-center gap-4 border-b border-[#e3e7e3] bg-white px-4">
+                <div className="flex items-center gap-2.5">
+                    <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-[#0a8754] to-[#0d6e46] font-serif text-base font-bold italic text-white shadow-sm">
+                        ℞
+                    </span>
+                    <span className="text-[15px] font-bold tracking-tight text-[#0f1a14]">Pulse Rx</span>
+                    <Typography.Text type="secondary" className="!hidden text-[11px] uppercase tracking-widest sm:!inline">
+                        Composer
+                    </Typography.Text>
                 </div>
 
-                {/* Back */}
-                <Link
-                    href="/doctor/queue"
-                    style={{ padding: '6px 12px', borderRadius: 7, color: '#2b3a32', textDecoration: 'none', fontWeight: 500, fontSize: 13 }}
-                >
-                    ← Queue
+                <Link href="/doctor/queue">
+                    <Button type="text" size="small" icon={<ArrowLeftOutlined />}>
+                        Queue
+                    </Button>
                 </Link>
 
-                {/* Right */}
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6a7a72' }}>
+                <div className="ml-auto flex items-center gap-4">
+                    <Space size={12} className="!hidden lg:!flex">
                         <KbdHint k="⌘K" label="Add medicine" />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6a7a72' }}>
-                        <KbdHint k="⌘P" label="Print" />
-                    </div>
-                    <div style={{ width: 1, height: 20, background: '#e3e7e3' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{
-                            width: 30, height: 30, borderRadius: '50%',
-                            background: 'linear-gradient(135deg,#2b3a32,#4a5b51)',
-                            color: 'white', display: 'grid', placeItems: 'center',
-                            fontWeight: 600, fontSize: 12, flexShrink: 0,
-                        }}>{initials}</div>
-                        <div style={{ fontSize: 12.5, lineHeight: 1.2 }}>
-                            <div style={{ fontWeight: 600, color: '#0f1a14' }}>Dr. {auth.user.name}</div>
-                            <div style={{ color: '#6a7a72', fontSize: 11 }}>Doctor</div>
+                        <KbdHint k="⌘P" label="Sign & print" />
+                    </Space>
+
+                    <span className="h-5 w-px bg-[#e3e7e3]" />
+
+                    <div className="flex items-center gap-2">
+                        <Avatar size={30} style={{ background: '#2b3a32' }}>
+                            {initials}
+                        </Avatar>
+                        <div className="hidden text-[12.5px] leading-tight sm:block">
+                            <div className="font-semibold text-[#0f1a14]">{auth.user.name}</div>
+                            <div className="text-[11px] text-[#6a7a72]">Doctor</div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            {/* ── Page content (fills remaining height) ── */}
-            <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                {children}
-            </div>
+            <div className="min-h-0 overflow-hidden">{children}</div>
         </div>
     );
 }
 
 function KbdHint({ k, label }: { k: string; label: string }) {
     return (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-                background: '#eef0ec', border: '1px solid #e3e7e3', borderBottomWidth: 2,
-                padding: '1px 6px', borderRadius: 4, fontSize: 11, fontFamily: 'monospace',
-                color: '#2b3a32', lineHeight: 1.6,
-            }}>{k}</span>
-            <span style={{ color: '#6a7a72', fontSize: 12 }}>{label}</span>
-        </span>
+        <Tooltip title={label}>
+            <kbd className="rounded border border-b-2 border-[#e3e7e3] bg-[#eef0ec] px-1.5 py-0.5 font-mono text-[11px] text-[#2b3a32]">
+                {k}
+            </kbd>
+        </Tooltip>
     );
 }

@@ -36,7 +36,12 @@ class PrescriptionPrintController extends Controller
         $qrSvg = null;
         if ($verifyUrl) {
             try {
-                $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
+                // generate() returns an Illuminate\Support\HtmlString. Blade's
+                // {!! !!} calls __toString() on it, but json_encode() sees only
+                // a protected property and emits `{}` — which reaches React as a
+                // truthy object and renders the literal text "[object Object]".
+                // Cast here so the Inertia payload carries real SVG markup.
+                $qrSvg = (string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')
                     ->size(120)->margin(0)->generate($verifyUrl);
             } catch (\Throwable $e) {
                 $qrSvg = null;

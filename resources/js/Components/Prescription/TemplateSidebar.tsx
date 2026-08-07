@@ -1,4 +1,7 @@
 import { DoctorTemplate } from '@/types';
+import { Button, Empty, Input, List, Spin, Tag, Typography } from 'antd';
+import { PlusOutlined, SearchOutlined, StarFilled } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 
 interface Props {
@@ -20,6 +23,7 @@ export default function TemplateSidebar({ templates, activeId, onSelect, onNewRx
     const mine = filtered.filter((t) => !t.is_global);
     const global = filtered.filter((t) => t.is_global);
 
+    /** The list payload is trimmed; the full template body comes on demand. */
     async function load(tpl: DoctorTemplate) {
         setLoading(tpl.id);
         try {
@@ -28,127 +32,90 @@ export default function TemplateSidebar({ templates, activeId, onSelect, onNewRx
                 credentials: 'same-origin',
             });
             if (!res.ok) throw new Error('Failed');
-            const full = await res.json();
-            onSelect(full);
+            onSelect(await res.json());
         } finally {
             setLoading(null);
         }
     }
 
+    function renderGroup(label: string, items: DoctorTemplate[]) {
+        if (items.length === 0) return null;
+
+        return (
+            <>
+                <div className="px-2 pb-1 pt-2 text-[10.5px] font-semibold uppercase tracking-wide text-[#6a7a72]">
+                    {label}
+                </div>
+                <List
+                    size="small"
+                    dataSource={items}
+                    split={false}
+                    renderItem={(tpl) => (
+                        <List.Item
+                            className={`!cursor-pointer !rounded-lg !px-2.5 !py-2 transition-colors ${
+                                activeId === tpl.id ? 'bg-[#e6f4ec]' : 'hover:bg-[#f6f7f5]'
+                            }`}
+                            onClick={() => loading == null && load(tpl)}
+                        >
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-[#0f1a14]">
+                                    {tpl.is_global && <StarFilled className="text-[#0a8754]" />}
+                                    <span className="truncate">{tpl.disease_name}</span>
+                                    {loading === tpl.id && <Spin size="small" />}
+                                </div>
+                                <div className="text-[11.5px] text-[#6a7a72]">
+                                    Updated {dayjs(tpl.updated_at).format('DD MMM YYYY')}
+                                    {!!tpl.use_count && <Tag className="!ml-1.5 !mr-0">used {tpl.use_count}×</Tag>}
+                                </div>
+                            </div>
+                        </List.Item>
+                    )}
+                />
+            </>
+        );
+    }
+
     return (
-        <aside style={{
-            background: '#fff',
-            borderRight: '1px solid #e3e7e3',
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            minHeight: 0,
-        }}>
-            {/* Head */}
-            <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #e3e7e3' }}>
-                <div style={{
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                    textTransform: 'uppercase', color: '#6a7a72',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    marginBottom: 8,
-                }}>
+        <aside className="flex h-full min-h-0 flex-col border-r border-[#e3e7e3] bg-white">
+            <div className="border-b border-[#e3e7e3] px-4 pb-2.5 pt-3.5">
+                <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-[#6a7a72]">
                     <span>Saved templates</span>
-                    <span style={{ color: '#9aa8a0', fontWeight: 500 }}>{filtered.length}</span>
+                    <span className="font-medium text-[#9aa8a0]">{filtered.length}</span>
                 </div>
-                {/* Search */}
-                <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#9aa8a0', pointerEvents: 'none' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                    </span>
-                    <input
-                        type="text"
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="Search templates…"
-                        style={{
-                            width: '100%', padding: '7px 10px 7px 30px',
-                            border: '1px solid #e3e7e3', background: '#f6f7f5',
-                            borderRadius: 7, fontSize: 13, outline: 'none',
-                            fontFamily: 'inherit',
-                        }}
-                        onFocus={(e) => { e.currentTarget.style.borderColor = '#0a8754'; e.currentTarget.style.background = '#fff'; }}
-                        onBlur={(e) => { e.currentTarget.style.borderColor = '#e3e7e3'; e.currentTarget.style.background = '#f6f7f5'; }}
+                <Input
+                    allowClear
+                    size="small"
+                    prefix={<SearchOutlined />}
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search templates…"
+                />
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-2 pb-3">
+                {filtered.length === 0 ? (
+                    <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        className="!mt-6"
+                        description={
+                            <Typography.Text type="secondary" className="text-xs">
+                                {q ? `No templates match “${q}”` : 'No templates saved yet.'}
+                            </Typography.Text>
+                        }
                     />
-                </div>
-            </div>
-
-            {/* Template list */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 12px' }}>
-                {mine.length > 0 && (
+                ) : (
                     <>
-                        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6a7a72', padding: '8px 6px 4px' }}>My Templates</div>
-                        {mine.map((t) => <TplItem key={t.id} tpl={t} active={activeId === t.id} loading={loading === t.id} onSelect={load} />)}
+                        {renderGroup('My templates', mine)}
+                        {renderGroup('Global templates', global)}
                     </>
-                )}
-                {global.length > 0 && (
-                    <>
-                        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6a7a72', padding: '8px 6px 4px' }}>Global Templates</div>
-                        {global.map((t) => <TplItem key={t.id} tpl={t} active={activeId === t.id} loading={loading === t.id} onSelect={load} />)}
-                    </>
-                )}
-                {filtered.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '20px 12px', color: '#6a7a72', fontSize: 13 }}>
-                        <div style={{ fontSize: 22, marginBottom: 4, opacity: 0.5 }}>⌕</div>
-                        No templates match "{q}"
-                    </div>
                 )}
             </div>
 
-            {/* Footer: New blank Rx */}
-            <div style={{ borderTop: '1px solid #e3e7e3', padding: '10px 12px' }}>
-                <button
-                    type="button"
-                    onClick={onNewRx}
-                    style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        gap: 6, padding: '8px 10px', borderRadius: 8,
-                        background: '#f0f8f3', color: '#0d6e46', fontWeight: 600, fontSize: 13,
-                        border: '1px dashed rgba(10,135,84,.35)', cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#e6f4ec'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#f0f8f3'; }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <div className="border-t border-[#e3e7e3] p-3">
+                <Button type="dashed" block icon={<PlusOutlined />} onClick={onNewRx}>
                     New blank Rx
-                </button>
+                </Button>
             </div>
         </aside>
-    );
-}
-
-function TplItem({ tpl, active, loading, onSelect }: {
-    tpl: DoctorTemplate; active: boolean; loading: boolean; onSelect: (t: DoctorTemplate) => void;
-}) {
-    const [hover, setHover] = useState(false);
-    return (
-        <button
-            type="button"
-            onClick={() => onSelect(tpl)}
-            disabled={loading}
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
-            style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '8px 10px', borderRadius: 8, marginBottom: 1,
-                position: 'relative', cursor: loading ? 'wait' : 'pointer',
-                background: active ? '#e6f4ec' : hover ? '#f6f7f5' : 'transparent',
-                opacity: loading ? 0.5 : 1, border: 'none',
-                transition: 'background .12s',
-            }}
-        >
-            <div style={{ fontWeight: 600, fontSize: 13.5, color: '#0f1a14', display: 'flex', alignItems: 'center', gap: 6 }}>
-                {tpl.is_global && <span style={{ color: '#0a8754' }}>★</span>}
-                {tpl.disease_name}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#6a7a72', marginTop: 2 }}>
-                <span>Updated {new Date(tpl.updated_at).toLocaleDateString('en-GB')}</span>
-                {loading && <span style={{ color: '#0a8754' }}>Loading…</span>}
-            </div>
-        </button>
     );
 }

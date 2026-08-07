@@ -225,6 +225,8 @@
                 $rightGroups = [
                     ['Advices',       $rx->sections->where('section_type', 'advice')],
                     ['Next Plans',    $rx->sections->where('section_type', 'next_plan')],
+                    ['Hospitalization / Referrals', $rx->sections->where('section_type', 'hospitalization')],
+                    ['Operation Note', $rx->sections->where('section_type', 'operation_note')],
                     ['Lab Referrals', $rx->sections->where('section_type', 'lab_referral')],
                     ['Notes',         $rx->sections->where('section_type', 'notes')],
                 ];
@@ -266,14 +268,33 @@
             }
         @endphp
         @if($qrSvg)
-            <div class="verify" style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:10px;color:#475569;">
-                <div style="width:80px;height:80px;">{!! $qrSvg !!}</div>
-                <div style="line-height:1.4;">
-                    <div><strong>Scan to verify</strong> — confirms this prescription is genuine.</div>
-                    <div>Rx ID: <span style="font-family:monospace;">{{ $rx->prescription_uid }}</span></div>
-                    <div>Patient ID: <span style="font-family:monospace;">{{ $patient?->patient_uid }}</span></div>
-                </div>
-            </div>
+            {{-- DomPDF does not implement flexbox, so this is laid out with a
+                 table to keep the code beside the text instead of above it. --}}
+            <table class="verify" style="width:100%;margin-top:14px;border:1px solid #cbd5e1;border-radius:4px;border-collapse:separate;font-size:10px;color:#475569;page-break-inside:avoid;">
+                <tr>
+                    <td style="width:86px;padding:7px;vertical-align:top;">
+                        {{-- Padding preserves the quiet zone scanners need. --}}
+                        <div style="width:72px;height:72px;padding:3px;border:1px solid #e2e8f0;background:#ffffff;">{!! $qrSvg !!}</div>
+                    </td>
+                    <td style="padding:7px 7px 7px 0;vertical-align:middle;line-height:1.45;">
+                        <div style="font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#0f4c81;">
+                            Verify this prescription
+                        </div>
+                        <div style="color:#64748b;">Scan the code, or open the link below, to confirm this prescription is genuine.</div>
+                        <div style="margin-top:3px;">
+                            <span style="color:#94a3b8;">Rx ID</span>
+                            <span style="font-family:monospace;font-weight:700;color:#0f172a;">{{ $rx->prescription_uid }}</span>
+                            @if($patient?->patient_uid)
+                                <span style="color:#94a3b8;padding-left:14px;">Patient ID</span>
+                                <span style="font-family:monospace;font-weight:700;color:#0f172a;">{{ $patient->patient_uid }}</span>
+                            @endif
+                        </div>
+                        @if($verifyUrl)
+                            <div style="margin-top:2px;font-family:monospace;font-size:8.5px;color:#94a3b8;word-break:break-all;">{{ $verifyUrl }}</div>
+                        @endif
+                    </td>
+                </tr>
+            </table>
         @endif
     @endif
 

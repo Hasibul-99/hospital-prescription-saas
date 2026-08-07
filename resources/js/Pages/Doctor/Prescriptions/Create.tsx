@@ -31,8 +31,9 @@ import {
     SectionInput,
 } from '@/hooks/usePrescriptionReducer';
 import { router } from '@inertiajs/react';
-import { App as AntApp, Modal } from 'antd';
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { App as AntApp, Button, Drawer, Dropdown } from 'antd';
+import { PlusOutlined, ProfileOutlined } from '@ant-design/icons';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { csrfHeaders } from '@/utils/csrf';
 
 interface Props {
@@ -55,6 +56,38 @@ interface Props {
     instruction_presets: string[];
     duration_day_presets: number[];
 }
+
+type OptionalType = Exclude<
+    SectionInput['section_type'],
+    'diagnosis' | 'investigation' | 'advice' | 'hospitalization'
+>;
+
+/**
+ * Sections beyond the everyday four. They used to all render as empty
+ * accordions, so a routine prescription meant scrolling past eleven boxes the
+ * doctor never touched. Now they are opt-in per prescription.
+ */
+const OPTIONAL_SECTIONS: {
+    type: OptionalType;
+    title: string;
+    placeholder: string;
+    group: string;
+}[] = [
+    { type: 'past_history', title: 'Past History', placeholder: 'e.g., Diabetes mellitus since 2015', group: 'History' },
+    { type: 'drug_history', title: 'Drug History', placeholder: 'e.g., Metformin 500mg BD', group: 'History' },
+    { type: 'negative_history', title: 'Negative History', placeholder: 'e.g., no diabetes, no hypertension', group: 'History' },
+    { type: 'previous_reports', title: 'Previous Reports', placeholder: 'e.g., X-ray Chest (2026-01) — clear', group: 'History' },
+    { type: 'next_plan', title: 'Next Plans', placeholder: 'Next plan', group: 'Plan' },
+    { type: 'operation_note', title: 'Operation Note', placeholder: 'Procedure, findings, post-op plan', group: 'Plan' },
+    { type: 'gynae_history', title: 'Gynae History', placeholder: 'Menstrual, obstetric, contraceptive notes', group: 'Obs & Gynae' },
+    { type: 'obstetric_history', title: 'Obstetric History', placeholder: 'LMP, EDD, G/P/A, complications', group: 'Obs & Gynae' },
+    { type: 'breast_local', title: 'Breast / Local Exam', placeholder: 'Findings', group: 'Obs & Gynae' },
+    { type: 'referred_by', title: 'Referred By', placeholder: 'Dr. name or facility', group: 'Admin' },
+    { type: 'lab_referral', title: 'Lab Referrals', placeholder: 'Preferred lab + patient discount', group: 'Admin' },
+    { type: 'notes', title: 'Notes', placeholder: 'Any special notes', group: 'Admin' },
+];
+
+const INVESTIGATION_SUGGESTIONS = ['CBC', 'Blood Sugar', 'X-ray Chest', 'ECG', 'Urine R/E', 'S. Creatinine'];
 
 function toNum(v: unknown): number | null {
     if (v == null || v === '') return null;
@@ -115,6 +148,17 @@ export default function Create(props: Props) {
     const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
     const [showPrevious, setShowPrevious] = useState(false);
     const [showMedicineModal, setShowMedicineModal] = useState(false);
+    const [editMedicineIndex, setEditMedicineIndex] = useState<number | null>(null);
+    const [templatesOpen, setTemplatesOpen] = useState(false);
+    const [rxColumnOpen, setRxColumnOpen] = useState(false);
+
+    // A section is shown once the doctor picks it, or because the draft it was
+    // loaded from already has content for it.
+    const [openOptional, setOpenOptional] = useState<OptionalType[]>(() => {
+        const present = new Set((props.draft?.sections ?? []).map((s) => s.section_type));
+        return OPTIONAL_SECTIONS.filter((s) => present.has(s.type)).map((s) => s.type);
+    });
+
     const stateRef = useRef(state);
     stateRef.current = state;
 
@@ -177,18 +221,32 @@ export default function Create(props: Props) {
 
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            if (!(e.metaKey || e.ctrlKey)) return;
+
+            if (e.key === 'k') {
                 e.preventDefault();
-                setShowMedicineModal(true);
+                openAddMedicine();
+            }
+            // The header advertises ⌘P as "Print"; without this it fell through
+            // to the browser's own print dialog on the editor chrome.
+            if (e.key === 'p') {
+                e.preventDefault();
+                save('print');
             }
         }
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, []);
+    }, [save]);
+
+    function openAddMedicine() {
+        setEditMedicineIndex(null);
+        setShowMedicineModal(true);
+    }
 
     function newRx() {
         setRxId(null);
         setLastSavedAt(null);
+        setOpenOptional([]);
         dispatch({ type: 'RESET_FORM', state: buildInitialState(props) });
     }
 
@@ -225,9 +283,11 @@ export default function Create(props: Props) {
             id: tpl.id,
             complaints: tpl.complaints as ComplaintInput[] | undefined,
             examinations: tpl.examinations as ExaminationInput[] | undefined,
-            medicines: [],
-            advices: (tpl.advices as any) ?? [],
-            investigations: (tpl.investigations as any) ?? [],
+            // Templates store medicines and the save path writes them, but this
+            // used to pass [] — applying a template silently dropped them.
+            medicines: (tpl.medicines as MedicineInput[] | undefined) ?? [],
+            advices: (tpl.advices as SectionInput[] | undefined) ?? [],
+            investigations: (tpl.investigations as SectionInput[] | undefined) ?? [],
         };
 
         const hasContent =
@@ -238,67 +298,144 @@ export default function Create(props: Props) {
 
         if (!hasContent) {
             dispatch({ type: 'LOAD_TEMPLATE', template: payload });
+            setTemplatesOpen(false);
             return;
         }
 
-        modal.confirm({
+        const confirmModal = modal.confirm({
             title: `Apply template "${tpl.disease_name}"?`,
-            content: 'Replace current form data, or merge template items into it?',
-            okText: 'Replace',
-            cancelText: 'Cancel',
-            okButtonProps: { danger: true },
-            footer: (_, { OkBtn, CancelBtn }) => (
-                <div className="flex justify-end gap-2">
-                    <CancelBtn />
-                    <button
-                        type="button"
-                        className="rounded border border-gray-300 bg-white px-3 py-1 text-sm hover:bg-gray-50"
+            content: 'Replace what is on the form, or merge the template into it?',
+            icon: <ProfileOutlined />,
+            footer: (
+                <div className="mt-4 flex justify-end gap-2">
+                    <Button onClick={() => confirmModal.destroy()}>Cancel</Button>
+                    <Button
                         onClick={() => {
                             dispatch({ type: 'MERGE_TEMPLATE', template: payload });
-                            Modal.destroyAll();
+                            setTemplatesOpen(false);
+                            confirmModal.destroy();
                         }}
                     >
                         Merge
-                    </button>
-                    <OkBtn />
+                    </Button>
+                    <Button
+                        danger
+                        type="primary"
+                        onClick={() => {
+                            dispatch({ type: 'LOAD_TEMPLATE', template: payload });
+                            setTemplatesOpen(false);
+                            confirmModal.destroy();
+                        }}
+                    >
+                        Replace
+                    </Button>
                 </div>
             ),
-            onOk: () => dispatch({ type: 'LOAD_TEMPLATE', template: payload }),
         });
     }
 
+    function addOptionalSection(type: OptionalType) {
+        setOpenOptional((prev) => (prev.includes(type) ? prev : [...prev, type]));
+    }
+
+    function removeOptionalSection(type: OptionalType) {
+        // Drop the section's rows too, otherwise hidden content would still save.
+        stateRef.current.sections
+            .map((s, i) => ({ s, i }))
+            .filter(({ s }) => s.section_type === type)
+            .reverse()
+            .forEach(({ i }) => dispatch({ type: 'REMOVE_SECTION', index: i }));
+
+        setOpenOptional((prev) => prev.filter((t) => t !== type));
+    }
+
+    const sectionProps = (type: SectionInput['section_type']) => ({
+        sectionType: type,
+        allSections: state.sections,
+        onAdd: (s: SectionInput) => dispatch({ type: 'ADD_SECTION' as const, section: s }),
+        onUpdate: (i: number, content: string) => dispatch({ type: 'UPDATE_SECTION' as const, index: i, content }),
+        onRemove: (i: number) => dispatch({ type: 'REMOVE_SECTION' as const, index: i }),
+    });
+
+    const addSectionMenu = useMemo(() => {
+        const remaining = OPTIONAL_SECTIONS.filter((s) => !openOptional.includes(s.type));
+        if (remaining.length === 0) return [{ key: 'none', label: 'All sections added', disabled: true }];
+
+        const groups = remaining.reduce<Record<string, typeof remaining>>((acc, s) => {
+            (acc[s.group] ??= []).push(s);
+            return acc;
+        }, {});
+
+        return Object.entries(groups).map(([group, entries]) => ({
+            key: group,
+            type: 'group' as const,
+            label: group,
+            children: entries.map((s) => ({
+                key: s.type,
+                label: s.title,
+                onClick: () => addOptionalSection(s.type),
+            })),
+        }));
+    }, [openOptional]);
+
+    const rxColumn = (
+        <RxPreviewColumn
+            medicines={state.medicines}
+            sections={state.sections}
+            followUpDate={state.follow_up_date}
+            followUpDurationValue={state.follow_up_duration_value}
+            followUpDurationUnit={state.follow_up_duration_unit}
+            onOpenMedicineModal={openAddMedicine}
+            onEditMedicine={(i) => {
+                setEditMedicineIndex(i);
+                setShowMedicineModal(true);
+            }}
+            onRemoveMedicine={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
+            onAddSection={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
+            onRemoveSection={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+            onFollowUpChange={(date, value, unit) =>
+                dispatch({
+                    type: 'SET_FOLLOW_UP',
+                    follow_up_date: date,
+                    follow_up_duration_value: value,
+                    follow_up_duration_unit: unit,
+                })
+            }
+        />
+    );
+
     return (
-        /* Full-height grid: [content row] [bottom bar] */
-        <div style={{ height: '100%', display: 'grid', gridTemplateRows: '1fr 56px', overflow: 'hidden' }}>
+        <div className="grid h-full grid-rows-[1fr_56px] overflow-hidden">
+            {/* Columns collapse as the viewport narrows: the template rail goes
+                first, then the Rx column — both stay reachable as drawers. */}
+            <div className="grid min-h-0 overflow-hidden lg:grid-cols-[248px_1fr] xl:grid-cols-[248px_1fr_340px]">
+                <div className="hidden lg:block">
+                    <TemplateSidebar
+                        templates={props.templates}
+                        activeId={state.template_id}
+                        onSelect={applyTemplate}
+                        onNewRx={newRx}
+                    />
+                </div>
 
-            {/* ── Three-column content row ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '248px 1fr 320px', overflow: 'hidden', minHeight: 0 }}>
-
-                {/* LEFT: Template sidebar */}
-                <TemplateSidebar
-                    templates={props.templates}
-                    activeId={state.template_id}
-                    onSelect={applyTemplate}
-                    onNewRx={newRx}
-                />
-
-                {/* CENTER: Composer column */}
-                <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                    {/* Patient info strip */}
+                <div className="flex flex-col overflow-y-auto">
                     <PatientInfoBar
                         patient={props.patient}
                         date={state.date}
+                        appointment={props.appointment}
+                        medicineCount={state.medicines.length}
                         onOpenPreviousRx={() => setShowPrevious(true)}
+                        onOpenTemplates={() => setTemplatesOpen(true)}
+                        onOpenRxColumn={() => setRxColumnOpen(true)}
                     />
 
-                    {/* Drug-safety: allergies + prescribe-time conflict flags */}
                     <AllergyBanner
                         patientId={props.patient.id}
                         allergies={props.allergies}
                         medicines={state.medicines}
                     />
 
-                    <div style={{ padding: '12px 16px 20px', flex: 1 }}>
+                    <div className="flex-1 px-4 pb-6 pt-3">
                         <FlashMessage />
 
                         <ComplaintsSection
@@ -325,200 +462,85 @@ export default function Create(props: Props) {
                         />
 
                         <TextListSection
-                            title="Past History"
-                            sectionType="past_history"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="e.g., Diabetes mellitus since 2015"
-                        />
-
-                        <TextListSection
-                            title="Drug History"
-                            sectionType="drug_history"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="e.g., Metformin 500mg BD"
+                            title="Diagnosis"
+                            titleBn="রোগ নির্ণয়"
+                            {...sectionProps('diagnosis')}
+                            suggestions={props.diagnosis_suggestions}
+                            placeholder="Diagnosis"
+                            extra={
+                                <Icd10Picker
+                                    onPick={(formatted) =>
+                                        dispatch({
+                                            type: 'ADD_SECTION',
+                                            section: { section_type: 'diagnosis', content: formatted },
+                                        })
+                                    }
+                                    placeholder="Search ICD-10 by code or title"
+                                />
+                            }
                         />
 
                         <TextListSection
                             title="Investigations"
-                            sectionType="investigation"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            suggestions={['CBC', 'Blood Sugar', 'X-ray Chest', 'ECG', 'Urine R/E', 'S. Creatinine']}
+                            titleBn="পরীক্ষা-নিরীক্ষা"
+                            {...sectionProps('investigation')}
+                            suggestions={INVESTIGATION_SUGGESTIONS}
                             placeholder="Investigation name"
                         />
 
                         <TextListSection
-                            title="Diagnosis"
-                            sectionType="diagnosis"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            suggestions={props.diagnosis_suggestions}
-                            placeholder="Diagnosis"
-                        />
-                        <div className="ml-1 mb-2 -mt-1">
-                            <Icd10Picker
-                                onPick={(formatted) =>
-                                    dispatch({
-                                        type: 'ADD_SECTION',
-                                        section: { section_type: 'diagnosis', content: formatted },
-                                    })
-                                }
-                                placeholder="+ Add ICD-10 code (search code or title)"
-                            />
-                        </div>
-
-                        <TextListSection
                             title="Advices"
-                            sectionType="advice"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
+                            titleBn="পরামর্শ"
+                            {...sectionProps('advice')}
                             bilingualSuggestions={props.advice_suggestions}
                             placeholder="Advice"
                         />
 
-                        <TextListSection
-                            title="Next Plans"
-                            sectionType="next_plan"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="Next plan"
-                        />
+                        {/* Opt-in sections, in the order the doctor added them. */}
+                        {openOptional.map((type) => {
+                            const meta = OPTIONAL_SECTIONS.find((s) => s.type === type)!;
+                            return (
+                                <TextListSection
+                                    key={type}
+                                    title={meta.title}
+                                    {...sectionProps(type)}
+                                    placeholder={meta.placeholder}
+                                    onRemoveSection={() => removeOptionalSection(type)}
+                                />
+                            );
+                        })}
 
-                        <TextListSection
-                            title="Negative History"
-                            sectionType="negative_history"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="e.g., no diabetes, no hypertension"
-                        />
-
-                        <TextListSection
-                            title="Gynae History"
-                            sectionType="gynae_history"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="Menstrual, obstetric, contraceptive notes"
-                        />
-
-                        <TextListSection
-                            title="Obstetric History"
-                            sectionType="obstetric_history"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="LMP, EDD, G/P/A, complications"
-                        />
-
-                        <TextListSection
-                            title="Breast / Local Exam"
-                            sectionType="breast_local"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="Findings"
-                        />
-
-                        <TextListSection
-                            title="Previous Reports"
-                            sectionType="previous_reports"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="e.g., X-ray Chest (2026-01) — clear"
-                        />
-
-                        <TextListSection
-                            title="Referred By"
-                            sectionType="referred_by"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="Dr. name or facility"
-                        />
-
-                        <TextListSection
-                            title="Lab Referrals"
-                            sectionType="lab_referral"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="Preferred lab + patient discount"
-                        />
-
-                        <TextListSection
-                            title="Notes"
-                            sectionType="notes"
-                            allSections={state.sections}
-                            onAdd={(s) => dispatch({ type: 'ADD_SECTION', section: s })}
-                            onUpdate={(i, content) => dispatch({ type: 'UPDATE_SECTION', index: i, content })}
-                            onRemove={(i) => dispatch({ type: 'REMOVE_SECTION', index: i })}
-                            placeholder="Any special notes"
-                        />
+                        <div className="mb-3">
+                            <Dropdown menu={{ items: addSectionMenu }} trigger={['click']} placement="bottomLeft">
+                                <Button type="dashed" block icon={<PlusOutlined />}>
+                                    Add section
+                                </Button>
+                            </Dropdown>
+                        </div>
 
                         <SpecialtyTools />
                     </div>
                 </div>
 
-                {/* RIGHT: Rx preview column */}
-                <div style={{ borderLeft: '1px solid #e3e7e3', overflowY: 'auto', background: '#f6f7f5' }}>
-                    <RxPreviewColumn
-                        medicines={state.medicines}
-                        followUpDate={state.follow_up_date}
-                        followUpDurationValue={state.follow_up_duration_value}
-                        followUpDurationUnit={state.follow_up_duration_unit}
-                        onOpenMedicineModal={() => setShowMedicineModal(true)}
-                        onEditMedicine={(i) => {
-                            setShowMedicineModal(true);
-                        }}
-                        onRemoveMedicine={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
-                        onFollowUpChange={(date, value, unit) =>
-                            dispatch({
-                                type: 'SET_FOLLOW_UP',
-                                follow_up_date: date,
-                                follow_up_duration_value: value,
-                                follow_up_duration_unit: unit,
-                            })
-                        }
-                    />
+                <div className="hidden overflow-y-auto border-l border-[#e3e7e3] bg-[#f6f7f5] xl:block">
+                    {rxColumn}
                 </div>
             </div>
 
-            {/* ── Bottom action bar ── */}
             <BottomBar
                 saving={saving}
                 dirty={state.dirty}
                 lastSavedAt={lastSavedAt}
+                medicineCount={state.medicines.length}
                 onSave={() => save('draft')}
                 onSavePrint={() => save('print')}
                 onSaveTemplate={saveAsTemplate}
                 onNewRx={newRx}
+                onAddMedicine={openAddMedicine}
                 onPreview={() => rxId && window.open(`/doctor/prescriptions/${rxId}/preview`, '_blank')}
+                hasSavedRx={rxId !== null}
             />
 
-            {/* Medicine modals — controlled externally */}
             <MedicineSection
                 medicines={state.medicines}
                 frequentMedicines={props.frequent_medicines}
@@ -529,7 +551,11 @@ export default function Create(props: Props) {
                 onRemove={(i) => dispatch({ type: 'REMOVE_MEDICINE', index: i })}
                 onReorder={(from, to) => dispatch({ type: 'REORDER_MEDICINES', from, to })}
                 externalOpen={showMedicineModal}
-                onExternalClose={() => setShowMedicineModal(false)}
+                externalEditIndex={editMedicineIndex}
+                onExternalClose={() => {
+                    setShowMedicineModal(false);
+                    setEditMedicineIndex(null);
+                }}
             />
 
             <PreviousRxDrawer
@@ -537,6 +563,37 @@ export default function Create(props: Props) {
                 onClose={() => setShowPrevious(false)}
                 prescriptions={props.previous_prescriptions}
             />
+
+            {/* Narrow-viewport equivalents of the two side columns. */}
+            <Drawer
+                open={templatesOpen}
+                onClose={() => setTemplatesOpen(false)}
+                placement="left"
+                width={288}
+                title="Templates"
+                styles={{ body: { padding: 0 } }}
+            >
+                <TemplateSidebar
+                    templates={props.templates}
+                    activeId={state.template_id}
+                    onSelect={applyTemplate}
+                    onNewRx={() => {
+                        newRx();
+                        setTemplatesOpen(false);
+                    }}
+                />
+            </Drawer>
+
+            <Drawer
+                open={rxColumnOpen}
+                onClose={() => setRxColumnOpen(false)}
+                placement="right"
+                width={360}
+                title="Prescription"
+                styles={{ body: { padding: 0, background: '#f6f7f5' } }}
+            >
+                {rxColumn}
+            </Drawer>
         </div>
     );
 }

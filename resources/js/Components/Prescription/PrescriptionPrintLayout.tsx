@@ -15,6 +15,9 @@ interface Props {
 }
 
 export default function PrescriptionPrintLayout({ prescription, profile, hospital, verifyUrl, qrSvg }: Props) {
+    // Guard the type, not just the truthiness: anything other than a string
+    // would render as "[object Object]" inside dangerouslySetInnerHTML.
+    const hasQr = typeof qrSvg === 'string' && qrSvg.trim().length > 0;
     const p = (profile ?? {}) as Partial<DoctorProfile>;
     const showHeader = p.print_show_header ?? true;
     const showFooter = p.print_show_footer ?? true;
@@ -42,6 +45,8 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
     const referredBy = sections.filter((s) => s.section_type === 'referred_by');
     const notes = sections.filter((s) => s.section_type === 'notes');
     const labReferrals = sections.filter((s) => s.section_type === 'lab_referral');
+    const hospitalization = sections.filter((s) => s.section_type === 'hospitalization');
+    const operationNote = sections.filter((s) => s.section_type === 'operation_note');
     const medicines = prescription.medicines ?? [];
 
     const storagePath = (rel?: string | null) => (rel ? `/storage/${rel}` : '');
@@ -245,6 +250,18 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                         </Section>
                     )}
 
+                    {hospitalization.length > 0 && (
+                        <Section title="Hospitalization / Referrals">
+                            <ul className="list-disc pl-4">{hospitalization.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+
+                    {operationNote.length > 0 && (
+                        <Section title="Operation Note">
+                            <ul className="list-disc pl-4">{operationNote.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
+                        </Section>
+                    )}
+
                     {labReferrals.length > 0 && (
                         <Section title="Lab Referrals">
                             <ul className="list-disc pl-4">{labReferrals.map((s) => <li key={s.id}>{s.content}</li>)}</ul>
@@ -268,18 +285,74 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
                 </div>
             </div>
 
-            {(verifyUrl || qrSvg) && (
-                <div className="mt-4 flex items-center gap-3 border-t border-dashed border-gray-300 pt-2 text-[10px] text-gray-600">
-                    {qrSvg ? (
-                        <div style={{ width: 80, height: 80 }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
-                    ) : (
-                        <div className="grid h-20 w-20 place-items-center border border-dashed border-gray-300 text-gray-400">QR</div>
-                    )}
-                    <div className="leading-tight">
-                        <div><strong>Scan to verify</strong> — confirms this prescription is genuine.</div>
-                        <div>Rx ID: <span className="font-mono">{prescription.prescription_uid}</span></div>
-                        <div>Patient ID: <span className="font-mono">{patient?.patient_uid}</span></div>
-                        {verifyUrl && <div className="mt-0.5 break-all text-gray-400">{verifyUrl}</div>}
+            {(verifyUrl || hasQr) && (
+                <div
+                    className="mt-4 flex items-stretch gap-3 rounded border border-gray-300 p-2.5 text-[10px] leading-tight text-gray-700"
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                >
+                    {/* Framed with padding so the code keeps its quiet zone —
+                        scanners need white margin around the modules. */}
+                    <div className="flex-none self-start rounded border border-gray-200 bg-white p-1">
+                        {hasQr ? (
+                            <div
+                                style={{ width: 120, height: 120 }}
+                                dangerouslySetInnerHTML={{ __html: qrSvg as string }}
+                            />
+                        ) : (
+                            <div className="grid h-[120px] w-[120px] place-items-center text-center text-[9px] text-gray-400">
+                                QR unavailable
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                        <div className="flex items-center gap-1.5">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path
+                                    d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z"
+                                    stroke="#0f4c81"
+                                    strokeWidth="2"
+                                    strokeLinejoin="round"
+                                />
+                                <path
+                                    d="m9 12 2 2 4-4"
+                                    stroke="#0f4c81"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                            <span className="font-semibold uppercase tracking-wide text-[#0f4c81]">
+                                Verify this prescription
+                            </span>
+                        </div>
+
+                        <div className="text-gray-600">
+                            Scan the code, or open the link below, to confirm this prescription is genuine.
+                        </div>
+
+                        {/* Labelled pairs rather than a run of "X: Y" lines, so the
+                            IDs stay findable when read off paper. */}
+                        <div className="mt-0.5 flex flex-wrap gap-x-5 gap-y-0.5">
+                            <div>
+                                <span className="text-gray-500">Rx ID</span>{' '}
+                                <span className="font-mono font-semibold text-gray-900">
+                                    {prescription.prescription_uid}
+                                </span>
+                            </div>
+                            {patient?.patient_uid && (
+                                <div>
+                                    <span className="text-gray-500">Patient ID</span>{' '}
+                                    <span className="font-mono font-semibold text-gray-900">
+                                        {patient.patient_uid}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {verifyUrl && (
+                            <div className="break-all font-mono text-[8.5px] text-gray-400">{verifyUrl}</div>
+                        )}
                     </div>
                 </div>
             )}

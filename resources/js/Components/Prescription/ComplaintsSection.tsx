@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import SectionAccordion from './SectionAccordion';
 import { ComplaintMaster } from '@/types';
 import { ComplaintInput } from '@/hooks/usePrescriptionReducer';
+import { Button, Empty, Input, Popover, Space, Tag, Tooltip } from 'antd';
+import { DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 
 interface Props {
     complaints: ComplaintInput[];
@@ -12,29 +14,28 @@ interface Props {
     onUpdate: (i: number, patch: Partial<ComplaintInput>) => void;
 }
 
-export default function ComplaintsSection({ complaints, masters, durationPresets, onAdd, onRemove, onUpdate }: Props) {
+export default function ComplaintsSection({
+    complaints,
+    masters,
+    durationPresets,
+    onAdd,
+    onRemove,
+    onUpdate,
+}: Props) {
     const [bankOpen, setBankOpen] = useState(complaints.length === 0);
     const [bankQuery, setBankQuery] = useState('');
-    const [openDurFor, setOpenDurFor] = useState<number | null>(null);
 
     const addedNames = new Set(complaints.map((c) => c.complaint_name));
 
     const filtered = useMemo(() => {
         if (!bankQuery.trim()) return masters;
         const q = bankQuery.toLowerCase();
-        return masters.filter(
-            (m) => m.name_en.toLowerCase().includes(q) || (m.name_bn || '').includes(q),
-        );
+        return masters.filter((m) => m.name_en.toLowerCase().includes(q) || (m.name_bn || '').includes(q));
     }, [bankQuery, masters]);
 
     function addComplaint(name: string) {
         if (addedNames.has(name)) return;
         onAdd({ complaint_name: name, duration_text: '', note: '' });
-    }
-
-    function setDuration(i: number, dur: string) {
-        onUpdate(i, { duration_text: dur });
-        setOpenDurFor(null);
     }
 
     return (
@@ -43,143 +44,118 @@ export default function ComplaintsSection({ complaints, masters, durationPresets
             titleBn="রোগীর অভিযোগ"
             itemCount={complaints.length}
             onAdd={() => setBankOpen((o) => !o)}
-            addLabel={bankOpen ? 'Done' : '+ Add'}
+            addLabel={bankOpen ? 'Done' : 'Add'}
         >
-            {/* Added entries */}
-            {complaints.map((c, i) => (
-                <div key={i}>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '7px 10px', background: '#f6f7f5',
-                        border: '1px solid #e3e7e3', borderRadius: 8, marginTop: 8,
-                    }}>
-                        <span style={{ fontWeight: 600, fontSize: 13.5, color: '#2b3a32', whiteSpace: 'nowrap' }}>
-                            {c.complaint_name}
-                        </span>
-                        <span
-                            onClick={() => setOpenDurFor(openDurFor === i ? null : i)}
-                            style={{
-                                fontSize: 12.5, color: c.duration_text ? '#6a7a72' : '#9aa8a0',
-                                padding: '2px 8px', background: '#fff', borderRadius: 5,
-                                border: '1px solid #e3e7e3', cursor: 'pointer',
-                                fontStyle: c.duration_text ? 'normal' : 'italic',
-                            }}
-                        >
-                            {c.duration_text || 'Set duration…'}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => onRemove(i)}
-                            style={{
-                                marginLeft: 'auto', color: '#9aa8a0', width: 22, height: 22,
-                                borderRadius: 5, display: 'grid', placeItems: 'center', border: 'none',
-                                background: 'transparent', cursor: 'pointer',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#fdecec'; e.currentTarget.style.color = '#b3261e'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa8a0'; }}
-                        >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 6L18 18M6 18L18 6"/></svg>
-                        </button>
-                    </div>
+            {complaints.length === 0 && !bankOpen && (
+                <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    imageStyle={{ height: 28 }}
+                    description={<span className="text-xs text-gray-400">No complaints added.</span>}
+                    className="!my-1"
+                />
+            )}
 
-                    {/* Inline duration picker */}
-                    {openDurFor === i && (
-                        <div style={{
-                            marginTop: 6, padding: 10, background: '#f0f8f3',
-                            border: '1px solid rgba(10,135,84,.2)', borderRadius: 8,
-                        }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#0d6e46', marginBottom: 6 }}>Duration</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {durationPresets.map((d) => (
-                                    <button key={d} type="button" onClick={() => setDuration(i, d)} style={chipStyle}>
-                                        {d}
-                                    </button>
-                                ))}
-                                <input
-                                    placeholder="Custom…"
-                                    style={{ flex: 1, padding: '4px 8px', border: '1px solid #e3e7e3', borderRadius: 6, fontSize: 12, minWidth: 100, outline: 'none', fontFamily: 'inherit' }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                                            setDuration(i, e.currentTarget.value.trim());
+            <div className="flex flex-col gap-2">
+                {complaints.map((c, i) => (
+                    <div
+                        key={i}
+                        className="flex items-center gap-2 rounded-lg border border-[#e3e7e3] bg-[#f6f7f5] px-2.5 py-1.5"
+                    >
+                        <span className="text-[13.5px] font-semibold text-[#2b3a32]">{c.complaint_name}</span>
+
+                        <Popover
+                            trigger="click"
+                            placement="bottomLeft"
+                            title="Duration"
+                            content={
+                                <div style={{ maxWidth: 280 }}>
+                                    <Space size={4} wrap>
+                                        {durationPresets.map((d) => (
+                                            <Tag.CheckableTag
+                                                key={d}
+                                                checked={c.duration_text === d}
+                                                onChange={() => onUpdate(i, { duration_text: d })}
+                                            >
+                                                {d}
+                                            </Tag.CheckableTag>
+                                        ))}
+                                    </Space>
+                                    <Input
+                                        className="mt-2"
+                                        size="small"
+                                        defaultValue={c.duration_text}
+                                        placeholder="Custom — press Enter"
+                                        onPressEnter={(e) =>
+                                            onUpdate(i, { duration_text: e.currentTarget.value.trim() })
                                         }
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            ))}
+                                    />
+                                </div>
+                            }
+                        >
+                            <Button size="small" type={c.duration_text ? 'default' : 'dashed'}>
+                                {c.duration_text || 'Set duration…'}
+                            </Button>
+                        </Popover>
 
-            {/* Chip bank */}
-            {bankOpen && (
-                <div style={{
-                    marginTop: 10, background: '#f6f7f5',
-                    border: '1px solid #e3e7e3', borderRadius: 8, padding: 10,
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <div style={{ flex: 1, position: 'relative' }}>
-                            <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: '#9aa8a0' }}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                            </span>
-                            <input
-                                value={bankQuery}
-                                onChange={(e) => setBankQuery(e.target.value)}
-                                placeholder="Search complaints… e.g. fever, cough"
-                                style={{
-                                    width: '100%', padding: '6px 10px 6px 28px',
-                                    border: '1px solid #e3e7e3', background: '#fff',
-                                    borderRadius: 6, fontSize: 12.5, outline: 'none', fontFamily: 'inherit',
-                                }}
-                                onFocus={(e) => { e.currentTarget.style.borderColor = '#0a8754'; }}
-                                onBlur={(e) => { e.currentTarget.style.borderColor = '#e3e7e3'; }}
+                        <Tooltip title="Remove">
+                            <Button
+                                className="!ml-auto"
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => onRemove(i)}
                             />
-                        </div>
-                        <button type="button" onClick={() => setBankOpen(false)} style={{ fontSize: 11, color: '#6a7a72', padding: '4px 8px', borderRadius: 5, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-                            Done
-                        </button>
+                        </Tooltip>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
-                        {filtered.map((m) => {
-                            const added = addedNames.has(m.name_en);
-                            return (
-                                <button
+                ))}
+            </div>
+
+            {bankOpen && (
+                <div className="mt-2.5 rounded-lg border border-[#e3e7e3] bg-[#f6f7f5] p-2.5">
+                    <Input
+                        allowClear
+                        size="small"
+                        prefix={<SearchOutlined />}
+                        value={bankQuery}
+                        onChange={(e) => setBankQuery(e.target.value)}
+                        placeholder="Search complaints… e.g. fever, cough"
+                    />
+
+                    <div className="mt-2 max-h-56 overflow-y-auto">
+                        <Space size={4} wrap>
+                            {filtered.map((m) => (
+                                <Tag.CheckableTag
                                     key={m.id}
-                                    type="button"
-                                    onClick={() => addComplaint(m.name_en)}
-                                    style={{
-                                        ...chipStyle,
-                                        background: added ? '#e6f4ec' : '#fff',
-                                        borderColor: added ? 'rgba(10,135,84,.3)' : '#e3e7e3',
-                                        color: added ? '#0d6e46' : '#2b3a32',
-                                        fontWeight: added ? 600 : 500,
-                                    }}
+                                    checked={addedNames.has(m.name_en)}
+                                    onChange={() => addComplaint(m.name_en)}
                                 >
-                                    {added && <span style={{ fontSize: 10, marginRight: 2 }}>✓</span>}
                                     {m.name_en}
-                                    {m.name_bn && <span style={{ opacity: 0.6, marginLeft: 4, fontFamily: "'Noto Sans Bengali', sans-serif" }}>· {m.name_bn}</span>}
-                                </button>
-                            );
-                        })}
-                        {bankQuery.trim() && !filtered.some((m) => m.name_en.toLowerCase() === bankQuery.toLowerCase()) && (
-                            <button
-                                type="button"
-                                onClick={() => addComplaint(bankQuery.trim())}
-                                style={{ ...chipStyle, borderStyle: 'dashed', color: '#0d6e46' }}
-                            >
-                                + Add "{bankQuery.trim()}"
-                            </button>
-                        )}
+                                    {m.name_bn && (
+                                        <span
+                                            className="ml-1 opacity-60"
+                                            style={{ fontFamily: "'Noto Sans Bengali', sans-serif" }}
+                                        >
+                                            · {m.name_bn}
+                                        </span>
+                                    )}
+                                </Tag.CheckableTag>
+                            ))}
+
+                            {bankQuery.trim() &&
+                                !filtered.some((m) => m.name_en.toLowerCase() === bankQuery.trim().toLowerCase()) && (
+                                    <Button
+                                        size="small"
+                                        type="dashed"
+                                        onClick={() => addComplaint(bankQuery.trim())}
+                                    >
+                                        + Add “{bankQuery.trim()}”
+                                    </Button>
+                                )}
+                        </Space>
                     </div>
                 </div>
             )}
         </SectionAccordion>
     );
 }
-
-const chipStyle: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: '4px 10px', borderRadius: 999, fontSize: 12.5, fontWeight: 500,
-    background: '#fff', border: '1px solid #e3e7e3', color: '#2b3a32',
-    whiteSpace: 'nowrap', cursor: 'pointer', lineHeight: 1.4,
-    fontFamily: 'inherit',
-};

@@ -1,3 +1,5 @@
+import { Badge, Button, Tooltip } from 'antd';
+import { CloseOutlined, DownOutlined, PlusOutlined } from '@ant-design/icons';
 import { PropsWithChildren, useState } from 'react';
 
 interface Props {
@@ -7,6 +9,8 @@ interface Props {
     itemCount?: number;
     defaultOpen?: boolean;
     addLabel?: string;
+    /** Present on optional sections the doctor added and can drop again. */
+    onRemoveSection?: () => void;
 }
 
 export default function SectionAccordion({
@@ -15,68 +19,50 @@ export default function SectionAccordion({
     onAdd,
     itemCount,
     defaultOpen = true,
-    addLabel = '+ Add',
+    addLabel = 'Add',
+    onRemoveSection,
     children,
 }: PropsWithChildren<Props>) {
     const [open, setOpen] = useState(defaultOpen);
 
     return (
-        <div style={{
-            background: '#fff',
-            border: '1px solid #e3e7e3',
-            borderRadius: 10,
-            marginBottom: 10,
-            overflow: 'hidden',
-        }}>
-            {/* Header */}
-            <div
-                style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 14px', cursor: 'pointer', userSelect: 'none',
-                }}
+        <section className="mb-2.5 overflow-hidden rounded-lg border border-[#e3e7e3] bg-white">
+            <header
+                className="flex cursor-pointer select-none items-center gap-2 px-3.5 py-2.5"
                 onClick={() => setOpen((o) => !o)}
             >
-                <div style={{ fontWeight: 600, fontSize: 13.5, color: '#0f1a14', display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                    {title}
-                    {titleBn && <span style={{ color: '#6a7a72', fontWeight: 500, fontSize: 12, fontFamily: "'Noto Sans Bengali', 'Inter', sans-serif" }}>{titleBn}</span>}
-                </div>
-
-                {typeof itemCount === 'number' && itemCount > 0 && (
-                    <span style={{
-                        background: '#e6f4ec', color: '#0d6e46',
-                        fontSize: 11, padding: '1px 7px', borderRadius: 999, fontWeight: 600,
-                    }}>{itemCount}</span>
+                <span className="text-[13.5px] font-semibold text-[#0f1a14]">{title}</span>
+                {titleBn && (
+                    <span
+                        className="text-xs font-medium text-[#6a7a72]"
+                        style={{ fontFamily: "'Noto Sans Bengali', 'Inter', sans-serif" }}
+                    >
+                        {titleBn}
+                    </span>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9aa8a0', marginLeft: 'auto' }}>
-                    {onAdd && (
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); onAdd(); }}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 4,
-                                padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                                color: '#0d6e46', background: 'transparent',
-                                border: '1px dashed rgba(10,135,84,.35)', cursor: 'pointer',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f0f8f3'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                        >{addLabel}</button>
-                    )}
-                    <svg
-                        width="10" height="10" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2.5"
-                        style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
-                    ><polyline points="6 9 12 15 18 9"/></svg>
-                </div>
-            </div>
+                {!!itemCount && <Badge count={itemCount} color="#0a8754" size="small" />}
 
-            {/* Body */}
-            {open && (
-                <div style={{ padding: '0 14px 14px', borderTop: '1px solid #e3e7e3' }}>
-                    {children}
+                <div className="ml-auto flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    {onAdd && (
+                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={onAdd}>
+                            {addLabel}
+                        </Button>
+                    )}
+                    {onRemoveSection && (
+                        <Tooltip title="Remove this section">
+                            <Button type="text" size="small" icon={<CloseOutlined />} onClick={onRemoveSection} />
+                        </Tooltip>
+                    )}
+                    <DownOutlined
+                        className="ml-1 cursor-pointer text-[10px] text-[#9aa8a0] transition-transform"
+                        style={{ transform: open ? 'rotate(180deg)' : undefined }}
+                        onClick={() => setOpen((o) => !o)}
+                    />
                 </div>
-            )}
-        </div>
+            </header>
+
+            {open && <div className="border-t border-[#e3e7e3] px-3.5 py-3">{children}</div>}
+        </section>
     );
 }

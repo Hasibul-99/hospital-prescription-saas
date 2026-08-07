@@ -4,8 +4,9 @@ import MedicineList from './MedicineList';
 import SectionAccordion from './SectionAccordion';
 import { MedicineInput } from '@/hooks/usePrescriptionReducer';
 import { Medicine } from '@/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { csrfHeaders } from '@/utils/csrf';
+import { Modal } from 'antd';
 
 interface Props {
     medicines: MedicineInput[];
@@ -18,6 +19,8 @@ interface Props {
     onReorder: (from: number, to: number) => void;
     /** When provided, the component is controlled externally — no SectionAccordion rendered */
     externalOpen?: boolean;
+    /** Non-null opens the dose editor straight onto that medicine. */
+    externalEditIndex?: number | null;
     onExternalClose?: () => void;
 }
 
@@ -31,6 +34,7 @@ export default function MedicineSection({
     onRemove,
     onReorder,
     externalOpen,
+    externalEditIndex,
     onExternalClose,
 }: Props) {
     const [addOpen, setAddOpen] = useState(false);
@@ -38,6 +42,17 @@ export default function MedicineSection({
     const [doseOpen, setDoseOpen] = useState(false);
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [draft, setDraft] = useState<MedicineInput | null>(null);
+
+    // "Edit" on a medicine row asks for that specific row. The parent passes the
+    // index; before this it was dropped and the picker opened in add mode.
+    useEffect(() => {
+        if (externalOpen && externalEditIndex != null && medicines[externalEditIndex]) {
+            setEditIndex(externalEditIndex);
+            setDraft(medicines[externalEditIndex]);
+            setDoseOpen(true);
+            onExternalClose?.();
+        }
+    }, [externalOpen, externalEditIndex, medicines, onExternalClose]);
 
     async function fetchDefaults(medicineId: number): Promise<Partial<MedicineInput>> {
         try {
@@ -175,13 +190,19 @@ export default function MedicineSection({
     }
 
     function removeFromModal(index: number) {
-        if (confirm('Remove this medicine?')) onRemove(index);
+        Modal.confirm({
+            title: 'Remove this medicine?',
+            content: medicines[index]?.medicine_name,
+            okText: 'Remove',
+            okButtonProps: { danger: true },
+            onOk: () => onRemove(index),
+        });
     }
 
     const modals = (
         <>
             <AddMedicineModal
-                show={controlled ? (externalOpen ?? false) : addOpen}
+                show={controlled ? (externalOpen ?? false) && externalEditIndex == null : addOpen}
                 onClose={() => { setAddOpen(false); onExternalClose?.(); }}
                 frequent={frequentMedicines}
                 addedMedicines={medicines}
