@@ -74,29 +74,32 @@
                 <div class="hdr-text">
                     <div class="col">
                         <div class="doc-name">{{ $doctor?->name }}</div>
-                        @if($profile?->degrees)<div class="meta">{{ $profile->degrees }}</div>@endif
-                        @if($profile?->specialization)<div class="meta">{{ $profile->specialization }}</div>@endif
-                        @if($profile?->designation)<div class="meta">{{ $profile->designation }}</div>@endif
+                        @if($profile?->degrees)<div class="degrees">{{ $profile->degrees }}</div>@endif
+                        @php $role = collect([$profile?->designation, $profile?->specialization])->filter()->implode(' · '); @endphp
+                        @if($role)<div class="meta">{{ $role }}</div>@endif
                         @if($profile?->bmdc_number)
-                            <div class="meta">
-                                BMDC: {{ $profile->bmdc_number }}
+                            <div class="reg">
+                                <span class="reg-label">BMDC Reg. No.</span>
+                                <span class="reg-no">{{ $profile->bmdc_number }}</span>
                                 @if($profile->bmdc_verified)
-                                    <span style="margin-left:4px;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:9px;font-size:9px;">&check; Verified</span>
+                                    {{-- Plain inline mark: a filled pill reads as a
+                                         web badge and wastes ink on paper. --}}
+                                    <span class="reg-ok">&#10003; Verified</span>
                                 @endif
                             </div>
                         @endif
                     </div>
                     <div class="col right">
                         @if($showLogo && $hospital?->logo)
-                            <img src="{{ public_path('storage/'.$hospital->logo) }}" alt="Logo">
+                            <img src="{{ public_path('storage/'.$hospital->logo) }}" alt="">
                         @endif
-                        <div class="meta">{{ $hospital?->name }}</div>
+                        <div class="org">{{ $hospital?->name }}</div>
                         @if($hospital?->address)<div class="meta">{{ $hospital->address }}</div>@endif
-                        @if($hospital?->phone)<div class="meta">Phone: {{ $hospital->phone }}</div>@endif
+                        @if($hospital?->phone)<div class="meta">{{ $hospital->phone }}</div>@endif
                     </div>
                 </div>
                 @if($profile?->prescription_header_text)
-                    <div class="meta" style="margin-top:4px">{{ $profile->prescription_header_text }}</div>
+                    <div class="hdr-note">{{ $profile->prescription_header_text }}</div>
                 @endif
             @endif
         </div>

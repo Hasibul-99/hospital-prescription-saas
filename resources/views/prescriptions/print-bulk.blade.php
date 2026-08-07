@@ -15,14 +15,26 @@
         * { box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; color: #111; margin: 0; }
         .sheet { width: 100%; }
-        .hdr { border-bottom: 1px solid #888; padding-bottom: 6px; margin-bottom: 8px; }
+        /* Letterhead. The weighted rule (2px accent over a hairline) gives the
+           header a definite edge without printing a heavy band of ink. */
+        .hdr { border-bottom: 2px solid #0f4c81; box-shadow: 0 1px 0 #cbd5e1; padding-bottom: 6px; margin-bottom: 10px; }
         .hdr img { max-height: 110px; width: 100%; object-fit: contain; }
         .hdr-text { display: table; width: 100%; }
         .hdr-text .col { display: table-cell; vertical-align: top; }
-        .hdr-text .doc-name { font-size: 1.4em; font-weight: bold; color: #0f4c81; }
-        .hdr-text .meta { font-size: 0.9em; color: #333; margin-top: 2px; }
+        .hdr-text .doc-name { font-size: 1.55em; font-weight: bold; color: #0f4c81; line-height: 1.15; }
+        .hdr-text .degrees { font-size: 0.92em; font-weight: 600; color: #1f2937; margin-top: 2px; }
+        .hdr-text .meta { font-size: 0.85em; color: #4b5563; margin-top: 1px; }
+        .hdr-text .org { font-size: 1em; font-weight: 600; color: #111827; line-height: 1.2; }
+        .hdr-text .reg { font-size: 0.8em; color: #374151; margin-top: 4px; }
+        .hdr-text .reg-label { color: #6b7280; }
+        .hdr-text .reg-no { font-weight: 700; letter-spacing: .03em; }
+        .hdr-text .reg-ok { color: #0f4c81; font-weight: 600; margin-left: 6px; padding-left: 6px; border-left: 1px solid #cbd5e1; }
         .hdr-text .right { text-align: right; }
-        .hdr-text .right img { max-height: 70px; }
+        .hdr-text .right img { max-height: 54px; margin-bottom: 3px; }
+        .hdr-text .right .meta { max-width: 62mm; margin-left: auto; }
+        /* Doctors type multi-line letterheads into this free-text field; without
+           pre-line every newline collapses into a single run-on line. */
+        .hdr-note { font-size: 0.8em; color: #4b5563; line-height: 1.35; margin-top: 4px; white-space: pre-line; }
         .patient-bar { display: table; width: 100%; border-top: 1px dashed #888; border-bottom: 1px dashed #888; padding: 4px 0; margin-bottom: 8px; }
         .patient-bar .c { display: table-cell; width: 50%; vertical-align: middle; }
         .patient-bar .c.r { text-align: right; }

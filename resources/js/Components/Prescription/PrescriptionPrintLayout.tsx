@@ -64,36 +64,89 @@ export default function PrescriptionPrintLayout({ prescription, profile, hospita
             }}
         >
             {showHeader && (
-                <header className="mb-2 border-b border-gray-400 pb-2">
+                <header className="mb-3">
                     {headerMode === 'image' && p.prescription_header_image ? (
                         <img src={storagePath(p.prescription_header_image)} alt="Header" className="w-full object-contain" style={{ maxHeight: '110px' }} />
                     ) : headerMode !== 'none' ? (
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <div className="text-xl font-bold text-[#0f4c81]">{doctor?.name}</div>
-                                {p.degrees && <div className="text-xs text-gray-700">{p.degrees}</div>}
-                                {p.specialization && <div className="text-xs text-gray-700">{p.specialization}</div>}
-                                {p.designation && <div className="text-xs text-gray-700">{p.designation}</div>}
+                        <div className="flex items-start justify-between gap-6 pb-2">
+                            {/* Prescriber identity — the legally significant half
+                                of a letterhead, so it leads and carries the weight. */}
+                            <div className="min-w-0">
+                                <div className="text-[1.55em] font-bold leading-tight text-[#0f4c81]">
+                                    {doctor?.name}
+                                </div>
+
+                                {p.degrees && (
+                                    <div className="mt-0.5 text-[0.92em] font-medium text-gray-800">{p.degrees}</div>
+                                )}
+
+                                {(p.specialization || p.designation) && (
+                                    <div className="text-[0.85em] text-gray-600">
+                                        {[p.designation, p.specialization].filter(Boolean).join(' · ')}
+                                    </div>
+                                )}
+
                                 {p.bmdc_number && (
-                                    <div className="text-xs text-gray-700">
-                                        BMDC: {p.bmdc_number}
+                                    <div className="mt-1 inline-flex items-center gap-1 text-[0.8em] text-gray-700">
+                                        <span>
+                                            <span className="text-gray-500">BMDC Reg. No.</span>{' '}
+                                            <span className="font-semibold tracking-wide">{p.bmdc_number}</span>
+                                        </span>
                                         {p.bmdc_verified && (
-                                            <span title="BMDC verified by admin" className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800">✓ Verified</span>
+                                            /* A discreet inline mark: a filled pill
+                                               reads as a web badge and burns ink. */
+                                            <span className="inline-flex items-center gap-0.5 border-l border-gray-300 pl-1.5 text-[#0f4c81]">
+                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                    <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+                                                    <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                                <span className="font-medium">Verified</span>
+                                            </span>
                                         )}
                                     </div>
                                 )}
                             </div>
-                            <div className="text-right">
+
+                            {/* Practice / chamber block. */}
+                            <div className="flex-none text-right">
                                 {showLogo && hospital?.logo && (
-                                    <img src={storagePath(hospital.logo)} alt="Logo" className="ml-auto object-contain" style={{ maxHeight: '70px' }} />
+                                    <img
+                                        src={storagePath(hospital.logo)}
+                                        alt=""
+                                        className="ml-auto mb-1 object-contain"
+                                        style={{ maxHeight: '54px' }}
+                                    />
                                 )}
-                                <div className="text-xs font-medium">{hospital?.name}</div>
-                                {hospital?.address && <div className="text-xs text-gray-700">{hospital.address}</div>}
-                                {hospital?.phone && <div className="text-xs text-gray-700">Phone: {hospital.phone}</div>}
+                                <div className="text-[1em] font-semibold leading-tight text-gray-900">
+                                    {hospital?.name}
+                                </div>
+                                {hospital?.address && (
+                                    <div className="mt-0.5 max-w-[62mm] text-[0.8em] leading-snug text-gray-600">
+                                        {hospital.address}
+                                    </div>
+                                )}
+                                {hospital?.phone && (
+                                    <div className="text-[0.8em] text-gray-600">{hospital.phone}</div>
+                                )}
                             </div>
                         </div>
                     ) : null}
-                    {p.prescription_header_text && <div className="mt-1 text-xs text-gray-700">{p.prescription_header_text}</div>}
+
+                    {p.prescription_header_text && (
+                        // pre-line: doctors type multi-line letterheads in here and
+                        // HTML would otherwise collapse every newline into a space.
+                        <div
+                            className="pb-1.5 text-[0.8em] leading-snug text-gray-600"
+                            style={{ whiteSpace: 'pre-line' }}
+                        >
+                            {p.prescription_header_text}
+                        </div>
+                    )}
+
+                    {/* Weighted rule: a solid accent over a hairline gives the
+                        letterhead a definite edge without a heavy printed band. */}
+                    <div style={{ height: 2, background: '#0f4c81' }} />
+                    <div style={{ height: 1, background: '#cbd5e1', marginTop: 1 }} />
                 </header>
             )}
 
