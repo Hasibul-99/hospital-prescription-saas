@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Hospital;
 use App\Models\User;
+use App\Support\DoctorLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -54,6 +55,10 @@ class UserController extends Controller
             'is_active'   => 'boolean',
         ]);
 
+        // A cap is a cap — the super admin is blocked too. Raise the hospital's
+        // max_doctors_override (or its plan) to make room.
+        $this->assertDoctorSlotAvailable($validated);
+
         $validated['password'] = Hash::make($validated['password']);
 
         User::create($validated);
@@ -89,6 +94,8 @@ class UserController extends Controller
             'is_active'   => 'boolean',
         ]);
 
+        $this->assertDoctorSlotAvailable($validated, $user);
+
         if (empty($validated['password'])) {
             unset($validated['password']);
         } else {
@@ -98,6 +105,40 @@ class UserController extends Controller
         $user->update($validated);
 
         return redirect()->route('admin.users.index')->with('success', 'User updated.');
+    }
+
+    /**
+     * Block the save when it would push a hospital past its doctor cap.
+     *
+     * Only edits that newly occupy a slot are checked — becoming an active
+     * doctor at a hospital the user was not already an active doctor at. Saving
+     * an unrelated field on an existing active doctor is always allowed, even
+     * when the hospital is already over its (since-reduced) limit.
+     */
+    private function assertDoctorSlotAvailable(array $data, ?User $existing = null): void
+    {
+        $wantsSlot = ($data['role'] ?? null) === 'doctor'
+            && ! empty($data['hospital_id'])
+            && ($data['is_active'] ?? true);
+
+        if (! $wantsSlot) {
+            return;
+        }
+
+        $alreadyHasSlot = $existing
+            && $existing->role === 'doctor'
+            && $existing->is_active
+            && (int) $existing->hospital_id === (int) $data['hospital_id'];
+
+        if ($alreadyHasSlot) {
+            return;
+        }
+
+        $hospital = Hospital::with('plan')->find($data['hospital_id']);
+
+        if ($hospital) {
+            DoctorLimit::assertCanAdd($hospital, 'hospital_id', nameHospital: true);
+        }
     }
 
     public function destroy(User $user)

@@ -13,6 +13,49 @@ export interface User {
     doctor_profile?: DoctorProfile;
 }
 
+/** A bullet on a plan's landing-page card. `bn` falls back to `en` when blank. */
+export interface PlanFeature {
+    en: string;
+    bn?: string | null;
+}
+
+export interface Plan {
+    id: number;
+    /** Stable machine key (`free`, `basic`, …). Set at create, never edited. */
+    code: string;
+    name: string;
+    name_bn?: string | null;
+    tagline?: string | null;
+    tagline_bn?: string | null;
+    /** Laravel serialises decimal columns as strings. */
+    price_monthly: string | number;
+    price_yearly?: string | number | null;
+    /** null on any limit means UNLIMITED, never zero. */
+    max_doctors: number | null;
+    max_patients_per_month: number | null;
+    max_prescriptions: number | null;
+    trial_days: number;
+    features?: PlanFeature[] | null;
+    cta_label?: string | null;
+    cta_label_bn?: string | null;
+    is_public: boolean;
+    is_featured: boolean;
+    is_active: boolean;
+    sort_order: number;
+    created_at?: string;
+    updated_at?: string;
+    hospitals_count?: number;
+}
+
+/** Display-only currency config. There is no conversion anywhere in this app. */
+export interface CurrencyConfig {
+    code: string;
+    symbol: string;
+    name: string;
+    decimals: number;
+    position: 'before' | 'after';
+}
+
 export interface Hospital {
     id: number;
     name: string;
@@ -22,13 +65,19 @@ export interface Hospital {
     phone?: string;
     email?: string;
     website?: string;
-    subscription_plan: 'free' | 'basic' | 'premium' | 'enterprise';
+    plan_id?: number | null;
+    plan?: Plan | null;
+    billing_cycle: 'monthly' | 'yearly';
+    /** The hospital's own money display currency, independent of plan pricing. */
+    currency: string;
     subscription_status: 'active' | 'trial' | 'expired' | 'suspended';
     subscription_starts_at?: string;
     subscription_ends_at?: string;
     trial_ends_at?: string;
-    max_doctors: number;
-    max_patients_per_month: number;
+    /** null = inherit the plan's limit. A number is a super-admin exception. */
+    max_doctors_override?: number | null;
+    max_patients_per_month_override?: number | null;
+    prescription_quota_used?: number;
     settings?: Record<string, unknown>;
     is_active: boolean;
     created_at: string;
@@ -274,6 +323,8 @@ export type PageProps<
         user: User;
     };
     locale: 'en' | 'bn';
+    /** Money display currency for the current context — see App\Support\Money. */
+    currency: CurrencyConfig;
     flash: {
         success?: string;
         error?: string;

@@ -2,6 +2,7 @@ import DoctorLayout from '@/Layouts/DoctorLayout';
 import FlashMessage from '@/Components/FlashMessage';
 import { Appointment } from '@/types';
 import { router } from '@inertiajs/react';
+import { useMoney } from '@/utils/currency';
 import { ReactNode, useState } from 'react';
 
 interface Summary {
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function Index({ rows, summary, filters }: Props) {
+    const money = useMoney();
     const [from, setFrom] = useState(filters.date_from);
     const [to, setTo] = useState(filters.date_to);
 
@@ -62,9 +64,9 @@ export default function Index({ rows, summary, filters }: Props) {
                     <Stat label="New" value={summary.new_patients} />
                     <Stat label="Follow-ups" value={summary.follow_ups} />
                     <Stat label="Emergency" value={summary.emergency} />
-                    <Stat label="Total Earned" value={`৳ ${summary.total_earned.toFixed(2)}`} />
-                    <Stat label="Paid" value={`৳ ${summary.total_paid.toFixed(2)}`} tone="green" />
-                    <Stat label="Unpaid" value={`৳ ${summary.total_unpaid.toFixed(2)}`} tone="red" />
+                    <Stat label="Total Earned" value={money(summary.total_earned)} />
+                    <Stat label="Paid" value={money(summary.total_paid)} tone="green" />
+                    <Stat label="Unpaid" value={money(summary.total_unpaid)} tone="red" />
                 </div>
             </div>
 
@@ -94,7 +96,7 @@ export default function Index({ rows, summary, filters }: Props) {
                                 </td>
                                 <td className="px-4 py-2 capitalize">{a.type.replace('_', ' ')}</td>
                                 <td className="px-4 py-2 capitalize">{a.status.replace('_', ' ')}</td>
-                                <td className="px-4 py-2 text-right">৳ {Number(a.fee_amount).toFixed(2)}</td>
+                                <td className="px-4 py-2 text-right">{money(a.fee_amount)}</td>
                                 <td className="px-4 py-2">{a.fee_paid ? '✓' : '—'}</td>
                             </tr>
                         ))}

@@ -3,6 +3,7 @@ import PatientSearch from '@/Components/PatientSearch';
 import { Chamber, Patient, User } from '@/types';
 import { router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
+import { useCurrency } from '@/utils/currency';
 
 interface Props {
     onClose: () => void;
@@ -25,6 +26,7 @@ export default function AppointmentModal({
     submitUrl,
     context,
 }: Props) {
+    const currency = useCurrency();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [date, setDate] = useState(defaultDate);
     const [chamberId, setChamberId] = useState<number | ''>(defaultChamberId ?? '');
@@ -166,7 +168,7 @@ export default function AppointmentModal({
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-600">Fee (৳)</label>
+                            <label className="block text-xs font-medium text-gray-600">Fee ({currency.symbol})</label>
                             <input
                                 type="number"
                                 min="0"

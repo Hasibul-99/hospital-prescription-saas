@@ -1,6 +1,7 @@
 import { Chamber, User } from '@/types';
 import { router, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import { useCurrency } from '@/utils/currency';
 
 interface Props {
     doctors: Pick<User, 'id' | 'name'>[];
@@ -12,6 +13,7 @@ interface Props {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ChamberForm({ doctors, submitUrl, method, initial }: Props) {
+    const currency = useCurrency();
     const initialSchedule: Record<string, { start: string; end: string; active: boolean }> = DAYS.reduce((acc, d) => {
         const existing = (initial?.schedule as any)?.[d];
         acc[d] = existing ?? { start: '', end: '', active: false };
@@ -141,7 +143,7 @@ export default function ChamberForm({ doctors, submitUrl, method, initial }: Pro
 
                     {data.share_model === 'rent' && (
                         <label className="block text-xs text-gray-600">
-                            Monthly rent (৳)
+                            Monthly rent ({currency.symbol})
                             <input
                                 type="number" step="0.01" min={0}
                                 value={data.rent_amount_monthly}

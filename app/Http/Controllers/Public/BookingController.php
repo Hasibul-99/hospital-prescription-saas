@@ -10,6 +10,7 @@ use App\Models\DoctorProfile;
 use App\Models\Patient;
 use App\Services\OtpService;
 use App\Services\SerialQueueService;
+use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class BookingController extends Controller
     {
         $doctors = DoctorProfile::query()
             ->where('is_public_profile', true)
-            ->with(['user:id,name', 'hospital:id,name,logo'])
+            ->with(['user:id,name', 'hospital:id,name,logo,currency'])
             ->orderBy('created_at')
             ->paginate(20)
             ->through(fn (DoctorProfile $p) => [
@@ -43,6 +44,9 @@ class BookingController extends Controller
                 'designation'   => $p->designation,
                 'hospital'      => $p->hospital?->name,
                 'fee'           => (float) $p->consultation_fee,
+                // Fees belong to the doctor's hospital, so they are shown in
+                // that hospital's currency — not the visitor's platform default.
+                'currency'      => Money::config($p->hospital?->currency),
             ]);
 
         return Inertia::render('Public/Booking/Index', [
@@ -59,7 +63,7 @@ class BookingController extends Controller
             return redirect()->route('public.book.index');
         }
 
-        $doctor->load(['user:id,name', 'hospital:id,name,address,phone']);
+        $doctor->load(['user:id,name', 'hospital:id,name,address,phone,currency']);
 
         $chambers = Chamber::query()
             ->where('doctor_id', $doctor->user_id)
@@ -77,6 +81,7 @@ class BookingController extends Controller
                 'hospital'       => $doctor->hospital?->only('id', 'name', 'address', 'phone'),
                 'fee'            => (float) $doctor->consultation_fee,
             ],
+            'currency' => Money::config($doctor->hospital?->currency),
             'chambers' => $chambers,
         ]);
     }
@@ -233,7 +238,7 @@ class BookingController extends Controller
             return redirect()->route('public.book.index');
         }
 
-        $appt = Appointment::with(['patient:id,patient_uid,name,phone', 'doctor:id,name', 'chamber:id,name,room_number', 'hospital:id,name,address'])
+        $appt = Appointment::with(['patient:id,patient_uid,name,phone', 'doctor:id,name', 'chamber:id,name,room_number', 'hospital:id,name,address,currency'])
             ->find($id);
 
         if (! $appt) {
@@ -251,6 +256,7 @@ class BookingController extends Controller
                 'chamber'       => $appt->chamber?->only('name', 'room_number'),
                 'hospital'      => $appt->hospital?->only('name', 'address'),
             ],
+            'currency' => Money::config($appt->hospital?->currency),
         ]);
     }
 }

@@ -3,7 +3,8 @@ import FlashMessage from '@/Components/FlashMessage';
 import Pagination from '@/Components/Pagination';
 import { Head, Link, router } from '@inertiajs/react';
 import { PageProps, PaginatedData } from '@/types';
-import { Button, Input, Popconfirm, Space, Table, Tag, Typography } from 'antd';
+import DoctorQuota, { DoctorQuotaData } from '@/Components/DoctorQuota';
+import { Alert, Button, Input, Popconfirm, Space, Table, Tag, Typography } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { ReactNode, useState } from 'react';
 
@@ -26,10 +27,12 @@ type Doctor = {
 type Props = PageProps<{
     doctors: PaginatedData<Doctor>;
     filters: { search?: string };
+    quota: DoctorQuotaData;
 }>;
 
-export default function Index({ doctors, filters }: Props) {
+export default function Index({ doctors, filters, quota }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const atCap = !quota.unlimited && quota.remaining === 0;
 
     function doSearch(value: string) {
         router.get('/hospital/doctors', { search: value }, { preserveState: true, replace: true });
@@ -89,11 +92,29 @@ export default function Index({ doctors, filters }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Title level={4} style={{ margin: 0 }}>Doctors</Title>
                 <Link href="/hospital/doctors/create">
-                    <Button type="primary" icon={<PlusOutlined />}>Add Doctor</Button>
+                    {/* Disabled rather than hidden so the reason stays visible. */}
+                    <Button type="primary" icon={<PlusOutlined />} disabled={atCap}>
+                        Add Doctor
+                    </Button>
                 </Link>
             </div>
 
+            {atCap && (
+                <Alert
+                    className="mb-4"
+                    type="warning"
+                    showIcon
+                    message="Doctor limit reached"
+                    description={`This hospital allows ${quota.limit} active ${quota.limit === 1 ? 'doctor' : 'doctors'}${
+                        quota.plan ? ` on the ${quota.plan} plan` : ''
+                    }. Deactivate an existing doctor, or ask your platform administrator to raise the limit.`}
+                />
+            )}
+
             <div style={{ marginBottom: 16, maxWidth: 320 }}>
+                <div style={{ marginBottom: 12 }}>
+                    <DoctorQuota quota={quota} />
+                </div>
                 <Input.Search
                     placeholder="Search by name, email or phone"
                     defaultValue={search}

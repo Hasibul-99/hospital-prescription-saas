@@ -22,6 +22,7 @@ import type { UploadProps } from 'antd';
 import { LockOutlined, SaveOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { csrfHeaders } from '@/utils/csrf';
+import { useCurrency } from '@/utils/currency';
 
 type Props = PageProps<{
     profile: DoctorProfile;
@@ -29,6 +30,7 @@ type Props = PageProps<{
 }>;
 
 export default function DoctorSettings({ profile, user }: Props) {
+    const currency = useCurrency();
     const { message } = AntApp.useApp();
     const [profileForm] = Form.useForm();
     const [prefsForm] = Form.useForm();
@@ -147,10 +149,10 @@ export default function DoctorSettings({ profile, user }: Props) {
                                                 <Form.Item label="Specialization" name="specialization">
                                                     <Input />
                                                 </Form.Item>
-                                                <Form.Item label="Consultation Fee (BDT)" name="consultation_fee">
+                                                <Form.Item label={`Consultation Fee (${currency.code})`} name="consultation_fee">
                                                     <InputNumber min={0} style={{ width: '100%' }} />
                                                 </Form.Item>
-                                                <Form.Item label="Follow-up Fee (BDT)" name="follow_up_fee">
+                                                <Form.Item label={`Follow-up Fee (${currency.code})`} name="follow_up_fee">
                                                     <InputNumber min={0} style={{ width: '100%' }} />
                                                 </Form.Item>
                                             </div>

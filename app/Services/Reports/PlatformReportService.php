@@ -56,20 +56,29 @@ class PlatformReportService
         });
     }
 
+    /**
+     * Recent hospitals with what each contributes per month.
+     *
+     * Yearly-billed hospitals are normalised to a monthly figure so the column
+     * totals mean something across mixed billing cycles.
+     *
+     * Cached for an hour; the Plan model flushes this key whenever a price
+     * changes, so an edit is not hidden until the TTL expires.
+     */
     public function revenuePerHospital(): array
     {
         return Cache::remember('rpt:platform:revenue', now()->addHour(), function () {
-            $plans = config('subscription.plans', []);
-
             return Hospital::query()
+                ->with('plan:id,name,price_monthly,price_yearly')
                 ->orderByDesc('created_at')
                 ->limit(50)
-                ->get(['id', 'name', 'subscription_plan', 'subscription_status', 'subscription_ends_at'])
+                ->get(['id', 'name', 'plan_id', 'billing_cycle', 'subscription_status', 'subscription_ends_at'])
                 ->map(fn ($h) => [
                     'id' => $h->id,
                     'name' => $h->name,
-                    'plan' => $h->subscription_plan,
-                    'monthly_fee' => (float) ($plans[$h->subscription_plan]['price'] ?? 0),
+                    'plan' => $h->plan?->name ?? '—',
+                    'billing_cycle' => $h->billing_cycle,
+                    'monthly_fee' => $h->plan?->monthlyEquivalent($h->billing_cycle) ?? 0.0,
                     'status' => $h->subscription_status,
                     'ends_at' => $h->subscription_ends_at?->toDateString(),
                 ])

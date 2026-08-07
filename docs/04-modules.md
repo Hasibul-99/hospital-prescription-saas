@@ -43,7 +43,7 @@ Base URL: `/hospital/*`. Middleware: `auth`, `role:hospital_admin`, `hospital.ac
 | Settings | `/hospital/settings` | `medixpro/settings.html` |
 | Reports | `/hospital/reports` | `medixpro/reports.html` |
 
-Plan-limit enforcement: block creating a new doctor when `count(doctors) >= hospital.max_doctors`, etc.
+Plan-limit enforcement: `App\Support\DoctorLimit::assertCanAdd()` blocks creating a doctor — and reactivating a disabled one — once active doctors reach `Hospital::effectiveMaxDoctors()` (the per-hospital override, else the plan's limit, null = unlimited). Existing doctors are never affected by a downgrade.
 
 ---
 

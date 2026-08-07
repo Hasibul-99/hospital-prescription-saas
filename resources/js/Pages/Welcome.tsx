@@ -1,6 +1,27 @@
 import { Head, Link } from '@inertiajs/react';
-import { PageProps } from '@/types';
+import { CurrencyConfig, PageProps, PlanFeature } from '@/types';
 import { useState } from 'react';
+import { formatMoney } from '@/utils/currency';
+
+/** The trimmed plan shape LandingController sends — prices already cast to numbers. */
+type LandingPlan = {
+    id: number;
+    code: string;
+    name: string;
+    name_bn?: string | null;
+    tagline?: string | null;
+    tagline_bn?: string | null;
+    price_monthly: number;
+    price_yearly: number | null;
+    features?: PlanFeature[] | null;
+    cta_label?: string | null;
+    cta_label_bn?: string | null;
+    is_featured: boolean;
+    trial_days: number;
+    yearly_discount_percent: number | null;
+};
+
+type BillingCycle = 'monthly' | 'yearly';
 
 // ─── Tiny icon helper ─────────────────────────────────────────────
 const Ico = ({ size = 18, children }: { size?: number; children: React.ReactNode }) => (
@@ -264,9 +285,24 @@ function FeatureCard({ icon, title, desc, tone }: { icon: React.ReactNode; title
 }
 
 // ─── Pricing card ─────────────────────────────────────────────────
-function PricingCard({ name, price, desc, features, featured, cta }: {
-    name: string; price: string; desc: string; features: string[]; featured?: boolean; cta: string;
+// Driven by a `plans` row — nothing here is hardcoded. `cycle` picks which of
+// the plan's two prices to show; a plan with no yearly price falls back to its
+// monthly one so the toggle never blanks a card.
+function PricingCard({ plan, currency, cycle, locale }: {
+    plan: LandingPlan; currency: CurrencyConfig; cycle: BillingCycle; locale: 'en' | 'bn';
 }) {
+    const featured = plan.is_featured;
+    const bn = locale === 'bn';
+
+    const showYearly = cycle === 'yearly' && plan.price_yearly !== null;
+    const price = showYearly ? (plan.price_yearly as number) : plan.price_monthly;
+    const suffix = showYearly ? '/yr' : '/mo';
+
+    const name = (bn && plan.name_bn) || plan.name;
+    const desc = (bn && plan.tagline_bn) || plan.tagline || '';
+    const cta = (bn && plan.cta_label_bn) || plan.cta_label || 'Get started';
+    const features = plan.features ?? [];
+
     return (
         <div style={{
             background: featured ? '#0f766e' : 'white',
@@ -283,23 +319,31 @@ function PricingCard({ name, price, desc, features, featured, cta }: {
             )}
             <div style={{ fontSize: 13, fontWeight: 700, color: featured ? 'rgba(255,255,255,.7)' : '#0f766e', textTransform: 'uppercase', letterSpacing: '.06em' }}>{name}</div>
             <div style={{ fontSize: 42, fontWeight: 700, letterSpacing: '-.03em', color: featured ? 'white' : '#0f172a', margin: '12px 0 4px' }}>
-                {price}<span style={{ fontSize: 16, fontWeight: 500, color: featured ? 'rgba(255,255,255,.6)' : '#94a3b8' }}>/mo</span>
+                {formatMoney(price, currency, { decimals: 0 })}
+                <span style={{ fontSize: 16, fontWeight: 500, color: featured ? 'rgba(255,255,255,.6)' : '#94a3b8' }}>{suffix}</span>
             </div>
+
+            {showYearly && plan.yearly_discount_percent !== null && (
+                <div style={{ ...S.pill(featured ? 'rgba(255,255,255,.16)' : '#f0fdf4', featured ? 'white' : '#15803d'), marginBottom: 8 }}>
+                    Save {plan.yearly_discount_percent}%
+                </div>
+            )}
+
             <div style={{ fontSize: 13.5, color: featured ? 'rgba(255,255,255,.7)' : '#475569', marginBottom: 24, lineHeight: 1.4 }}>{desc}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-                {features.map(f => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: featured ? 'rgba(255,255,255,.9)' : '#475569' }}>
+                {features.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: featured ? 'rgba(255,255,255,.9)' : '#475569' }}>
                         <span style={{ color: featured ? '#10b981' : '#0f766e', flex: '0 0 auto', marginTop: 1 }}>{Icons.checkSm(14)}</span>
-                        {f}
+                        {(bn && f.bn) || f.en}
                     </div>
                 ))}
             </div>
-            <a href="/login" style={{
+            <a href="/login" className="pricing-btn" style={{
                 display: 'block', textAlign: 'center', padding: '12px',
                 borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 background: featured ? 'white' : '#0f766e',
                 color: featured ? '#0f766e' : 'white',
-                border: featured ? 'none' : 'none',
+                border: 'none',
                 textDecoration: 'none', marginTop: 'auto',
                 boxShadow: featured ? '0 4px 12px rgba(0,0,0,.08)' : 'none',
             }}>
@@ -325,11 +369,21 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: React.Re
 }
 
 // ─── Main page ────────────────────────────────────────────────────
-export default function Welcome({ auth }: PageProps) {
+type WelcomeProps = PageProps<{
+    plans: LandingPlan[];
+    currency: CurrencyConfig;
+}>;
+
+export default function Welcome({ auth, plans, currency, locale }: WelcomeProps) {
     const [formName, setFormName] = useState('');
     const [formEmail, setFormEmail] = useState('');
     const [formClinic, setFormClinic] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [cycle, setCycle] = useState<BillingCycle>('monthly');
+
+    // Only worth showing the toggle if at least one plan is actually sold yearly.
+    const hasYearly = plans.some((p) => p.price_yearly !== null);
+    const maxTrialDays = plans.reduce((max, p) => Math.max(max, p.trial_days), 0);
 
     return (
         <>
@@ -733,53 +787,50 @@ export default function Welcome({ auth }: PageProps) {
                             title="Simple pricing, no surprises."
                             sub="Start free. Scale when you grow. No per-prescription fees."
                         />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'center', maxWidth: 960, margin: '0 auto' }}>
-                            <PricingCard
-                                name="Solo"
-                                price="$29"
-                                desc="For individual practitioners just getting started."
-                                cta="Start free trial"
-                                features={[
-                                    '1 doctor',
-                                    'Up to 200 prescriptions/mo',
-                                    'Drug library access',
-                                    'Basic decision support',
-                                    'PDF export',
-                                ]}
-                            />
-                            <PricingCard
-                                name="Clinic"
-                                price="$89"
-                                desc="For multi-doctor clinics that need full workflows."
-                                cta="Start free trial"
-                                featured
-                                features={[
-                                    'Up to 10 doctors',
-                                    'Unlimited prescriptions',
-                                    'e-Rx & pharmacy transmission',
-                                    'Full decision support',
-                                    'Patient portal',
-                                    'Priority support',
-                                ]}
-                            />
-                            <PricingCard
-                                name="Hospital"
-                                price="$249"
-                                desc="Multi-department hospitals with custom needs."
-                                cta="Talk to sales"
-                                features={[
-                                    'Unlimited doctors',
-                                    'Unlimited prescriptions',
-                                    'EHR / lab integrations',
-                                    'EPCS controlled substances',
-                                    'Audit logs & compliance reports',
-                                    'Dedicated CSM',
-                                ]}
-                            />
-                        </div>
-                        <p style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8', marginTop: 28 }}>
-                            All plans include a 14-day free trial. No credit card required.
-                        </p>
+                        {hasYearly && (
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+                                <div style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: 'white', border: '1px solid #eef0f4' }}>
+                                    {(['monthly', 'yearly'] as BillingCycle[]).map((c) => (
+                                        <button
+                                            key={c}
+                                            onClick={() => setCycle(c)}
+                                            style={{
+                                                padding: '8px 22px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                                                fontSize: 13.5, fontWeight: 600, textTransform: 'capitalize',
+                                                background: cycle === c ? '#0f766e' : 'transparent',
+                                                color: cycle === c ? 'white' : '#475569',
+                                            }}
+                                        >
+                                            {c}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {plans.length === 0 ? (
+                            <p style={{ textAlign: 'center', fontSize: 14, color: '#94a3b8' }}>
+                                Pricing is being updated — please check back shortly.
+                            </p>
+                        ) : (
+                            <div style={{
+                                display: 'grid',
+                                // auto-fit so the row survives any number of plans the
+                                // super admin publishes, not just three.
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                                gap: 20, alignItems: 'center', maxWidth: 1120, margin: '0 auto',
+                            }}>
+                                {plans.map((plan) => (
+                                    <PricingCard key={plan.id} plan={plan} currency={currency} cycle={cycle} locale={locale} />
+                                ))}
+                            </div>
+                        )}
+
+                        {maxTrialDays > 0 && (
+                            <p style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8', marginTop: 28 }}>
+                                Paid plans include a {maxTrialDays}-day free trial. No credit card required.
+                            </p>
+                        )}
                     </div>
                 </section>
 

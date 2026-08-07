@@ -2,6 +2,8 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import { Head, router } from '@inertiajs/react';
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import InputError from '@/Components/InputError';
+import { CurrencyConfig } from '@/types';
+import { formatMoney } from '@/utils/currency';
 
 interface Chamber {
     id: number;
@@ -27,10 +29,12 @@ interface Doctor {
 interface Props {
     doctor: Doctor;
     chambers: Chamber[];
+    /** This doctor's hospital currency, not the platform default. */
+    currency: CurrencyConfig;
     errors: Partial<Record<string, string>>;
 }
 
-export default function Doctor({ doctor, chambers, errors }: Props) {
+export default function Doctor({ doctor, chambers, currency, errors }: Props) {
     const [chamberId, setChamberId] = useState<number | null>(chambers[0]?.id ?? null);
     const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
     const [name, setName] = useState('');
@@ -94,7 +98,7 @@ export default function Doctor({ doctor, chambers, errors }: Props) {
                             </div>
                         )}
                         <div className="mt-3 border-t pt-3 text-sm">
-                            <span className="font-medium">৳ {doctor.fee.toFixed(0)}</span>
+                            <span className="font-medium">{formatMoney(doctor.fee, currency, { decimals: 0 })}</span>
                             <span className="ml-1 text-xs text-gray-500">consultation fee</span>
                         </div>
                     </div>

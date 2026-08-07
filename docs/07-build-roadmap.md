@@ -74,7 +74,7 @@ Order of operations:
    - `Admin\SubscriptionController` (view + manual extend)
 7. **Hospital admin controllers + pages**:
    - `Hospital\DashboardController`
-   - `Hospital\DoctorController` (enforce `max_doctors` plan limit)
+   - `Hospital\DoctorController` (enforces the plan's doctor cap via `App\Support\DoctorLimit`)
    - `Hospital\ReceptionistController`
    - `Hospital\ChamberController`
    - `Hospital\HolidayController`

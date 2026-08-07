@@ -4,6 +4,7 @@ import Pagination from '@/Components/Pagination';
 import AppointmentModal from '@/Components/AppointmentModal';
 import { Appointment, PaginatedData, User } from '@/types';
 import { router } from '@inertiajs/react';
+import { useMoney } from '@/utils/currency';
 import { ReactNode, useState } from 'react';
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function Index({ appointments, doctors, filters }: Props) {
+    const money = useMoney();
     const [showModal, setShowModal] = useState(false);
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
@@ -109,7 +111,7 @@ export default function Index({ appointments, doctors, filters }: Props) {
                                 <td className="px-4 py-3">{a.doctor?.name}</td>
                                 <td className="px-4 py-3 capitalize">{a.type.replace('_', ' ')}</td>
                                 <td className="px-4 py-3 capitalize">{a.status.replace('_', ' ')}</td>
-                                <td className="px-4 py-3">৳ {Number(a.fee_amount).toFixed(0)} {a.fee_paid ? '✓' : ''}</td>
+                                <td className="px-4 py-3">{money(a.fee_amount, { decimals: 0 })} {a.fee_paid ? '✓' : ''}</td>
                             </tr>
                         ))}
                     </tbody>

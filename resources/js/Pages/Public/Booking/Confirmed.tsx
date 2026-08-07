@@ -1,6 +1,8 @@
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Head, Link } from '@inertiajs/react';
 import { ReactNode } from 'react';
+import { CurrencyConfig } from '@/types';
+import { formatMoney } from '@/utils/currency';
 
 interface Appointment {
     id: number;
@@ -15,9 +17,10 @@ interface Appointment {
 
 interface Props {
     appointment: Appointment;
+    currency: CurrencyConfig;
 }
 
-export default function Confirmed({ appointment }: Props) {
+export default function Confirmed({ appointment, currency }: Props) {
     return (
         <>
             <Head title="Booking confirmed" />
@@ -59,7 +62,7 @@ export default function Confirmed({ appointment }: Props) {
                         </tr>
                         <tr>
                             <td className="bg-gray-50 px-4 py-3 text-xs uppercase text-gray-500">Fee</td>
-                            <td className="px-4 py-3 text-gray-900">৳ {appointment.fee_amount.toFixed(0)} (pay at chamber)</td>
+                            <td className="px-4 py-3 text-gray-900">{formatMoney(appointment.fee_amount, currency, { decimals: 0 })} (pay at chamber)</td>
                         </tr>
                         {appointment.hospital?.address && (
                             <tr>

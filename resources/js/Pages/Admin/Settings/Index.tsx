@@ -7,35 +7,47 @@ import {
     Button,
     Card,
     Col,
-    Descriptions,
     Form,
     Input,
     Row,
+    Select,
     Switch,
-    Tag,
     Typography,
     App as AntApp,
 } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 
-interface Plan {
-    price: number;
-    max_doctors: number;
-    max_patients_per_month: number;
-}
+type CurrencyOption = { code: string; symbol: string; name: string };
 
 type Props = PageProps<{
     platform: { name: string; logo_url?: string | null };
-    plans: Record<string, Plan>;
+    currency: { current: string; supported: CurrencyOption[] };
+    plan_count: number;
     maintenance_mode: boolean;
 }>;
 
-export default function AdminSettings({ platform, plans, maintenance_mode }: Props) {
+export default function AdminSettings({ platform, currency, plan_count, maintenance_mode }: Props) {
     const { message } = AntApp.useApp();
     const [form] = Form.useForm();
     const [saving, setSaving] = useState(false);
     const [maintenance, setMaintenance] = useState(maintenance_mode);
+    const [baseCurrency, setBaseCurrency] = useState(currency.current);
+
+    function saveCurrency(code: string) {
+        setBaseCurrency(code);
+        router.put(
+            '/admin/settings/currency',
+            { currency: code },
+            {
+                preserveScroll: true,
+                onError: () => {
+                    setBaseCurrency(currency.current);
+                    message.error('Could not change the platform currency.');
+                },
+            },
+        );
+    }
 
     function savePlatform(values: any) {
         setSaving(true);
@@ -113,30 +125,43 @@ export default function AdminSettings({ platform, plans, maintenance_mode }: Pro
                     </Card>
                 </Col>
 
-                <Col xs={24}>
-                    <Card title="Subscription Plans (read-only)">
-                        <Descriptions bordered size="small" column={4}>
-                            {Object.entries(plans).map(([key, plan]) => (
-                                <Descriptions.Item
-                                    key={key}
-                                    label={
-                                        <span>
-                                            <Tag color="blue">{key}</Tag>
-                                        </span>
-                                    }
-                                    span={1}
-                                >
-                                    <div className="text-sm">
-                                        <div>Price: <strong>{plan.price}</strong> BDT/mo</div>
-                                        <div>Max Doctors: {plan.max_doctors}</div>
-                                        <div>Max Patients/mo: {plan.max_patients_per_month}</div>
-                                    </div>
-                                </Descriptions.Item>
-                            ))}
-                        </Descriptions>
-                        <div className="mt-3 text-xs text-gray-500">
-                            Edit via <code>config/subscription.php</code>.
-                        </div>
+                <Col xs={24} lg={12}>
+                    <Card title="Platform Currency">
+                        <p className="mb-3 text-sm text-gray-600">
+                            The currency subscription plan prices are quoted in, and the one shown on the public
+                            pricing page. Each hospital picks its own currency separately for in-app money.
+                        </p>
+
+                        <Select
+                            value={baseCurrency}
+                            onChange={saveCurrency}
+                            style={{ width: '100%', maxWidth: 360 }}
+                            options={currency.supported.map((c) => ({
+                                value: c.code,
+                                label: `${c.code} — ${c.name} (${c.symbol})`,
+                            }))}
+                        />
+
+                        <Alert
+                            className="mt-3"
+                            type="info"
+                            showIcon
+                            message="Changing this does not convert any price."
+                            description="Plan amounts stay exactly as entered — only the symbol they display with changes."
+                        />
+                    </Card>
+                </Col>
+
+                <Col xs={24} lg={12}>
+                    <Card title="Subscription Plans">
+                        <p className="mb-3 text-sm text-gray-600">
+                            {plan_count === 0
+                                ? 'No active plans yet — the pricing page will be empty until you add one.'
+                                : `${plan_count} active ${plan_count === 1 ? 'plan' : 'plans'}. Prices, limits and the landing page cards are all managed here.`}
+                        </p>
+                        <Button type="primary" onClick={() => router.visit('/admin/plans')}>
+                            Manage Plans
+                        </Button>
                     </Card>
                 </Col>
             </Row>

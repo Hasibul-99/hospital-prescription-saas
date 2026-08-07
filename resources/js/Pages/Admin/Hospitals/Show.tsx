@@ -1,5 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Hospital, PageProps } from '@/types';
+import DoctorQuota, { DoctorQuotaData } from '@/Components/DoctorQuota';
+import { CurrencyConfig, Hospital, PageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 
 interface Doctor {
@@ -13,6 +14,8 @@ interface Doctor {
 interface Props extends PageProps {
     hospital: Hospital & { doctors_count: number; patients_count: number; prescriptions_count: number };
     doctors: Doctor[];
+    quota: DoctorQuotaData;
+    currency: CurrencyConfig;
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -29,10 +32,10 @@ const STATUS_COLORS: Record<string, string> = {
     suspended: 'bg-orange-50 text-orange-700',
 };
 
-function Badge({ value, map }: { value: string; map: Record<string, string> }) {
+function Badge({ value, label, map }: { value: string; label?: string; map: Record<string, string> }) {
     return (
         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${map[value] ?? 'bg-gray-100 text-gray-600'}`}>
-            {value}
+            {label ?? value}
         </span>
     );
 }
@@ -46,7 +49,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
     );
 }
 
-export default function Show({ hospital, doctors }: Props) {
+export default function Show({ hospital, doctors, quota, currency }: Props) {
     return (
         <AdminLayout>
             <Head title={hospital.name} />
@@ -61,7 +64,7 @@ export default function Show({ hospital, doctors }: Props) {
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">{hospital.name}</h2>
                         <div className="mt-1 flex items-center gap-2">
-                            <Badge value={hospital.subscription_plan} map={PLAN_COLORS} />
+                            <Badge value={hospital.plan?.code ?? '—'} label={hospital.plan?.name ?? 'No plan'} map={PLAN_COLORS} />
                             <Badge value={hospital.subscription_status} map={STATUS_COLORS} />
                             {!hospital.is_active && (
                                 <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">Inactive</span>
@@ -79,7 +82,7 @@ export default function Show({ hospital, doctors }: Props) {
 
             {/* Stats */}
             <div className="mb-6 grid grid-cols-3 gap-4">
-                <Stat label="Doctors" value={`${hospital.doctors_count} / ${hospital.max_doctors}`} />
+                <DoctorQuota quota={quota} />
                 <Stat label="Patients" value={hospital.patients_count} />
                 <Stat label="Prescriptions" value={hospital.prescriptions_count} />
             </div>
@@ -93,7 +96,10 @@ export default function Show({ hospital, doctors }: Props) {
                         ['Email', hospital.email],
                         ['Website', hospital.website],
                         ['Address', hospital.address],
-                        ['Max Patients/Month', hospital.max_patients_per_month],
+                        ['Billing cycle', hospital.billing_cycle],
+                        ['Currency', `${currency.code} (${currency.symbol})`],
+                        ['Max Patients/Month',
+                            hospital.max_patients_per_month_override ?? hospital.plan?.max_patients_per_month ?? 'Unlimited'],
                         ['Trial ends', hospital.trial_ends_at ? new Date(hospital.trial_ends_at).toLocaleDateString() : '—'],
                         ['Created', new Date(hospital.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })],
                     ].map(([label, value]) => value ? (

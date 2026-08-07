@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    // The landing page reads its pricing section from the `plans` table, so it
+    // needs a schema even though this is only a smoke test.
+    use RefreshDatabase;
+
     /**
      * A basic test example.
      */

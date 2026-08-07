@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Money;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,6 +39,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'csrf_token' => fn () => csrf_token(),
             'locale' => fn () => app()->getLocale(),
+            // Money display currency for the current context: the tenant's own
+            // currency inside a hospital, the platform base currency for super
+            // admins and guests. Never a conversion — just which symbol to draw.
+            'currency' => fn () => Money::config($user?->hospital?->currency),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

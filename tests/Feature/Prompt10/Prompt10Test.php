@@ -5,6 +5,7 @@ namespace Tests\Feature\Prompt10;
 use App\Models\AuditLog;
 use App\Models\DoctorProfile;
 use App\Models\Hospital;
+use App\Models\Plan;
 use App\Models\User;
 use App\Services\DashboardStatsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,13 +28,18 @@ class Prompt10Test extends TestCase
 
     protected function makeHospital(): Hospital
     {
+        $plan = Plan::firstOrCreate(
+            ['code' => 'basic'],
+            ['name' => 'Basic', 'price_monthly' => 1000, 'max_doctors' => 5, 'max_patients_per_month' => 1000],
+        );
+
         return Hospital::create([
             'name' => 'Test Hospital',
             'slug' => 'test-hospital-' . uniqid(),
-            'subscription_plan' => 'basic',
+            'plan_id' => $plan->id,
+            'billing_cycle' => 'monthly',
+            'currency' => 'BDT',
             'subscription_status' => 'active',
-            'max_doctors' => 5,
-            'max_patients_per_month' => 1000,
             'is_active' => true,
         ]);
     }

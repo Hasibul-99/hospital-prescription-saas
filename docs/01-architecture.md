@@ -75,12 +75,11 @@ Each hospital has a `subscription_status` ENUM: `active | trial | expired | susp
 
 ## Plan limits
 
-Hospitals have `max_doctors` and `max_patients_per_month` quotas driven by subscription plan. Enforce on create:
+Limits live on the `plans` row. A hospital may carry a nullable per-hospital override; the effective limit is `override ?? plan value`, and **null at either level means unlimited, never zero**. See `Hospital::effectiveMaxDoctors()` / `effectiveMaxPatientsPerMonth()` / `effectiveMaxPrescriptions()`.
 
-- Hospital Admin creating a doctor → check current doctor count < `max_doctors`.
-- Receptionist / admin registering a patient → check month-to-date patient count < `max_patients_per_month`.
-
-(Quota enforcement is **NOT YET IMPLEMENTED** — add it when building Prompt 2.)
+- **Doctors — enforced.** `App\Support\DoctorLimit::assertCanAdd()` blocks creating a doctor and reactivating a disabled one once the cap is reached, in both `Hospital\DoctorController` and `Admin\UserController` (the super admin is bound by the cap too). Only *active* doctors consume a slot. A downgrade below the current headcount is allowed and warns — existing doctors keep working, the hospital simply cannot add more.
+- **Prescriptions — enforced.** `EnsurePrescriptionQuota` middleware against `plans.max_prescriptions` (the free tier's 30-Rx cap; paid plans are unmetered).
+- **Patients per month — advisory only.** Stored and displayed, not yet enforced.
 
 ## Key conventions
 

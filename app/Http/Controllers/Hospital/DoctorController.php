@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Hospital;
 
 use App\Http\Controllers\Controller;
 use App\Models\DoctorProfile;
+use App\Models\Hospital;
 use App\Models\User;
+use App\Support\DoctorLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -33,17 +35,25 @@ class DoctorController extends Controller
         return Inertia::render('Hospital/Doctors/Index', [
             'doctors' => $this->paginateFor($doctors),
             'filters' => $request->only(['search']),
+            'quota' => DoctorLimit::usage($this->hospital($request)),
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return Inertia::render('Hospital/Doctors/Form', ['doctor' => null]);
+        return Inertia::render('Hospital/Doctors/Form', [
+            'doctor' => null,
+            'quota' => DoctorLimit::usage($this->hospital($request)),
+        ]);
     }
 
     public function store(Request $request)
     {
         $hospitalId = $request->user()->hospital_id;
+
+        // Checked before validation runs so the cap is reported even when the
+        // rest of the form is also incomplete.
+        DoctorLimit::assertCanAdd($this->hospital($request));
 
         $data = $request->validate([
             'name'            => 'required|string|max:255',
@@ -75,7 +85,7 @@ class DoctorController extends Controller
             'degrees'          => $data['degrees'] ?? null,
             'specialization'   => $data['specialization'] ?? null,
             'designation'      => $data['designation'] ?? null,
-            'consultation_fee' => $data['consultation_fee'] ?? null,
+            'consultation_fee' => $data['consultation_fee'] ?? 0,
         ]);
 
         return redirect()->route('hospital.doctors.index')
@@ -88,7 +98,10 @@ class DoctorController extends Controller
 
         $doctor->load('doctorProfile');
 
-        return Inertia::render('Hospital/Doctors/Form', ['doctor' => $doctor]);
+        return Inertia::render('Hospital/Doctors/Form', [
+            'doctor' => $doctor,
+            'quota' => DoctorLimit::usage($this->hospital($request)),
+        ]);
     }
 
     public function update(Request $request, User $doctor)
@@ -108,6 +121,12 @@ class DoctorController extends Controller
             'consultation_fee'=> 'nullable|numeric|min:0',
         ]);
 
+        // Reactivating a disabled doctor claims a slot, so it faces the same cap
+        // as creating one. Editing an already-active doctor never does.
+        if (! $doctor->is_active && ($data['is_active'] ?? false)) {
+            DoctorLimit::assertCanAdd($this->hospital($request), 'is_active');
+        }
+
         $doctor->update(array_filter([
             'name'      => $data['name'],
             'email'     => $data['email'],
@@ -123,7 +142,7 @@ class DoctorController extends Controller
                 'degrees'          => $data['degrees'] ?? null,
                 'specialization'   => $data['specialization'] ?? null,
                 'designation'      => $data['designation'] ?? null,
-                'consultation_fee' => $data['consultation_fee'] ?? null,
+                'consultation_fee' => $data['consultation_fee'] ?? 0,
             ],
         );
 
@@ -139,5 +158,11 @@ class DoctorController extends Controller
 
         return redirect()->route('hospital.doctors.index')
             ->with('success', 'Doctor removed.');
+    }
+
+    /** The acting user's own hospital, with its plan loaded for limit checks. */
+    private function hospital(Request $request): Hospital
+    {
+        return Hospital::with('plan')->findOrFail($request->user()->hospital_id);
     }
 }

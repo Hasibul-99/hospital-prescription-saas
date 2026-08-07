@@ -17,6 +17,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { useMoney } from '@/utils/currency';
 
 type Props = PageProps<{
     filters: { months: number };
@@ -36,6 +37,7 @@ type Props = PageProps<{
 const PIE_COLORS = ['#0f4c81', '#2c7da0', '#61a5c2', '#89c2d9'];
 
 export default function AdminReports({ filters, totals, subscription_breakdown, hospital_growth, revenue_per_hospital }: Props) {
+    const money = useMoney();
     function changeMonths(months: number) {
         router.get('/admin/reports', { months }, { preserveState: true, preserveScroll: true });
     }
@@ -149,7 +151,7 @@ export default function AdminReports({ filters, totals, subscription_breakdown, 
                         title={
                             <span>
                                 Revenue per Hospital — total monthly:{' '}
-                                <Tag color="green">{totalMonthlyRevenue.toFixed(2)} BDT</Tag>
+                                <Tag color="green">{money(totalMonthlyRevenue)}</Tag>
                             </span>
                         }
                         extra={
@@ -167,11 +169,19 @@ export default function AdminReports({ filters, totals, subscription_breakdown, 
                                 { title: 'Hospital', dataIndex: 'name' },
                                 { title: 'Plan', dataIndex: 'plan', width: 120 },
                                 {
+                                    title: 'Billing',
+                                    dataIndex: 'billing_cycle',
+                                    width: 100,
+                                    render: (v: string) => <span className="capitalize">{v}</span>,
+                                },
+                                {
+                                    // Yearly-billed hospitals are normalised to a
+                                    // monthly figure server-side so this column adds up.
                                     title: 'Monthly Fee',
                                     dataIndex: 'monthly_fee',
                                     width: 130,
                                     align: 'right',
-                                    render: (v: number) => v.toFixed(2),
+                                    render: (v: number) => money(v),
                                 },
                                 {
                                     title: 'Status',

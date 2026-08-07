@@ -17,7 +17,7 @@ class DashboardController extends Controller
     {
         return Inertia::render('Admin/Dashboard', [
             'stats' => $this->stats->platformStats(),
-            'recent_hospitals' => Hospital::latest()->take(5)->get(),
+            'recent_hospitals' => Hospital::with('plan:id,name')->latest()->take(5)->get(),
         ]);
     }
 }

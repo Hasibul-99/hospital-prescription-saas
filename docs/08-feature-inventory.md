@@ -56,7 +56,7 @@ Snapshot date: 2026-07-29. Re-verify by scanning `app/Models`, `app/Http/Control
 | 41 | Privacy-minimised public view | `Public\PrescriptionVerifyController` renders only medicines + allergies + follow-up; complaints/exams/diagnosis withheld; patient name masked to first + last-initial |
 | 43 | Cloud always in sync | Inertia + server-side rendering |
 | 44 | English-only clarity / 0–9 numerals on print | `resources/js/utils/numerals.ts` + `_rxToEn()` Blade helper wired through print path |
-| 45 | 30-free-Rx enforcement | `Hospital::FREE_TIER_RX_LIMIT`, `hospitals.prescription_quota_used`, `EnsurePrescriptionQuota` middleware, `PrescriptionService::save()` increments |
+| 45 | 30-free-Rx enforcement | `plans.max_prescriptions` (null = unlimited), `hospitals.prescription_quota_used`, `EnsurePrescriptionQuota` middleware, `PrescriptionService::save()` increments |
 
 **Score: 44/45 built.** (was 41/45; features 13, 21, 24 shipped on 2026-07-30 as Final-easy-add batch. Only #6 tooth chart remains open.)
 
@@ -69,7 +69,7 @@ Just-shipped detail (2026-07-29):
 | 32 | Public online booking | `/book`, `/book/{doctor}`, `/book/{doctor}/slots`, `POST /book`, `/book/verify`, `/book/confirmed`. Uses `SerialQueueService` for slots + fee, `OtpService` (`PURPOSE_BOOKING`) for email OTP. Guest patients dedup on `(hospital_id, phone)`. |
 | 42 | Installable PWA | `vite-plugin-pwa` in `vite.config.js`; manifest + service worker emitted to `public/`; `app.blade.php` head links updated; placeholder icons in `public/icons/`. |
 | 44 | English-only numerals | `resources/js/utils/numerals.ts` + `_rxToEn()` Blade helper; every dose / duration / date / age / custom-instruction rendered on the print path passes through the converter. Print-side "এবং," replaced with "and,". |
-| 45 | 30-free-Rx enforcement | `hospitals.prescription_quota_used` counter + `Hospital::FREE_TIER_RX_LIMIT = 30` + `EnsurePrescriptionQuota` middleware on `POST /doctor/prescriptions`. Counter increments in `PrescriptionService::save()` on new Rx only. |
+| 45 | 30-free-Rx enforcement | `hospitals.prescription_quota_used` counter checked against `plans.max_prescriptions` (30 on the seeded Free plan; null = unlimited on paid plans) + `EnsurePrescriptionQuota` middleware on `POST /doctor/prescriptions`. Counter increments in `PrescriptionService::save()` on new Rx only. |
 
 ## 🟨 Partial (none)
 

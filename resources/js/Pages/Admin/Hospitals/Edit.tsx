@@ -1,14 +1,29 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Hospital, PageProps } from '@/types';
+import { Hospital, PageProps, Plan } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import { limitLabel } from '@/utils/limits';
 
-interface Props extends PageProps { hospital: Hospital }
+type DoctorQuota = {
+    used: number;
+    limit: number | null;
+    remaining: number | null;
+    unlimited: boolean;
+    plan: string | null;
+    is_override: boolean;
+};
+
+interface Props extends PageProps {
+    hospital: Hospital;
+    plans: Plan[];
+    currencies: { code: string; symbol: string; name: string }[];
+    quota: DoctorQuota;
+}
 
 const inputCls = 'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
 
-export default function Edit({ hospital }: Props) {
+export default function Edit({ hospital, plans, currencies, quota }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         name: hospital.name,
         slug: hospital.slug,
@@ -16,12 +31,22 @@ export default function Edit({ hospital }: Props) {
         phone: hospital.phone ?? '',
         email: hospital.email ?? '',
         website: hospital.website ?? '',
-        subscription_plan: hospital.subscription_plan,
+        plan_id: hospital.plan_id ?? plans[0]?.id ?? 0,
+        billing_cycle: hospital.billing_cycle ?? 'monthly',
+        currency: hospital.currency,
         subscription_status: hospital.subscription_status,
-        max_doctors: hospital.max_doctors,
-        max_patients_per_month: hospital.max_patients_per_month,
+        max_doctors_override: hospital.max_doctors_override ?? ('' as number | ''),
+        max_patients_per_month_override: hospital.max_patients_per_month_override ?? ('' as number | ''),
         is_active: hospital.is_active,
     });
+
+    const selectedPlan = plans.find((p) => p.id === Number(data.plan_id));
+
+    // Warn before saving, not just after — the server allows the downgrade but
+    // the hospital will be frozen at its current headcount.
+    const effectiveLimit =
+        data.max_doctors_override === '' ? selectedPlan?.max_doctors ?? null : Number(data.max_doctors_override);
+    const wouldExceed = effectiveLimit !== null && quota.used > effectiveLimit;
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -81,14 +106,19 @@ export default function Edit({ hospital }: Props) {
 
                         <div>
                             <label className={labelCls}>Subscription Plan *</label>
-                            <select value={data.subscription_plan}
-                                onChange={e => setData('subscription_plan', e.target.value as typeof data.subscription_plan)}
+                            <select value={data.plan_id}
+                                onChange={e => setData('plan_id', parseInt(e.target.value))}
                                 className={inputCls}>
-                                <option value="free">Free</option>
-                                <option value="basic">Basic</option>
-                                <option value="premium">Premium</option>
-                                <option value="enterprise">Enterprise</option>
+                                {plans.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
                             </select>
+                            {errors.plan_id && <p className="mt-1 text-xs text-red-600">{errors.plan_id}</p>}
+                            {selectedPlan && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Doctors: {limitLabel(selectedPlan.max_doctors)} · Patients/mo: {limitLabel(selectedPlan.max_patients_per_month)}
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -104,15 +134,62 @@ export default function Edit({ hospital }: Props) {
                         </div>
 
                         <div>
-                            <label className={labelCls}>Max Doctors *</label>
-                            <input type="number" min={1} value={data.max_doctors}
-                                onChange={e => setData('max_doctors', parseInt(e.target.value))} className={inputCls} />
+                            <label className={labelCls}>Billing Cycle *</label>
+                            <select value={data.billing_cycle}
+                                onChange={e => setData('billing_cycle', e.target.value as 'monthly' | 'yearly')}
+                                className={inputCls}>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
                         </div>
 
                         <div>
-                            <label className={labelCls}>Max Patients / Month *</label>
-                            <input type="number" min={1} value={data.max_patients_per_month}
-                                onChange={e => setData('max_patients_per_month', parseInt(e.target.value))} className={inputCls} />
+                            <label className={labelCls}>Currency *</label>
+                            <select value={data.currency}
+                                onChange={e => setData('currency', e.target.value)}
+                                className={inputCls}>
+                                {currencies.map(c => (
+                                    <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>
+                                ))}
+                            </select>
+                            {errors.currency && <p className="mt-1 text-xs text-red-600">{errors.currency}</p>}
+                        </div>
+
+                        <div className="col-span-2 rounded-md border border-gray-200 bg-gray-50 p-4">
+                            <p className="mb-3 text-sm font-medium text-gray-700">
+                                Limit overrides <span className="font-normal text-gray-500">— optional. Leave blank to follow the plan.</span>
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className={labelCls}>Max Doctors</label>
+                                    <input type="number" min={1} value={data.max_doctors_override}
+                                        onChange={e => setData('max_doctors_override', e.target.value === '' ? '' : parseInt(e.target.value))}
+                                        placeholder={selectedPlan ? `Plan: ${limitLabel(selectedPlan.max_doctors)}` : 'Follows plan'}
+                                        className={inputCls} />
+                                    {errors.max_doctors_override && <p className="mt-1 text-xs text-red-600">{errors.max_doctors_override}</p>}
+                                </div>
+
+                                <div>
+                                    <label className={labelCls}>Max Patients / Month</label>
+                                    <input type="number" min={1} value={data.max_patients_per_month_override}
+                                        onChange={e => setData('max_patients_per_month_override', e.target.value === '' ? '' : parseInt(e.target.value))}
+                                        placeholder={selectedPlan ? `Plan: ${limitLabel(selectedPlan.max_patients_per_month)}` : 'Follows plan'}
+                                        className={inputCls} />
+                                    {errors.max_patients_per_month_override && <p className="mt-1 text-xs text-red-600">{errors.max_patients_per_month_override}</p>}
+                                </div>
+                            </div>
+
+                            <p className="mt-3 text-xs text-gray-500">
+                                Currently {quota.used} active {quota.used === 1 ? 'doctor' : 'doctors'}.
+                            </p>
+
+                            {wouldExceed && (
+                                <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    This limit ({effectiveLimit}) is below the {quota.used} doctors already active. Saving is allowed
+                                    — existing doctors keep working — but no new doctor can be added until{' '}
+                                    {quota.used - (effectiveLimit ?? 0)} are deactivated.
+                                </p>
+                            )}
                         </div>
 
                         <div className="col-span-2 flex items-center gap-3">

@@ -29,6 +29,7 @@ import {
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { csrfHeaders } from '@/utils/csrf';
+import { formatAmount, useCurrency } from '@/utils/currency';
 
 interface MedicineRow {
     id: number;
@@ -58,6 +59,7 @@ type Props = PageProps<{
 
 export default function AdminMedicineIndex({ medicines, filters, types, manufacturers, pending_count }: Props) {
     const { message } = AntApp.useApp();
+    const currency = useCurrency();
     const [q, setQ] = useState(filters.q ?? '');
 
     const uploadProps: UploadProps = {
@@ -99,13 +101,13 @@ export default function AdminMedicineIndex({ medicines, filters, types, manufact
         { title: 'Strength', dataIndex: 'strength', width: 140 },
         { title: 'Manufacturer', dataIndex: 'manufacturer', sorter: true, showSorterTooltip: false },
         {
-            title: 'Price',
+            title: `Price (${currency.code})`,
             dataIndex: 'price',
-            width: 90,
+            width: 110,
             align: 'right',
             sorter: true,
             showSorterTooltip: false,
-            render: (v: number | null) => (v != null ? Number(v).toFixed(2) : '—'),
+            render: (v: number | null) => (v != null ? formatAmount(v, currency) : '—'),
         },
         {
             title: 'Status',

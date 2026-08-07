@@ -1,5 +1,6 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import FlashMessage from '@/Components/FlashMessage';
+import DoctorQuota, { DoctorQuotaData } from '@/Components/DoctorQuota';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { Button, Card, Col, Descriptions, Form, Input, Row, Select, Tag, Typography, App as AntApp } from 'antd';
@@ -15,17 +16,24 @@ interface Hospital {
     phone?: string | null;
     email?: string | null;
     website?: string | null;
-    subscription_plan: string;
+    plan_name?: string | null;
+    billing_cycle: 'monthly' | 'yearly';
+    currency: string;
     subscription_status: string;
     subscription_ends_at?: string | null;
-    max_doctors: number;
-    max_patients_per_month: number;
+    /** Effective limits — null means unlimited on this plan. */
+    max_doctors: number | null;
+    max_patients_per_month: number | null;
     settings: { default_language?: 'en' | 'bn'; working_hours?: string };
 }
 
-type Props = PageProps<{ hospital: Hospital }>;
+type Props = PageProps<{
+    hospital: Hospital;
+    quota: DoctorQuotaData;
+    currencies: { code: string; symbol: string; name: string }[];
+}>;
 
-export default function HospitalSettings({ hospital }: Props) {
+export default function HospitalSettings({ hospital, quota, currencies }: Props) {
     const { message } = AntApp.useApp();
     const [form] = Form.useForm();
     const [saving, setSaving] = useState(false);
@@ -63,6 +71,7 @@ export default function HospitalSettings({ hospital }: Props) {
                                 phone: hospital.phone ?? '',
                                 email: hospital.email ?? '',
                                 website: hospital.website ?? '',
+                                currency: hospital.currency,
                                 default_language: hospital.settings.default_language ?? 'en',
                                 working_hours: hospital.settings.working_hours ?? '',
                             }}
@@ -91,6 +100,21 @@ export default function HospitalSettings({ hospital }: Props) {
                                         ]}
                                     />
                                 </Form.Item>
+                                <Form.Item
+                                    label="Currency"
+                                    name="currency"
+                                    rules={[{ required: true }]}
+                                    tooltip="Used for consultation fees, chamber fees and daily statements. Your subscription is billed separately."
+                                >
+                                    <Select
+                                        showSearch
+                                        optionFilterProp="label"
+                                        options={currencies.map((c) => ({
+                                            value: c.code,
+                                            label: `${c.code} — ${c.name} (${c.symbol})`,
+                                        }))}
+                                    />
+                                </Form.Item>
                             </div>
                             <Form.Item label="Address" name="address">
                                 <Input.TextArea rows={2} maxLength={1000} />
@@ -106,10 +130,13 @@ export default function HospitalSettings({ hospital }: Props) {
                 </Col>
 
                 <Col xs={24} lg={8}>
-                    <Card title="Subscription (read-only)">
+                    <Card title="Subscription (read-only)" className="mb-4">
                         <Descriptions column={1} size="small">
                             <Descriptions.Item label="Plan">
-                                <Tag color="blue">{hospital.subscription_plan}</Tag>
+                                <Tag color="blue">{hospital.plan_name ?? 'No plan'}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Billing">
+                                <span className="capitalize">{hospital.billing_cycle}</span>
                             </Descriptions.Item>
                             <Descriptions.Item label="Status">
                                 <Tag color={hospital.subscription_status === 'active' ? 'green' : 'orange'}>
@@ -119,10 +146,19 @@ export default function HospitalSettings({ hospital }: Props) {
                             <Descriptions.Item label="Ends">
                                 {hospital.subscription_ends_at ?? '—'}
                             </Descriptions.Item>
-                            <Descriptions.Item label="Max Doctors">{hospital.max_doctors}</Descriptions.Item>
-                            <Descriptions.Item label="Max Patients/mo">{hospital.max_patients_per_month}</Descriptions.Item>
+                            <Descriptions.Item label="Max Doctors">
+                                {hospital.max_doctors ?? 'Unlimited'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Max Patients/mo">
+                                {hospital.max_patients_per_month ?? 'Unlimited'}
+                            </Descriptions.Item>
                         </Descriptions>
+                        <p className="mt-2 text-xs text-gray-400">
+                            Contact your platform administrator to change plan.
+                        </p>
                     </Card>
+
+                    <DoctorQuota quota={quota} />
                 </Col>
             </Row>
         </HospitalLayout>

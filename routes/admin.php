@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HospitalController;
 use App\Http\Controllers\Admin\MedicineController;
 use App\Http\Controllers\Admin\MedicineRequestController;
+use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Admin\UserController;
@@ -15,6 +16,11 @@ Route::middleware(['auth', 'verified', 'role:super_admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::post('plans/reorder', [PlanController::class, 'reorder'])->name('plans.reorder');
+        Route::resource('plans', PlanController::class)->except(['show']);
+        Route::post('plans/{plan}/toggle-status', [PlanController::class, 'toggleStatus'])->name('plans.toggle-status');
+        Route::post('plans/{plan}/toggle-public', [PlanController::class, 'togglePublic'])->name('plans.toggle-public');
 
         Route::resource('hospitals', HospitalController::class);
         Route::post('hospitals/{hospital}/toggle-status', [HospitalController::class, 'toggleStatus'])->name('hospitals.toggle-status');
@@ -50,5 +56,6 @@ Route::middleware(['auth', 'verified', 'role:super_admin'])
 
         Route::get('/settings', [AdminSettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/settings/platform', [AdminSettingsController::class, 'updatePlatform'])->name('settings.platform');
+        Route::put('/settings/currency', [AdminSettingsController::class, 'updateCurrency'])->name('settings.currency');
         Route::put('/settings/maintenance', [AdminSettingsController::class, 'toggleMaintenance'])->name('settings.maintenance');
     });

@@ -33,7 +33,7 @@ Three role-scoped report dashboards (`/doctor/reports`, `/hospital/reports`, `/a
 | `app/Http/Controllers/Doctor/SettingsController.php` | `edit` (auto-creates DoctorProfile), `updateProfile`, `updatePreferences` (UI lang + prescription output lang + paper size, header/footer/logo modes, font size, margins), `updatePassword` (current-password verify), `uploadImage` (header / footer / signature / avatar — validated to JPG/PNG/WEBP, max 2 MB, stored on `public` disk) |
 | `app/Http/Controllers/Hospital/SettingsController.php` | `edit`, `update` — hospital info + default language + working hours; subscription is read-only |
 | `app/Http/Controllers/Admin/SettingsController.php` | Platform name + logo URL stored in cache; maintenance mode toggle (`artisan down/up` with bypass secret `medixpro-bypass`); subscription plans surfaced from config |
-| `config/subscription.php` | Source of truth for subscription plans (price + max_doctors + max_patients_per_month) |
+| ~~`config/subscription.php`~~ | **Removed.** Plans are now database rows in the `plans` table, managed by the super admin at `/admin/plans`. See `docs/02-database-schema.md`. |
 
 ### Backend — Bilingual & Audit
 

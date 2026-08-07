@@ -2,6 +2,7 @@ import ReceptionistLayout from '@/Layouts/ReceptionistLayout';
 import FlashMessage from '@/Components/FlashMessage';
 import AppointmentModal from '@/Components/AppointmentModal';
 import { Link, router } from '@inertiajs/react';
+import { useMoney } from '@/utils/currency';
 import { Appointment, Chamber, HospitalHoliday, QueueStats, User } from '@/types';
 import { ReactNode, useEffect, useState } from 'react';
 
@@ -36,6 +37,7 @@ function statusClass(s: string) {
 }
 
 export default function Index({ date, doctor_id, chamber_id, doctors, chambers, queue, stats, on_break, holiday }: Props) {
+    const money = useMoney();
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
@@ -98,7 +100,7 @@ export default function Index({ date, doctor_id, chamber_id, doctors, chambers, 
                     <Stat label="Completed" v={stats.completed} />
                     <Stat label="Follow-ups" v={stats.follow_ups} />
                     <Stat label="Absent" v={stats.absent} />
-                    <Stat label="Earned" v={`৳ ${stats.total_earned.toFixed(0)}`} />
+                    <Stat label="Earned" v={money(stats.total_earned, { decimals: 0 })} />
                 </div>
             )}
 
@@ -146,7 +148,7 @@ export default function Index({ date, doctor_id, chamber_id, doctors, chambers, 
                                 <td className="px-4 py-3">
                                     <span className={`rounded px-2 py-1 text-xs font-medium ${statusClass(a.status)}`}>{a.status.replace('_', ' ')}</span>
                                 </td>
-                                <td className="px-4 py-3">৳ {Number(a.fee_amount).toFixed(0)} {a.fee_paid ? '✓' : ''}</td>
+                                <td className="px-4 py-3">{money(a.fee_amount, { decimals: 0 })} {a.fee_paid ? '✓' : ''}</td>
                                 <td className="px-4 py-3 text-xs">
                                     <div className="flex gap-2">
                                         <Link href={`/receptionist/patients/${a.patient_id}`} className="rounded bg-gray-100 px-2 py-1 text-gray-700 hover:bg-gray-200">View</Link>

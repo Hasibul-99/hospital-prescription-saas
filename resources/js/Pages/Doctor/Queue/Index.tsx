@@ -5,6 +5,7 @@ import { Link, router } from '@inertiajs/react';
 import { Appointment, Chamber, HospitalHoliday, QueueStats } from '@/types';
 import { ReactNode, useEffect, useState } from 'react';
 import { csrfHeaders } from '@/utils/csrf';
+import { useMoney } from '@/utils/currency';
 
 interface Props {
     date: string;
@@ -45,6 +46,7 @@ function typeBadge(type: string): string {
 }
 
 export default function Index({ date, chamber_id, chambers, queue, stats, on_break, holiday }: Props) {
+    const money = useMoney();
     const [showModal, setShowModal] = useState(false);
     const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -166,7 +168,7 @@ export default function Index({ date, chamber_id, chambers, queue, stats, on_bre
                 <StatCard label="Waiting" value={stats.waiting} tone="gray" />
                 <StatCard label="Follow-ups" value={stats.follow_ups} tone="amber" />
                 <StatCard label="Absent" value={stats.absent} tone="red" />
-                <StatCard label="Earned" value={`৳ ${stats.total_earned.toFixed(0)}`} tone="blue" />
+                <StatCard label="Earned" value={money(stats.total_earned, { decimals: 0 })} tone="blue" />
             </div>
 
             {/* Action bar */}
@@ -262,7 +264,7 @@ export default function Index({ date, chamber_id, chambers, queue, stats, on_bre
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-gray-700">
-                                        ৳ {Number(a.fee_amount).toFixed(0)}
+                                        {money(a.fee_amount, { decimals: 0 })}
                                         {a.fee_paid ? <span className="ml-1 text-green-600 text-xs">✓</span> : <span className="ml-1 text-red-500 text-xs">Unpaid</span>}
                                     </td>
                                     <td className="px-4 py-3">

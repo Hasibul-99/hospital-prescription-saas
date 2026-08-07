@@ -7,7 +7,13 @@ Legend: 🌍 = global (not hospital-scoped) · 🏥 = tenant-scoped · 🔐 = so
 ## Tenant & auth layer
 
 ### 🏥🔐 `hospitals`
-`id`, `name`, `slug` (unique, URL key), `logo`, `address`, `phone`, `email`, `website`, `subscription_plan` (free/basic/premium/enterprise), `subscription_status` (active/trial/expired/suspended), `subscription_starts_at`, `subscription_ends_at`, `trial_ends_at`, `max_doctors`, `max_patients_per_month`, `settings` (JSON: language, prescription_format, currency, timezone), `is_active`, `created_by` → users.id, timestamps.
+`id`, `name`, `slug` (unique, URL key), `logo`, `address`, `phone`, `email`, `website`, `plan_id` → plans.id (**nullable**), `billing_cycle` (monthly/yearly), `currency` CHAR(3) — this hospital's money display currency, `subscription_status` (active/trial/expired/suspended), `subscription_starts_at`, `subscription_ends_at`, `trial_ends_at`, `prescription_quota_used`, `max_doctors_override`, `max_patients_per_month_override` (both **nullable** — null means "inherit from the plan"), `settings` (JSON: language, prescription_format, timezone), `is_active`, `created_by` → users.id, timestamps.
+
+### 🌍🔐 `plans`
+Subscription tiers, managed by the super admin at `/admin/plans`. Replaced the old `config/subscription.php` array and the `hospitals.subscription_plan` enum.
+`id`, `code` (unique machine key, immutable after create), `name`, `name_bn`, `tagline`, `tagline_bn`, `price_monthly`, `price_yearly` (nullable), `max_doctors`, `max_patients_per_month`, `max_prescriptions` (**all three nullable — null means UNLIMITED, never zero**), `trial_days`, `features` (JSON `[{en, bn}]` for the landing card), `cta_label`, `cta_label_bn`, `is_public` (show on the landing pricing section), `is_featured`, `is_active`, `sort_order`, timestamps.
+
+Prices are quoted in the **platform base currency** (`platform_settings` key `platform.currency`), which is separate from each hospital's own `currency`. There is no conversion between them.
 
 ### 🔐 `users`
 Mixed — super admins are global, everyone else is tenant-scoped.

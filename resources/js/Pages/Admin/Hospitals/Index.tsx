@@ -1,6 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Pagination';
-import { Hospital, PageProps } from '@/types';
+import { Hospital, PageProps, Plan } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -12,6 +12,7 @@ interface PaginatedHospitals {
 interface Props extends PageProps {
     hospitals: PaginatedHospitals;
     filters: { search?: string; plan?: string; status?: string };
+    plans: Plan[];
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -28,15 +29,15 @@ const STATUS_COLORS: Record<string, string> = {
     suspended: 'bg-orange-50 text-orange-700',
 };
 
-function Badge({ value, map }: { value: string; map: Record<string, string> }) {
+function Badge({ value, label, map }: { value: string; label?: string; map: Record<string, string> }) {
     return (
         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${map[value] ?? 'bg-gray-100 text-gray-600'}`}>
-            {value}
+            {label ?? value}
         </span>
     );
 }
 
-export default function Index({ hospitals, filters }: Props) {
+export default function Index({ hospitals, filters, plans }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [plan, setPlan] = useState(filters.plan ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
@@ -106,10 +107,9 @@ export default function Index({ hospitals, filters }: Props) {
                             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
                         >
                             <option value="">All plans</option>
-                            <option value="free">Free</option>
-                            <option value="basic">Basic</option>
-                            <option value="premium">Premium</option>
-                            <option value="enterprise">Enterprise</option>
+                            {plans.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
                         </select>
                     </div>
                     <div>
@@ -177,14 +177,16 @@ export default function Index({ hospitals, filters }: Props) {
                                     {hospital.phone && <div className="text-xs text-gray-400 mt-0.5">{hospital.phone}</div>}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <Badge value={hospital.subscription_plan} map={PLAN_COLORS} />
+                                    <Badge value={hospital.plan?.code ?? '—'} label={hospital.plan?.name ?? '—'} map={PLAN_COLORS} />
                                 </td>
                                 <td className="px-4 py-3">
                                     <Badge value={hospital.subscription_status} map={STATUS_COLORS} />
                                 </td>
                                 <td className="px-4 py-3 text-right tabular-nums text-gray-700">
                                     {hospital.doctors_count ?? 0}
-                                    <span className="text-gray-400">/{hospital.max_doctors}</span>
+                                    <span className="text-gray-400">
+                                        /{hospital.max_doctors_override ?? hospital.plan?.max_doctors ?? '∞'}
+                                    </span>
                                 </td>
                                 <td className="px-4 py-3 text-right tabular-nums text-gray-700">
                                     {hospital.patients_count ?? 0}

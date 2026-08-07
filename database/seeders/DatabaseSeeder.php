@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // Platform-level (no hospital dependency)
             SuperAdminSeeder::class,
+            PlanSeeder::class,
             MedicineSeeder::class,
             ComplaintMasterSeeder::class,
             GlobalTemplateSeeder::class,

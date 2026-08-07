@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\PlatformSetting;
+use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
@@ -18,9 +22,36 @@ class SettingsController extends Controller
                 'name' => PlatformSetting::get('platform.name', config('app.name', 'MedixPro')),
                 'logo_url' => PlatformSetting::get('platform.logo_url'),
             ],
-            'plans' => config('subscription.plans'),
+            'currency' => [
+                'current' => Money::platformCurrency(),
+                'supported' => collect(Money::supported())
+                    ->map(fn ($c, $code) => ['code' => $code, 'symbol' => $c['symbol'], 'name' => $c['name']])
+                    ->values()
+                    ->all(),
+            ],
+            'plan_count' => Plan::active()->count(),
             'maintenance_mode' => app()->isDownForMaintenance(),
         ]);
+    }
+
+    /**
+     * The base currency plan prices and the public pricing page are quoted in.
+     * Hospitals set their own currency separately — this never touches those.
+     */
+    public function updateCurrency(Request $request)
+    {
+        $data = $request->validate([
+            'currency' => ['required', Rule::in(array_keys(Money::supported()))],
+        ]);
+
+        PlatformSetting::put(Money::PLATFORM_CURRENCY_KEY, $data['currency']);
+
+        // Plan prices are quoted in this currency, so the cached landing page
+        // payload and revenue report are now stale.
+        Cache::forget(Plan::PUBLIC_CACHE_KEY);
+        Cache::forget('rpt:platform:revenue');
+
+        return back()->with('success', "Platform currency set to {$data['currency']}. Plan prices are unchanged — only the symbol they display with.");
     }
 
     public function updatePlatform(Request $request)

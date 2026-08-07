@@ -5,6 +5,7 @@ import { PageProps, Medicine } from '@/types';
 import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, App as AntApp } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+import { useCurrency } from '@/utils/currency';
 
 type Props = PageProps<{
     medicine: Medicine | null;
@@ -12,6 +13,7 @@ type Props = PageProps<{
 }>;
 
 export default function AdminMedicineForm({ medicine, types }: Props) {
+    const currency = useCurrency();
     const { message } = AntApp.useApp();
     const [saving, setSaving] = useState(false);
     const [form] = Form.useForm();
@@ -90,7 +92,7 @@ export default function AdminMedicineForm({ medicine, types }: Props) {
                             <Input maxLength={255} />
                         </Form.Item>
 
-                        <Form.Item label="Price (BDT)" name="price">
+                        <Form.Item label={`Price (${currency.code})`} name="price">
                             <InputNumber min={0} step={0.5} style={{ width: '100%' }} />
                         </Form.Item>
 

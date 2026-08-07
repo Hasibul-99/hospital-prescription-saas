@@ -28,9 +28,13 @@ class EnsureHospitalActive
                         'message' => 'Your hospital subscription is inactive or expired.',
                     ], 403);
                 }
+                // toResponse() is required here — inertia() returns an
+                // Inertia\Response, which is not a Symfony Response and so
+                // TypeErrors against this method's return type.
                 return inertia('Error/SubscriptionExpired', [
                     'hospital' => $user->hospital->name,
-                ]);
+                    'plan' => $user->hospital->plan?->name,
+                ])->toResponse($request);
             }
         }
 

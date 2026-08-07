@@ -6,6 +6,7 @@ import LanguageSwitcher from '@/Components/Common/LanguageSwitcher';
 const navItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { label: 'Hospitals', href: '/admin/hospitals', icon: '🏥' },
+    { label: 'Plans', href: '/admin/plans', icon: '💳' },
     { label: 'Users', href: '/admin/users', icon: '👥' },
     { label: 'Medicines', href: '/admin/medicines', icon: '💊' },
     { label: 'Medicine Requests', href: '/admin/medicine-requests', icon: '📝' },

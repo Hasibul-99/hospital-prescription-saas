@@ -2,7 +2,8 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import { Head, Link } from '@inertiajs/react';
 import { ReactNode } from 'react';
 import Pagination from '@/Components/Pagination';
-import { PaginatedData } from '@/types';
+import { CurrencyConfig, PaginatedData } from '@/types';
+import { formatMoney } from '@/utils/currency';
 
 interface Doctor {
     slug: string;
@@ -12,6 +13,8 @@ interface Doctor {
     designation: string | null;
     hospital: string | null;
     fee: number;
+    /** The doctor's hospital currency — the directory can mix currencies. */
+    currency: CurrencyConfig;
 }
 
 interface Props {
@@ -45,7 +48,7 @@ export default function Index({ doctors }: Props) {
                             {d.specialization && <div className="mt-1 text-sm text-teal-700">{d.specialization}</div>}
                             {d.hospital && <div className="mt-2 text-xs text-gray-500">at {d.hospital}</div>}
                             <div className="mt-3 text-sm">
-                                <span className="font-medium">৳ {d.fee.toFixed(0)}</span>
+                                <span className="font-medium">{formatMoney(d.fee, d.currency, { decimals: 0 })}</span>
                                 <span className="ml-1 text-xs text-gray-500">consultation</span>
                             </div>
                         </Link>

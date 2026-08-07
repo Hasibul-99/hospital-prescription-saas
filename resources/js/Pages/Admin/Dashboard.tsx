@@ -62,7 +62,7 @@ export default function Dashboard({ stats, recent_hospitals }: Props) {
                                     <td className="py-3 font-medium text-gray-800">{h.name}</td>
                                     <td className="py-3">
                                         <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-                                            {h.subscription_plan}
+                                            {h.plan?.name ?? '—'}
                                         </span>
                                     </td>
                                     <td className="py-3">

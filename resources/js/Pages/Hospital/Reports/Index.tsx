@@ -20,6 +20,7 @@ import {
     YAxis,
 } from 'recharts';
 import dayjs from 'dayjs';
+import { useMoney } from '@/utils/currency';
 
 type Bucket = 'daily' | 'weekly' | 'monthly';
 
@@ -56,6 +57,7 @@ export default function HospitalReports({
     top_medicines,
     new_vs_returning,
 }: Props) {
+    const money = useMoney();
     function apply(next: Partial<typeof filters>) {
         router.get('/hospital/reports', { ...filters, ...next }, { preserveState: true, preserveScroll: true });
     }
@@ -209,7 +211,7 @@ export default function HospitalReports({
                                     title: 'Revenue',
                                     dataIndex: 'total',
                                     align: 'right',
-                                    render: (v: number) => Number(v).toFixed(2),
+                                    render: (v: number) => money(v),
                                 },
                             ]}
                         />

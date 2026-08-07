@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { App as AntApp, Button, Card, Col, Form, Input, InputNumber, Row, Space, Switch, Typography } from 'antd';
 import { ReactNode } from 'react';
+import { useCurrency } from '@/utils/currency';
 
 const { Title } = Typography;
 
@@ -27,6 +28,7 @@ type Doctor = {
 type Props = PageProps<{ doctor: Doctor | null }>;
 
 export default function DoctorForm({ doctor }: Props) {
+    const currency = useCurrency();
     const { message } = AntApp.useApp();
     const isEdit = doctor !== null;
 
@@ -124,7 +126,7 @@ export default function DoctorForm({ doctor }: Props) {
                             </Form.Item>
                         </Col>
                         <Col xs={24} sm={12}>
-                            <Form.Item name="consultation_fee" label="Consultation Fee (৳)">
+                            <Form.Item name="consultation_fee" label={`Consultation Fee (${currency.symbol})`}>
                                 <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
