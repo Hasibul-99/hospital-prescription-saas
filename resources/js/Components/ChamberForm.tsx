@@ -1,6 +1,24 @@
-import { Chamber, User } from '@/types';
-import { router, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { Chamber, ChamberScheduleDay, ChamberShareModel, User } from '@/types';
+import { router } from '@inertiajs/react';
+import {
+    Alert,
+    App as AntApp,
+    Button,
+    Card,
+    Col,
+    Form,
+    Input,
+    InputNumber,
+    Row,
+    Select,
+    Space,
+    Switch,
+    TimePicker,
+    Typography,
+} from 'antd';
+import { SaveOutlined } from '@ant-design/icons';
+import dayjs, { Dayjs } from 'dayjs';
+import { useState } from 'react';
 import { useCurrency } from '@/utils/currency';
 
 interface Props {
@@ -10,183 +28,269 @@ interface Props {
     initial?: Chamber;
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const TIME_FORMAT = 'HH:mm';
+
+type Schedule = Record<string, ChamberScheduleDay>;
+
+const SHARE_MODELS: { value: ChamberShareModel; label: string; hint: string }[] = [
+    { value: 'full', label: 'Full — doctor keeps 100%', hint: 'The hospital takes no cut of this chamber’s consultation fees.' },
+    { value: 'split', label: 'Split — % to doctor, rest to hospital', hint: 'Set the doctor’s percentage; the remainder goes to the hospital.' },
+    { value: 'rent', label: 'Rent — doctor pays flat monthly rent', hint: 'The doctor keeps all fees and pays the hospital a fixed monthly amount.' },
+];
+
+/** "HH:mm" ⇄ dayjs, so the stored shape stays a plain string. */
+function toTime(value: string): Dayjs | null {
+    return value ? dayjs(value, TIME_FORMAT) : null;
+}
 
 export default function ChamberForm({ doctors, submitUrl, method, initial }: Props) {
     const currency = useCurrency();
-    const initialSchedule: Record<string, { start: string; end: string; active: boolean }> = DAYS.reduce((acc, d) => {
-        const existing = (initial?.schedule as any)?.[d];
-        acc[d] = existing ?? { start: '', end: '', active: false };
-        return acc;
-    }, {} as Record<string, { start: string; end: string; active: boolean }>);
+    const { message } = AntApp.useApp();
+    const [form] = Form.useForm();
+    const [saving, setSaving] = useState(false);
 
-    const { data, setData, processing, errors } = useForm<{
-        doctor_id: number | string;
-        name: string;
-        room_number: string;
-        floor: string;
-        building: string;
-        is_active: boolean;
-        schedule: typeof initialSchedule;
-        daily_slot_cap: number | '';
-        share_model: 'full' | 'split' | 'rent';
-        share_percent_doctor: number | '';
-        rent_amount_monthly: number | '';
-        share_notes: string;
-    }>({
-        doctor_id: initial?.doctor_id ?? (doctors[0]?.id ?? ''),
+    // The weekly schedule is a nested object rather than a flat field, so it is
+    // kept in local state and merged in on submit instead of fighting antd's
+    // nested-name handling for seven rows of paired times.
+    const [schedule, setSchedule] = useState<Schedule>(() =>
+        DAYS.reduce<Schedule>((acc, day) => {
+            acc[day] = initial?.schedule?.[day] ?? { start: '', end: '', active: false };
+            return acc;
+        }, {}),
+    );
+
+    const shareModel = Form.useWatch<ChamberShareModel>('share_model', form) ?? 'full';
+
+    const initialValues = {
+        doctor_id: initial?.doctor_id ?? doctors[0]?.id,
         name: initial?.name ?? '',
         room_number: initial?.room_number ?? '',
         floor: initial?.floor ?? '',
         building: initial?.building ?? '',
         is_active: initial?.is_active ?? true,
-        schedule: initialSchedule,
-        daily_slot_cap: (initial as any)?.daily_slot_cap ?? '',
-        share_model: ((initial as any)?.share_model as 'full' | 'split' | 'rent') ?? 'full',
-        share_percent_doctor: (initial as any)?.share_percent_doctor ?? '',
-        rent_amount_monthly: (initial as any)?.rent_amount_monthly ?? '',
-        share_notes: (initial as any)?.share_notes ?? '',
-    });
-
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-        if (method === 'put') {
-            router.put(submitUrl, data);
-        } else {
-            router.post(submitUrl, data);
-        }
+        daily_slot_cap: initial?.daily_slot_cap ?? null,
+        share_model: initial?.share_model ?? 'full',
+        share_percent_doctor: initial?.share_percent_doctor != null ? Number(initial.share_percent_doctor) : null,
+        rent_amount_monthly: initial?.rent_amount_monthly != null ? Number(initial.rent_amount_monthly) : null,
+        share_notes: initial?.share_notes ?? '',
     };
 
-    function updateSchedule(day: string, key: 'start' | 'end' | 'active', value: string | boolean) {
-        setData('schedule', { ...data.schedule, [day]: { ...data.schedule[day], [key]: value } });
+    function updateDay(day: string, patch: Partial<ChamberScheduleDay>) {
+        setSchedule((prev) => ({ ...prev, [day]: { ...prev[day], ...patch } }));
     }
 
+    function submit(values: Record<string, unknown>) {
+        setSaving(true);
+
+        const payload = {
+            ...values,
+            schedule,
+            // The unused settlement field is cleared so a chamber switched from
+            // split to rent does not keep a stale percentage on record.
+            share_percent_doctor: values.share_model === 'split' ? values.share_percent_doctor : null,
+            rent_amount_monthly: values.share_model === 'rent' ? values.rent_amount_monthly : null,
+        };
+
+        const options = {
+            onError: () => message.error('Please fix the highlighted fields.'),
+            onFinish: () => setSaving(false),
+        };
+
+        if (method === 'put') {
+            router.put(submitUrl, payload as never, options);
+        } else {
+            router.post(submitUrl, payload as never, options);
+        }
+    }
+
+    const activeDays = DAYS.filter((d) => schedule[d].active);
+    const incompleteDays = activeDays.filter((d) => !schedule[d].start || !schedule[d].end);
+
     return (
-        <form onSubmit={submit} className="rounded-lg bg-white p-5 shadow-sm">
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-xs font-medium text-gray-600">Doctor</label>
-                    <select value={data.doctor_id} onChange={(e) => setData('doctor_id', Number(e.target.value))} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                        {doctors.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                    {errors.doctor_id && <p className="mt-1 text-xs text-red-600">{errors.doctor_id}</p>}
-                </div>
-
-                <div>
-                    <label className="block text-xs font-medium text-gray-600">Chamber Name</label>
-                    <input type="text" value={data.name} onChange={(e) => setData('name', e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm" />
-                    {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-                </div>
-
-                <div><label className="block text-xs font-medium text-gray-600">Room</label><input type="text" value={data.room_number ?? ''} onChange={(e) => setData('room_number', e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm" /></div>
-                <div><label className="block text-xs font-medium text-gray-600">Floor</label><input type="text" value={data.floor ?? ''} onChange={(e) => setData('floor', e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm" /></div>
-                <div className="col-span-2"><label className="block text-xs font-medium text-gray-600">Building</label><input type="text" value={data.building ?? ''} onChange={(e) => setData('building', e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm" /></div>
-            </div>
-
-            <div className="mt-4">
-                <div className="mb-2 text-sm font-medium text-gray-700">Weekly Schedule</div>
-                <div className="divide-y rounded border">
-                    {DAYS.map((d) => (
-                        <div key={d} className="flex items-center gap-3 px-3 py-2">
-                            <label className="flex w-16 items-center gap-1 text-sm">
-                                <input type="checkbox" checked={data.schedule[d].active} onChange={(e) => updateSchedule(d, 'active', e.target.checked)} />
-                                {d}
-                            </label>
-                            <input
-                                type="time"
-                                value={data.schedule[d].start}
-                                disabled={!data.schedule[d].active}
-                                onChange={(e) => updateSchedule(d, 'start', e.target.value)}
-                                className="rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
+        <Form
+            form={form}
+            layout="vertical"
+            initialValues={initialValues}
+            onFinish={submit}
+            style={{ maxWidth: 860 }}
+            requiredMark
+        >
+            <Card title="Chamber details" style={{ marginBottom: 16 }}>
+                <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                        <Form.Item name="doctor_id" label="Doctor" rules={[{ required: true, message: 'Pick a doctor' }]}>
+                            <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder="Select a doctor"
+                                options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                             />
-                            <span className="text-gray-400">–</span>
-                            <input
-                                type="time"
-                                value={data.schedule[d].end}
-                                disabled={!data.schedule[d].active}
-                                onChange={(e) => updateSchedule(d, 'end', e.target.value)}
-                                className="rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
-                            />
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="mt-5">
-                <div className="mb-2 text-sm font-medium text-gray-700">Settlement</div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                    <label className="block text-xs text-gray-600">
-                        Share model
-                        <select
-                            value={data.share_model}
-                            onChange={(e) => setData('share_model', e.target.value as 'full' | 'split' | 'rent')}
-                            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                        <Form.Item name="name" label="Chamber name" rules={[{ required: true, message: 'Name is required' }]}>
+                            <Input maxLength={100} placeholder="e.g. Chamber 1" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Form.Item name="room_number" label="Room">
+                            <Input maxLength={50} />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Form.Item name="floor" label="Floor">
+                            <Input maxLength={50} />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Form.Item name="building" label="Building">
+                            <Input maxLength={100} />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                        <Form.Item
+                            name="daily_slot_cap"
+                            label="Daily slot cap"
+                            tooltip="Maximum appointments bookable per day. Leave blank for no cap."
                         >
-                            <option value="full">FULL — doctor keeps 100%</option>
-                            <option value="split">SPLIT — % to doctor, rest to hospital</option>
-                            <option value="rent">RENT — doctor pays flat monthly rent</option>
-                        </select>
-                    </label>
+                            <InputNumber min={1} max={500} style={{ width: '100%' }} placeholder="No cap" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                        <Form.Item
+                            name="is_active"
+                            label="Active"
+                            valuePropName="checked"
+                            tooltip="Inactive chambers cannot be booked."
+                        >
+                            <Switch />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Card>
 
-                    {data.share_model === 'split' && (
-                        <label className="block text-xs text-gray-600">
-                            Doctor share (%)
-                            <input
-                                type="number" step="0.01" min={0} max={100}
-                                value={data.share_percent_doctor}
-                                onChange={(e) => setData('share_percent_doctor', e.target.value === '' ? '' : Number(e.target.value))}
-                                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-                                placeholder="e.g., 60"
-                            />
-                        </label>
-                    )}
+            <Card
+                title="Weekly schedule"
+                style={{ marginBottom: 16 }}
+                extra={
+                    <Typography.Text type="secondary" className="text-xs">
+                        {activeDays.length === 0 ? 'No days open' : `${activeDays.length} day${activeDays.length > 1 ? 's' : ''} open`}
+                    </Typography.Text>
+                }
+            >
+                {incompleteDays.length > 0 && (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        className="mb-3"
+                        message={`Set both a start and end time for: ${incompleteDays.join(', ')}.`}
+                    />
+                )}
 
-                    {data.share_model === 'rent' && (
-                        <label className="block text-xs text-gray-600">
-                            Monthly rent ({currency.symbol})
-                            <input
-                                type="number" step="0.01" min={0}
-                                value={data.rent_amount_monthly}
-                                onChange={(e) => setData('rent_amount_monthly', e.target.value === '' ? '' : Number(e.target.value))}
-                                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-                                placeholder="e.g., 15000"
-                            />
-                        </label>
-                    )}
+                <div className="divide-y divide-gray-100 rounded-md border border-gray-200">
+                    {DAYS.map((day) => {
+                        const row = schedule[day];
+                        return (
+                            <div key={day} className="flex flex-wrap items-center gap-3 px-3 py-2">
+                                <div className="flex w-28 flex-none items-center gap-2">
+                                    <Switch
+                                        size="small"
+                                        checked={row.active}
+                                        onChange={(active) => updateDay(day, { active })}
+                                    />
+                                    <span className={row.active ? 'text-sm font-medium text-gray-800' : 'text-sm text-gray-400'}>
+                                        {day}
+                                    </span>
+                                </div>
 
-                    <label className="block text-xs text-gray-600">
-                        Daily slot cap
-                        <input
-                            type="number" min={1} max={500}
-                            value={data.daily_slot_cap}
-                            onChange={(e) => setData('daily_slot_cap', e.target.value === '' ? '' : Number(e.target.value))}
-                            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-                            placeholder="e.g., 20"
-                        />
-                    </label>
+                                <TimePicker
+                                    format={TIME_FORMAT}
+                                    minuteStep={5}
+                                    disabled={!row.active}
+                                    value={toTime(row.start)}
+                                    onChange={(t) => updateDay(day, { start: t ? t.format(TIME_FORMAT) : '' })}
+                                    placeholder="Start"
+                                    style={{ width: 120 }}
+                                />
+                                <span className="text-gray-400">–</span>
+                                <TimePicker
+                                    format={TIME_FORMAT}
+                                    minuteStep={5}
+                                    disabled={!row.active}
+                                    value={toTime(row.end)}
+                                    onChange={(t) => updateDay(day, { end: t ? t.format(TIME_FORMAT) : '' })}
+                                    placeholder="End"
+                                    style={{ width: 120 }}
+                                />
 
-                    <label className="block text-xs text-gray-600 sm:col-span-3">
-                        Notes (optional — visible only to hospital admin)
-                        <input
-                            type="text"
-                            value={data.share_notes}
-                            onChange={(e) => setData('share_notes', e.target.value)}
-                            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-                        />
-                    </label>
+                                {row.active && !!row.start && !!row.end && (
+                                    <Typography.Text type="secondary" className="text-xs">
+                                        {row.start} – {row.end}
+                                    </Typography.Text>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-            </div>
+            </Card>
 
-            <label className="mt-4 flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={data.is_active} onChange={(e) => setData('is_active', e.target.checked)} />
-                Active
-            </label>
+            <Card title="Settlement" style={{ marginBottom: 16 }}>
+                <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                        <Form.Item name="share_model" label="Share model">
+                            <Select options={SHARE_MODELS.map(({ value, label }) => ({ value, label }))} />
+                        </Form.Item>
+                    </Col>
 
-            <div className="mt-5 flex justify-end gap-2">
-                <button type="submit" disabled={processing} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-400">
-                    {processing ? 'Saving…' : 'Save'}
-                </button>
-            </div>
-        </form>
+                    {shareModel === 'split' && (
+                        <Col xs={24} sm={12}>
+                            <Form.Item
+                                name="share_percent_doctor"
+                                label="Doctor share (%)"
+                                rules={[{ required: true, message: 'Enter the doctor’s percentage' }]}
+                            >
+                                <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} placeholder="e.g. 60" />
+                            </Form.Item>
+                        </Col>
+                    )}
+
+                    {shareModel === 'rent' && (
+                        <Col xs={24} sm={12}>
+                            <Form.Item
+                                name="rent_amount_monthly"
+                                label={`Monthly rent (${currency.symbol})`}
+                                rules={[{ required: true, message: 'Enter the monthly rent' }]}
+                            >
+                                <InputNumber min={0} step={100} style={{ width: '100%' }} placeholder="e.g. 15000" />
+                            </Form.Item>
+                        </Col>
+                    )}
+
+                    <Col xs={24}>
+                        <Typography.Text type="secondary" className="text-xs">
+                            {SHARE_MODELS.find((m) => m.value === shareModel)?.hint}
+                        </Typography.Text>
+                    </Col>
+
+                    <Col xs={24} className="mt-4">
+                        <Form.Item
+                            name="share_notes"
+                            label="Notes"
+                            tooltip="Visible only to hospital admins — never shown to the doctor or on a prescription."
+                        >
+                            <Input maxLength={255} placeholder="Optional" />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Card>
+
+            <Space>
+                <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving}>
+                    {method === 'put' ? 'Update chamber' : 'Create chamber'}
+                </Button>
+                <Button onClick={() => router.visit('/hospital/chambers')}>Cancel</Button>
+            </Space>
+        </Form>
     );
 }

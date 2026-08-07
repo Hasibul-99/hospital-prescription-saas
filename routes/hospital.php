@@ -19,7 +19,17 @@ Route::middleware(['auth', 'verified', 'role:hospital_admin', 'hospital.active']
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::resource('doctors', DoctorController::class);
+        // Credentials change through their own endpoint, never as part of a
+        // profile save. Throttled — this is a privileged reset.
+        Route::put('doctors/{doctor}/password', [DoctorController::class, 'updatePassword'])
+            ->middleware('throttle:10,1')
+            ->name('doctors.password');
+
         Route::resource('receptionists', ReceptionistController::class);
+        Route::put('receptionists/{receptionist}/password', [ReceptionistController::class, 'updatePassword'])
+            ->middleware('throttle:10,1')
+            ->name('receptionists.password');
+
         Route::resource('patients', PatientController::class);
         Route::get('patients-export', [PatientController::class, 'export'])->name('patients.export');
         Route::resource('chambers', ChamberController::class);

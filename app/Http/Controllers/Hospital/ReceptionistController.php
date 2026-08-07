@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Hospital;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class ReceptionistController extends Controller
@@ -80,25 +83,53 @@ class ReceptionistController extends Controller
             'name'      => 'required|string|max:255',
             'email'     => ['required', 'email', Rule::unique('users', 'email')->ignore($receptionist->id)],
             'phone'     => 'nullable|string|max:30',
-            'password'  => 'nullable|string|min:8|confirmed',
             'is_active' => 'boolean',
         ]);
 
-        $updates = [
+        // Credentials are changed through updatePassword() only, never as a
+        // side effect of a profile save.
+        $receptionist->update([
             'name'      => $data['name'],
             'email'     => $data['email'],
             'phone'     => $data['phone'] ?? null,
             'is_active' => $data['is_active'] ?? $receptionist->is_active,
-        ];
-
-        if (!empty($data['password'])) {
-            $updates['password'] = Hash::make($data['password']);
-        }
-
-        $receptionist->update($updates);
+        ]);
 
         return redirect()->route('hospital.receptionists.index')
             ->with('success', 'Receptionist updated successfully.');
+    }
+
+    /**
+     * Hospital-admin password reset for one of their own receptionists.
+     *
+     * Scoped to the acting admin's hospital by the same guard as every other
+     * write here — a hospital admin must never be able to reset credentials
+     * for an account in another tenant. Audited, and the receptionist's
+     * remember-me token is rotated so persistent login cookies issued before
+     * the reset stop working.
+     */
+    public function updatePassword(Request $request, User $receptionist, AuditLogger $audit)
+    {
+        abort_if($receptionist->hospital_id !== $request->user()->hospital_id || $receptionist->role !== 'receptionist', 403);
+
+        $data = $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $receptionist->forceFill([
+            'password' => Hash::make($data['password']),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        $audit->record('user.password_reset', $receptionist, [
+            'reset_by' => $request->user()?->name,
+            'role' => $receptionist->role,
+        ]);
+
+        return back()->with(
+            'success',
+            "Password updated for {$receptionist->name}. Any \"remember me\" sessions have been invalidated — share the new password securely."
+        );
     }
 
     public function destroy(Request $request, User $receptionist)

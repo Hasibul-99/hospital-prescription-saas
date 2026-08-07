@@ -1,9 +1,10 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import FlashMessage from '@/Components/FlashMessage';
+import PasswordResetModal from '@/Components/PasswordResetModal';
 import { Head, router } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { App as AntApp, Button, Card, Col, Form, Input, Row, Space, Switch, Typography } from 'antd';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 const { Title } = Typography;
 
@@ -20,6 +21,7 @@ type Props = PageProps<{ receptionist: Receptionist | null }>;
 export default function ReceptionistForm({ receptionist }: Props) {
     const { message } = AntApp.useApp();
     const isEdit = receptionist !== null;
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     function onFinish(values: Record<string, unknown>) {
         if (isEdit) {
@@ -67,33 +69,36 @@ export default function ReceptionistForm({ receptionist }: Props) {
                                 <Switch />
                             </Form.Item>
                         </Col>
-                        <Col xs={24} sm={12}>
-                            <Form.Item
-                                name="password"
-                                label={isEdit ? 'New Password (leave blank to keep)' : 'Password'}
-                                rules={isEdit ? [] : [{ required: true, min: 8 }]}
-                            >
-                                <Input.Password />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={12}>
-                            <Form.Item
-                                name="password_confirmation"
-                                label="Confirm Password"
-                                dependencies={['password']}
-                                rules={[
-                                    ({ getFieldValue }) => ({
-                                        validator(_, value) {
-                                            const pwd = getFieldValue('password');
-                                            if (!pwd || pwd === value) return Promise.resolve();
-                                            return Promise.reject(new Error('Passwords do not match.'));
-                                        },
-                                    }),
-                                ]}
-                            >
-                                <Input.Password />
-                            </Form.Item>
-                        </Col>
+                        {/* A new account needs an initial credential. Existing
+                            receptionists change theirs through the modal below,
+                            so a profile save can never touch the password. */}
+                        {!isEdit && (
+                            <>
+                                <Col xs={24} sm={12}>
+                                    <Form.Item name="password" label="Password" rules={[{ required: true, min: 8 }]}>
+                                        <Input.Password />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={12}>
+                                    <Form.Item
+                                        name="password_confirmation"
+                                        label="Confirm Password"
+                                        dependencies={['password']}
+                                        rules={[
+                                            ({ getFieldValue }) => ({
+                                                validator(_, value) {
+                                                    const pwd = getFieldValue('password');
+                                                    if (!pwd || pwd === value) return Promise.resolve();
+                                                    return Promise.reject(new Error('Passwords do not match.'));
+                                                },
+                                            }),
+                                        ]}
+                                    >
+                                        <Input.Password />
+                                    </Form.Item>
+                                </Col>
+                            </>
+                        )}
                     </Row>
                 </Card>
 
@@ -102,6 +107,27 @@ export default function ReceptionistForm({ receptionist }: Props) {
                     <Button onClick={() => router.visit('/hospital/receptionists')}>Cancel</Button>
                 </Space>
             </Form>
+
+            {isEdit && (
+                <>
+                    <Card title="Password" style={{ maxWidth: 640, marginTop: 16 }}>
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <Typography.Text type="secondary" style={{ maxWidth: 380 }}>
+                                Reset this receptionist's password. Changed separately from the profile above, and
+                                recorded in the audit log.
+                            </Typography.Text>
+                            <Button onClick={() => setShowPasswordModal(true)}>Change password</Button>
+                        </div>
+                    </Card>
+
+                    <PasswordResetModal
+                        user={{ name: receptionist.name, email: receptionist.email }}
+                        endpoint={`/hospital/receptionists/${receptionist.id}/password`}
+                        show={showPasswordModal}
+                        onClose={() => setShowPasswordModal(false)}
+                    />
+                </>
+            )}
         </>
     );
 }

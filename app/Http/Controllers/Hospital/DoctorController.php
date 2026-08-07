@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\DoctorProfile;
 use App\Models\Hospital;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Support\DoctorLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class DoctorController extends Controller
@@ -114,7 +117,6 @@ class DoctorController extends Controller
             'name'            => 'required|string|max:255',
             'email'           => ['required', 'email', Rule::unique('users', 'email')->ignore($doctor->id)],
             'phone'           => 'nullable|string|max:30',
-            'password'        => 'nullable|string|min:8|confirmed',
             'is_active'       => 'boolean',
             'bmdc_number'     => 'nullable|string|max:50',
             'degrees'         => 'nullable|string|max:500',
@@ -129,13 +131,14 @@ class DoctorController extends Controller
             DoctorLimit::assertCanAdd($this->hospital($request), 'is_active');
         }
 
-        $doctor->update(array_filter([
+        // Credentials are changed through updatePassword() only, never as a
+        // side effect of a profile save.
+        $doctor->update([
             'name'      => $data['name'],
             'email'     => $data['email'],
             'phone'     => $data['phone'] ?? null,
             'is_active' => $data['is_active'] ?? $doctor->is_active,
-            'password'  => isset($data['password']) ? Hash::make($data['password']) : null,
-        ], fn ($v) => $v !== null || array_key_exists('phone', $data)));
+        ]);
 
         $doctor->doctorProfile()->updateOrCreate(
             ['user_id' => $doctor->id, 'hospital_id' => $doctor->hospital_id],
@@ -150,6 +153,39 @@ class DoctorController extends Controller
 
         return redirect()->route('hospital.doctors.index')
             ->with('success', 'Doctor updated successfully.');
+    }
+
+    /**
+     * Hospital-admin password reset for one of their own doctors.
+     *
+     * Scoped to the acting admin's hospital by the same guard as every other
+     * write here — a hospital admin must never be able to reset credentials
+     * for an account in another tenant. Audited, and the doctor's remember-me
+     * token is rotated so persistent login cookies issued before the reset
+     * stop working.
+     */
+    public function updatePassword(Request $request, User $doctor, AuditLogger $audit)
+    {
+        abort_if($doctor->hospital_id !== $request->user()->hospital_id || $doctor->role !== 'doctor', 403);
+
+        $data = $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $doctor->forceFill([
+            'password' => Hash::make($data['password']),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        $audit->record('user.password_reset', $doctor, [
+            'reset_by' => $request->user()?->name,
+            'role' => $doctor->role,
+        ]);
+
+        return back()->with(
+            'success',
+            "Password updated for {$doctor->name}. Any \"remember me\" sessions have been invalidated — share the new password securely."
+        );
     }
 
     public function destroy(Request $request, User $doctor)

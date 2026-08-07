@@ -189,16 +189,35 @@ export interface HospitalHoliday {
     is_recurring_yearly: boolean;
 }
 
+/** One weekday's opening hours. Times are 24h "HH:mm" strings. */
+export interface ChamberScheduleDay {
+    start: string;
+    end: string;
+    active: boolean;
+}
+
+/** How consultation income is split between the doctor and the hospital. */
+export type ChamberShareModel = 'full' | 'split' | 'rent';
+
 export interface Chamber {
     id: number;
     doctor_id: number;
     hospital_id: number;
     name: string;
-    room_number?: string;
-    floor?: string;
-    building?: string;
-    schedule?: Record<string, unknown>;
+    room_number?: string | null;
+    floor?: string | null;
+    building?: string | null;
+    /** Keyed by short day name — Sun, Mon, … */
+    schedule?: Record<string, ChamberScheduleDay> | null;
+    daily_slot_cap?: number | null;
+    share_model?: ChamberShareModel | null;
+    /** Only meaningful when share_model is 'split'. */
+    share_percent_doctor?: number | string | null;
+    /** Only meaningful when share_model is 'rent'. */
+    rent_amount_monthly?: number | string | null;
+    share_notes?: string | null;
     is_active: boolean;
+    doctor?: Pick<User, 'id' | 'name'>;
 }
 
 export interface Prescription {

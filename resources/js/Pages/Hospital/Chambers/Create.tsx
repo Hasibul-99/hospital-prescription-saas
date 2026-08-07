@@ -1,17 +1,35 @@
 import HospitalLayout from '@/Layouts/HospitalLayout';
+import FlashMessage from '@/Components/FlashMessage';
 import ChamberForm from '@/Components/ChamberForm';
-import { User } from '@/types';
+import { PageProps, User } from '@/types';
+import { Head } from '@inertiajs/react';
+import { Alert, Typography } from 'antd';
 import { ReactNode } from 'react';
 
-interface Props {
-    doctors: Pick<User, 'id' | 'name'>[];
-}
+type Props = PageProps<{ doctors: Pick<User, 'id' | 'name'>[] }>;
 
 export default function Create({ doctors }: Props) {
     return (
         <>
-            <h2 className="mb-4 text-xl font-bold text-gray-800">New Chamber</h2>
-            <ChamberForm doctors={doctors} submitUrl="/hospital/chambers" method="post" />
+            <Head title="New Chamber" />
+            <FlashMessage />
+
+            <Typography.Title level={4} style={{ marginBottom: 16 }}>
+                New Chamber
+            </Typography.Title>
+
+            {doctors.length === 0 ? (
+                // A chamber belongs to a doctor, so there is nothing to create yet.
+                <Alert
+                    type="info"
+                    showIcon
+                    message="No active doctors"
+                    description="Add an active doctor before creating a chamber — every chamber is assigned to one."
+                    style={{ maxWidth: 860 }}
+                />
+            ) : (
+                <ChamberForm doctors={doctors} submitUrl="/hospital/chambers" method="post" />
+            )}
         </>
     );
 }

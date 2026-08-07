@@ -1,6 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import FlashMessage from '@/Components/FlashMessage';
-import Modal from '@/Components/Modal';
+import PasswordResetModal from '@/Components/PasswordResetModal';
 import DoctorProfileFields from '@/Components/DoctorProfileFields';
 import { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -20,107 +20,6 @@ interface Props extends PageProps {
 
 const inputCls = 'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
-
-/**
- * Password reset lives in its own modal posting to its own endpoint, so a
- * routine profile save can never change credentials as a side effect.
- */
-function PasswordModal({ user, show, onClose }: { user: User; show: boolean; onClose: () => void }) {
-    const { data, setData, put, processing, errors, reset, clearErrors } = useForm({
-        password: '',
-        password_confirmation: '',
-    });
-    const [reveal, setReveal] = useState(false);
-
-    function close() {
-        reset();
-        clearErrors();
-        setReveal(false);
-        onClose();
-    }
-
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-        put(route('admin.users.password', user.id), {
-            preserveScroll: true,
-            onSuccess: () => close(),
-        });
-    };
-
-    return (
-        <Modal show={show} maxWidth="md" onClose={close}>
-            <form onSubmit={submit} className="space-y-4">
-                <div>
-                    <h3 className="text-base font-semibold text-gray-900">Change password</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Set a new password for <span className="font-medium text-gray-700">{user.name}</span> ({user.email}).
-                    </p>
-                </div>
-
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                    The user is not notified automatically. Share the new password with them over a secure channel,
-                    and ask them to change it after signing in.
-                </div>
-
-                <div>
-                    <label className={labelCls}>New password *</label>
-                    <input
-                        type={reveal ? 'text' : 'password'}
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
-                        autoComplete="new-password"
-                        required
-                        className={inputCls}
-                    />
-                    {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
-                </div>
-
-                <div>
-                    <label className={labelCls}>Confirm new password *</label>
-                    <input
-                        type={reveal ? 'text' : 'password'}
-                        value={data.password_confirmation}
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                        autoComplete="new-password"
-                        required
-                        className={inputCls}
-                    />
-                    {errors.password_confirmation && (
-                        <p className="mt-1 text-xs text-red-600">{errors.password_confirmation}</p>
-                    )}
-                </div>
-
-                <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <input
-                        type="checkbox"
-                        checked={reveal}
-                        onChange={(e) => setReveal(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-teal-600"
-                    />
-                    Show passwords
-                </label>
-
-                <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-                    <button
-                        type="button"
-                        onClick={close}
-                        className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                        style={{ background: '#0f766e' }}
-                    >
-                        {processing ? 'Updating…' : 'Update password'}
-                    </button>
-                </div>
-            </form>
-        </Modal>
-    );
-}
 
 export default function Edit({ user, hospitals, specializations }: Props) {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -246,7 +145,12 @@ export default function Edit({ user, hospitals, specializations }: Props) {
                 </div>
             </div>
 
-            <PasswordModal user={user} show={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
+            <PasswordResetModal
+                user={{ name: user.name, email: user.email }}
+                endpoint={route('admin.users.password', user.id)}
+                show={showPasswordModal}
+                onClose={() => setShowPasswordModal(false)}
+            />
         </AdminLayout>
     );
 }
